@@ -1524,18 +1524,20 @@
     if (patch.status === "served" && !next.served_at) next.served_at = new Date().toISOString();
     if (patch.payment_status === "paid" && !next.paid_at) next.paid_at = new Date().toISOString();
 
+    upsertOrder(next);
+    if (state.syncMode === "local") saveLocalOrders();
+    render();
+
     if (state.syncMode === "supabase" && state.supabase) {
       const { error } = await state.supabase.from("drink_orders").update(toDatabaseRow(next)).eq("id", id);
       if (error) {
         console.error(error);
+        upsertOrder(order);
+        render();
         toast("更新に失敗しました");
         return;
       }
     }
-
-    upsertOrder(next);
-    if (state.syncMode === "local") saveLocalOrders();
-    render();
   }
 
   function handleRealtimePayload(payload) {
@@ -1568,7 +1570,6 @@
 
   function notifyNewOrder(order) {
     if (state.view === "bar") {
-      toast(`${sourceLabels[order.source]}: ${order.drink_name} が入りました`);
       if (state.soundEnabled) playChime();
     }
   }

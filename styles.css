@@ -1100,15 +1100,16 @@ button:focus-visible {
 #barOrders.orders-list {
   grid-template-columns: 1fr;
   align-items: start;
+  grid-auto-flow: row;
 }
 
-@media (min-width: 760px) {
+@media (min-width: 640px) {
   #barOrders.orders-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (min-width: 980px) {
+@media (min-width: 760px) {
   #barOrders.orders-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
