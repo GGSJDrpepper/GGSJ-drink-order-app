@@ -1271,8 +1271,14 @@
 
   async function configureSupabaseFromStorage() {
     const config = readConfig();
-    if (!config.url || !config.anonKey || !window.supabase) {
-      setSyncMode("local");
+    if (!config.url || !config.anonKey) {
+      setSyncMode("local", "デモ同期");
+      return;
+    }
+
+    if (!window.supabase) {
+      setSyncMode("local", "Supabase読込不可");
+      toast("Supabaseライブラリを読み込めません");
       return;
     }
 
@@ -1294,27 +1300,32 @@
             handleSharedSettingsPayload(payload);
           }
         )
-        .subscribe();
-      setSyncMode("supabase");
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            setSyncMode("supabase", "共有同期");
+          }
+          if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+            setSyncMode("supabase", "受信接続エラー");
+          }
+        });
+      setSyncMode("supabase", "共有接続中");
     } catch (error) {
       console.error(error);
-      setSyncMode("local");
+      setSyncMode("local", "接続失敗");
       toast("共有同期の接続に失敗しました");
     }
   }
 
-  function setSyncMode(mode) {
+  function setSyncMode(mode, label) {
     state.syncMode = mode;
     const badge = $("#syncBadge");
     if (!badge) return;
+    badge.classList.toggle("is-shared", mode === "supabase");
+    badge.classList.toggle("is-local", mode !== "supabase");
     if (mode === "supabase") {
-      badge.textContent = "共有同期";
-      badge.style.borderColor = "rgba(223, 244, 239, 0.55)";
-      badge.style.color = "#dff4ef";
+      badge.textContent = label || "共有同期";
     } else {
-      badge.textContent = "デモ同期";
-      badge.style.borderColor = "rgba(255, 253, 248, 0.2)";
-      badge.style.color = "rgba(255, 253, 248, 0.82)";
+      badge.textContent = label || "デモ同期";
     }
   }
 
@@ -1415,7 +1426,7 @@
       if (error) {
         console.error(error);
         toast("共有データの読み込みに失敗しました");
-        setSyncMode("local");
+        setSyncMode("local", "共有読込失敗");
         loadLocalOrders();
         return;
       }
@@ -1456,7 +1467,7 @@
       if (error) {
         console.error(error);
         toast("共有同期に失敗したためデモ同期へ保存しました");
-        setSyncMode("local");
+        setSyncMode("local", "送信失敗");
       } else {
         upsertOrder(normalizeOrder(data));
         state.knownIds.add(order.id);

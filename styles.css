@@ -230,15 +230,30 @@ p {
 }
 
 .sync-badge {
-  min-height: 34px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
-  padding: 0 12px;
-  border: 1px solid rgba(255, 253, 248, 0.2);
+  margin-left: auto;
+  padding: 0 9px;
+  border: 1px solid #eeeeee;
   border-radius: 999px;
-  color: rgba(255, 253, 248, 0.82);
-  font-size: 0.84rem;
+  background: #fafafa;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
   white-space: nowrap;
+}
+
+.sync-badge.is-shared {
+  border-color: #b9e6d8;
+  background: #e8f8f2;
+  color: #087558;
+}
+
+.sync-badge.is-local {
+  border-color: #f4d4d4;
+  background: #fff3f3;
+  color: #a44242;
 }
 
 .button,
