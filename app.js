@@ -8,6 +8,8 @@
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
   const CHANNEL_NAME = "drink-relay-local";
   const SETTINGS_ROW_ID = "main";
+  const DEFAULT_SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
+  const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
   const MAX_HISTORY = 80;
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
@@ -1828,7 +1830,7 @@
   }
 
   async function clearConfig() {
-    localStorage.removeItem(CONFIG_KEY);
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ useDefaultSupabase: false, url: "", anonKey: "" }));
     $("#supabaseUrl").value = "";
     $("#supabaseAnonKey").value = "";
     state.sharedSettingsLoaded = false;
@@ -1842,9 +1844,17 @@
 
   function readConfig() {
     try {
-      return JSON.parse(localStorage.getItem(CONFIG_KEY) || "{}");
+      const saved = JSON.parse(localStorage.getItem(CONFIG_KEY) || "null");
+      if (saved?.useDefaultSupabase === false) return saved;
+      return {
+        url: saved?.url || DEFAULT_SUPABASE_URL,
+        anonKey: saved?.anonKey || DEFAULT_SUPABASE_ANON_KEY,
+      };
     } catch {
-      return {};
+      return {
+        url: DEFAULT_SUPABASE_URL,
+        anonKey: DEFAULT_SUPABASE_ANON_KEY,
+      };
     }
   }
 
