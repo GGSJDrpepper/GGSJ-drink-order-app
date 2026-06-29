@@ -18,11 +18,21 @@ create table if not exists public.drink_orders (
   events jsonb not null default '[]'::jsonb
 );
 
+create table if not exists public.drink_app_settings (
+  id text primary key,
+  updated_at timestamptz not null default now(),
+  menu jsonb not null default '[]'::jsonb
+);
+
 alter table public.drink_orders enable row level security;
+alter table public.drink_app_settings enable row level security;
 
 drop policy if exists "drink_orders_select" on public.drink_orders;
 drop policy if exists "drink_orders_insert" on public.drink_orders;
 drop policy if exists "drink_orders_update" on public.drink_orders;
+drop policy if exists "drink_app_settings_select" on public.drink_app_settings;
+drop policy if exists "drink_app_settings_insert" on public.drink_app_settings;
+drop policy if exists "drink_app_settings_update" on public.drink_app_settings;
 
 create policy "drink_orders_select"
   on public.drink_orders
@@ -36,6 +46,22 @@ create policy "drink_orders_insert"
 
 create policy "drink_orders_update"
   on public.drink_orders
+  for update
+  using (true)
+  with check (true);
+
+create policy "drink_app_settings_select"
+  on public.drink_app_settings
+  for select
+  using (true);
+
+create policy "drink_app_settings_insert"
+  on public.drink_app_settings
+  for insert
+  with check (true);
+
+create policy "drink_app_settings_update"
+  on public.drink_app_settings
   for update
   using (true)
   with check (true);
@@ -61,8 +87,24 @@ begin
   end if;
 end $$;
 
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'drink_app_settings'
+  ) then
+    alter publication supabase_realtime add table public.drink_app_settings;
+  end if;
+end $$;
+
 create index if not exists drink_orders_created_at_idx
   on public.drink_orders (created_at desc);
 
 create index if not exists drink_orders_status_idx
   on public.drink_orders (status);
+
+create index if not exists drink_app_settings_updated_at_idx
+  on public.drink_app_settings (updated_at desc);

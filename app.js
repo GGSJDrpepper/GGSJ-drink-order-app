@@ -7,6 +7,7 @@
   const MENU_KEY = "drink-relay-menu-v1";
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
   const CHANNEL_NAME = "drink-relay-local";
+  const SETTINGS_ROW_ID = "main";
   const MAX_HISTORY = 80;
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
@@ -111,6 +112,7 @@
     realtimeChannel: null,
     broadcast: null,
     syncMode: "local",
+    sharedSettingsLoaded: false,
     soundEnabled: readSoundSetting(),
     menu: readMenuSettings(),
     carts: {
@@ -140,6 +142,7 @@
     setupLocalChannel();
     setupAudioUnlock();
     await configureSupabaseFromStorage();
+    await loadSharedSettings();
     await loadOrders();
     state.orders.forEach((order) => state.knownIds.add(order.id));
     state.booted = true;
@@ -151,22 +154,27 @@
   function setupTabs() {
     $$(".tab").forEach((tab) => {
       tab.addEventListener("click", () => {
-        state.view = tab.dataset.view;
-        $$(".tab").forEach((item) => {
-          const active = item === tab;
-          item.classList.toggle("active", active);
-          if (active) item.setAttribute("aria-current", "page");
-          else item.removeAttribute("aria-current");
-        });
-        $$(".view").forEach((view) => {
-          view.classList.toggle("active", view.id === `view-${state.view}`);
-        });
-        $("#currentViewLabel").textContent = tab.textContent.trim();
-        closeNavigationDrawer();
-        render();
-        if (window.lucide) window.lucide.createIcons();
+        switchView(tab.dataset.view);
       });
     });
+  }
+
+  function switchView(viewName) {
+    state.view = viewName;
+    $$(".tab").forEach((item) => {
+      const active = item.dataset.view === viewName;
+      item.classList.toggle("active", active);
+      if (active) item.setAttribute("aria-current", "page");
+      else item.removeAttribute("aria-current");
+    });
+    $$(".view").forEach((view) => {
+      view.classList.toggle("active", view.id === `view-${state.view}`);
+    });
+    const activeTab = $$(".tab").find((tab) => tab.dataset.view === viewName);
+    $("#currentViewLabel").textContent = activeTab?.textContent.trim() || "";
+    closeNavigationDrawer();
+    render();
+    if (window.lucide) window.lucide.createIcons();
   }
 
   function setupNavigationDrawer() {
@@ -1271,12 +1279,19 @@
     try {
       state.supabase = window.supabase.createClient(config.url, config.anonKey);
       state.realtimeChannel = state.supabase
-        .channel("drink_orders_changes")
+        .channel("drink_relay_changes")
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "drink_orders" },
           (payload) => {
             handleRealtimePayload(payload);
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "drink_app_settings" },
+          (payload) => {
+            handleSharedSettingsPayload(payload);
           }
         )
         .subscribe();
@@ -1301,6 +1316,92 @@
       badge.style.borderColor = "rgba(255, 253, 248, 0.2)";
       badge.style.color = "rgba(255, 253, 248, 0.82)";
     }
+  }
+
+  async function loadSharedSettings() {
+    if (state.syncMode !== "supabase" || !state.supabase) {
+      return;
+    }
+
+    const row = await fetchSharedSettings();
+    if (row) {
+      applySharedSettings(row);
+      state.sharedSettingsLoaded = true;
+      return;
+    }
+
+    await saveSharedSettings(state.menu, { silent: true });
+    state.sharedSettingsLoaded = true;
+  }
+
+  async function fetchSharedSettings() {
+    if (state.syncMode !== "supabase" || !state.supabase) return null;
+    const { data, error } = await state.supabase
+      .from("drink_app_settings")
+      .select("*")
+      .eq("id", SETTINGS_ROW_ID)
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      toast("共有設定テーブルを読み込めません。SQLを更新してください");
+      return null;
+    }
+
+    return data || null;
+  }
+
+  async function saveSharedSettings(menu = state.menu, options = {}) {
+    if (state.syncMode !== "supabase" || !state.supabase) return false;
+    const { error } = await state.supabase
+      .from("drink_app_settings")
+      .upsert(
+        {
+          id: SETTINGS_ROW_ID,
+          updated_at: new Date().toISOString(),
+          menu,
+        },
+        { onConflict: "id" }
+      );
+
+    if (error) {
+      console.error(error);
+      if (!options.silent) toast("共有設定の保存に失敗しました");
+      return false;
+    }
+
+    state.sharedSettingsLoaded = true;
+    return true;
+  }
+
+  function handleSharedSettingsPayload(payload) {
+    if (payload.eventType === "DELETE" || !payload.new || payload.new.id !== SETTINGS_ROW_ID) return;
+    if (configHasUnsavedChanges()) {
+      toast("共有設定が更新されました。保存中の編集があるため反映していません");
+      return;
+    }
+    applySharedSettings(payload.new, { fromRealtime: true });
+  }
+
+  function applySharedSettings(row, options = {}) {
+    if (sharedSettingsHasMenu(row)) {
+      state.menu = normalizeMenu(row.menu, { allowEmpty: true });
+      localStorage.setItem(MENU_KEY, JSON.stringify(state.menu));
+      renderMenuPickers();
+    }
+
+    if ($("#configDialog")?.open) {
+      renderMenuEditor();
+      state.configSnapshot = configDraftSnapshot();
+    }
+
+    if (options.fromRealtime) {
+      toast("共有メニューを更新しました");
+    }
+  }
+
+  function sharedSettingsHasMenu(row) {
+    return Array.isArray(row?.menu) && row.menu.length > 0;
   }
 
   async function loadOrders() {
@@ -1659,15 +1760,24 @@
     event?.preventDefault();
     const url = $("#supabaseUrl").value.trim();
     const anonKey = $("#supabaseAnonKey").value.trim();
-    state.menu = readMenuSettingsFromForm();
+    const nextMenu = readMenuSettingsFromForm();
+    state.menu = nextMenu;
     localStorage.setItem(CONFIG_KEY, JSON.stringify({ url, anonKey }));
-    localStorage.setItem(MENU_KEY, JSON.stringify(state.menu));
+    localStorage.setItem(MENU_KEY, JSON.stringify(nextMenu));
     state.configSnapshot = configDraftSnapshot();
     renderMenuPickers();
     hideConfigUnsavedPrompt();
     $("#configDialog").close();
     teardownSupabase();
     await configureSupabaseFromStorage();
+    if (state.syncMode === "supabase" && state.supabase) {
+      const existingSettings = await fetchSharedSettings();
+      if (!state.sharedSettingsLoaded && sharedSettingsHasMenu(existingSettings)) {
+        applySharedSettings(existingSettings);
+      } else {
+        await saveSharedSettings(nextMenu);
+      }
+    }
     await loadOrders();
     state.orders.forEach((order) => state.knownIds.add(order.id));
     render();
@@ -1710,6 +1820,7 @@
     localStorage.removeItem(CONFIG_KEY);
     $("#supabaseUrl").value = "";
     $("#supabaseAnonKey").value = "";
+    state.sharedSettingsLoaded = false;
     $("#configDialog").close();
     teardownSupabase();
     setSyncMode("local");
