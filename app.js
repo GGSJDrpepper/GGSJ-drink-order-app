@@ -4,14 +4,20 @@
   const ORDER_KEY = "drink-relay-orders-v1";
   const CONFIG_KEY = "drink-relay-supabase-v1";
   const SOUND_KEY = "drink-relay-sound-enabled-v1";
+  const SOUND_CHOICE_KEY = "drink-relay-sound-choice-v1";
   const MENU_KEY = "drink-relay-menu-v1";
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
   const CHANNEL_NAME = "drink-relay-local";
   const SETTINGS_ROW_ID = "main";
   const DEFAULT_SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
   const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
-  const NOTIFICATION_SOUND_URL = "./notification.mp3";
   const MAX_HISTORY = 80;
+  const SOUND_OPTIONS = [
+    { id: "news-title", label: "ニュースタイトル表示", url: "./sounds/news-title.mp3" },
+    { id: "decision-button", label: "決定ボタン", url: "./sounds/decision-button.mp3" },
+    { id: "level-up", label: "レベルアップ", url: "./sounds/level-up.mp3" },
+    { id: "bell", label: "ベル", url: "" },
+  ];
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
   const DEFAULT_PRICE_SUGGESTIONS = [600, 700, 800, 1000];
@@ -117,6 +123,7 @@
     syncMode: "local",
     sharedSettingsLoaded: false,
     soundEnabled: readSoundSetting(),
+    soundChoice: readSoundChoice(),
     menu: readMenuSettings(),
     carts: {
       reception: [],
@@ -127,6 +134,7 @@
     audioContext: null,
     notificationAudio: null,
     notificationAudioUnavailable: false,
+    notificationAudioId: "",
     configSnapshot: "",
     configActiveCategoryId: "",
     booted: false,
@@ -269,6 +277,16 @@
       } else {
         toast("通知音を無効にしました");
       }
+    });
+    $("#soundChoice").addEventListener("change", (event) => {
+      state.soundChoice = normalizeSoundChoice(event.target.value);
+      resetNotificationAudio();
+      saveSoundChoice();
+      toast("効果音を変更しました");
+    });
+    $("#soundPreview").addEventListener("click", async () => {
+      await unlockAudio();
+      playChime();
     });
 
     $("#configButton").addEventListener("click", () => {
@@ -2451,16 +2469,34 @@
     return saved === null ? true : saved === "true";
   }
 
+  function readSoundChoice() {
+    return normalizeSoundChoice(localStorage.getItem(SOUND_CHOICE_KEY) || SOUND_OPTIONS[0].id);
+  }
+
+  function normalizeSoundChoice(value) {
+    return SOUND_OPTIONS.some((option) => option.id === value) ? value : SOUND_OPTIONS[0].id;
+  }
+
+  function selectedSoundOption() {
+    return SOUND_OPTIONS.find((option) => option.id === state.soundChoice) || SOUND_OPTIONS[0];
+  }
+
   function saveSoundSetting() {
     localStorage.setItem(SOUND_KEY, String(state.soundEnabled));
+  }
+
+  function saveSoundChoice() {
+    localStorage.setItem(SOUND_CHOICE_KEY, state.soundChoice);
   }
 
   function updateSoundButton() {
     const button = $("#soundToggle");
     const status = $("#soundStatus");
+    const choice = $("#soundChoice");
     if (!button || !status) return;
     button.setAttribute("aria-pressed", String(state.soundEnabled));
     status.textContent = state.soundEnabled ? "オン" : "オフ";
+    if (choice) choice.value = state.soundChoice;
   }
 
   function setupAudioUnlock() {
@@ -2506,17 +2542,22 @@
   }
 
   function primeNotificationAudio() {
-    if (state.notificationAudio || state.notificationAudioUnavailable) return;
-    const audio = new Audio(NOTIFICATION_SOUND_URL);
+    const option = selectedSoundOption();
+    if (!option.url) return;
+    if (state.notificationAudio && state.notificationAudioId === option.id) return;
+    resetNotificationAudio();
+    const audio = new Audio(option.url);
     audio.preload = "auto";
     audio.volume = 1;
     audio.addEventListener("error", () => {
       state.notificationAudioUnavailable = true;
     }, { once: true });
     state.notificationAudio = audio;
+    state.notificationAudioId = option.id;
   }
 
   async function playNotificationAudio() {
+    if (!selectedSoundOption().url) return false;
     if (state.notificationAudioUnavailable) return false;
     primeNotificationAudio();
     const audio = state.notificationAudio;
@@ -2530,6 +2571,15 @@
     } catch {
       return false;
     }
+  }
+
+  function resetNotificationAudio() {
+    if (state.notificationAudio) {
+      state.notificationAudio.pause();
+    }
+    state.notificationAudio = null;
+    state.notificationAudioUnavailable = false;
+    state.notificationAudioId = "";
   }
 
   function playFallbackBell() {
