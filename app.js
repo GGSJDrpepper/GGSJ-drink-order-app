@@ -10,6 +10,7 @@
   const SETTINGS_ROW_ID = "main";
   const DEFAULT_SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
   const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
+  const NOTIFICATION_SOUND_URL = "./notification.mp3";
   const MAX_HISTORY = 80;
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
@@ -124,6 +125,8 @@
     pendingConfirmation: null,
     activeSheet: null,
     audioContext: null,
+    notificationAudio: null,
+    notificationAudioUnavailable: false,
     configSnapshot: "",
     configActiveCategoryId: "",
     booted: false,
@@ -2493,22 +2496,56 @@
     if (state.audioContext.state === "suspended") {
       await state.audioContext.resume();
     }
+
+    primeNotificationAudio();
   }
 
-  function playChime() {
+  async function playChime() {
+    if (await playNotificationAudio()) return;
+    playFallbackBell();
+  }
+
+  function primeNotificationAudio() {
+    if (state.notificationAudio || state.notificationAudioUnavailable) return;
+    const audio = new Audio(NOTIFICATION_SOUND_URL);
+    audio.preload = "auto";
+    audio.volume = 1;
+    audio.addEventListener("error", () => {
+      state.notificationAudioUnavailable = true;
+    }, { once: true });
+    state.notificationAudio = audio;
+  }
+
+  async function playNotificationAudio() {
+    if (state.notificationAudioUnavailable) return false;
+    primeNotificationAudio();
+    const audio = state.notificationAudio;
+    if (!audio) return false;
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 1;
+      await audio.play();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function playFallbackBell() {
     if (!state.audioContext) return;
     const now = state.audioContext.currentTime;
-    [660, 880].forEach((frequency, index) => {
+    [1568, 1976, 1568, 1976].forEach((frequency, index) => {
       const oscillator = state.audioContext.createOscillator();
       const gain = state.audioContext.createGain();
-      oscillator.type = "sine";
+      oscillator.type = "triangle";
       oscillator.frequency.setValueAtTime(frequency, now + index * 0.12);
-      gain.gain.setValueAtTime(0.0001, now + index * 0.12);
-      gain.gain.exponentialRampToValueAtTime(0.24, now + index * 0.12 + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.12 + 0.16);
+      gain.gain.setValueAtTime(0.0001, now + index * 0.11);
+      gain.gain.exponentialRampToValueAtTime(0.65, now + index * 0.11 + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.11 + 0.18);
       oscillator.connect(gain).connect(state.audioContext.destination);
-      oscillator.start(now + index * 0.12);
-      oscillator.stop(now + index * 0.12 + 0.18);
+      oscillator.start(now + index * 0.11);
+      oscillator.stop(now + index * 0.11 + 0.22);
     });
   }
 
