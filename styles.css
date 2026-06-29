@@ -1346,6 +1346,12 @@ button:focus-visible {
   background: var(--ink);
   color: #ffffff;
   box-shadow: var(--shadow);
+  overflow-wrap: anywhere;
+}
+
+.toast.long {
+  max-width: min(720px, calc(100vw - 36px));
+  line-height: 1.45;
 }
 
 dialog {

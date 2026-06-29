@@ -1355,7 +1355,7 @@
 
     if (error) {
       console.error(error);
-      toast("共有設定テーブルを読み込めません。SQLを更新してください");
+      toast(supabaseErrorMessage("共有設定テーブルを読み込めません", error), { long: true });
       return null;
     }
 
@@ -1377,7 +1377,7 @@
 
     if (error) {
       console.error(error);
-      if (!options.silent) toast("共有設定の保存に失敗しました");
+      if (!options.silent) toast(supabaseErrorMessage("共有設定の保存に失敗しました", error), { long: true });
       return false;
     }
 
@@ -1425,7 +1425,7 @@
 
       if (error) {
         console.error(error);
-        toast("共有データの読み込みに失敗しました");
+        toast(supabaseErrorMessage("共有データの読み込みに失敗しました", error), { long: true });
         setSyncMode("local", "共有読込失敗");
         loadLocalOrders();
         return;
@@ -1466,7 +1466,7 @@
       const { data, error } = await state.supabase.from("drink_orders").insert(toDatabaseRow(order)).select().single();
       if (error) {
         console.error(error);
-        toast("共有同期に失敗したためデモ同期へ保存しました");
+        toast(supabaseErrorMessage("共有同期に失敗したためデモ同期へ保存しました", error), { long: true });
         setSyncMode("local", "送信失敗");
       } else {
         upsertOrder(normalizeOrder(data));
@@ -2467,6 +2467,13 @@
     state.realtimeChannel = null;
   }
 
+  function supabaseErrorMessage(prefix, error) {
+    const detail = [error?.message, error?.details, error?.hint, error?.code]
+      .filter(Boolean)
+      .join(" / ");
+    return detail ? `${prefix}: ${detail}` : prefix;
+  }
+
   async function unlockAudio() {
     if (!state.audioContext) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -2495,15 +2502,15 @@
     });
   }
 
-  function toast(message) {
+  function toast(message, options = {}) {
     const region = $("#toastRegion");
     const node = document.createElement("div");
-    node.className = "toast";
+    node.className = `toast${options.long ? " long" : ""}`;
     node.textContent = message;
     region.appendChild(node);
     setTimeout(() => {
       node.remove();
-    }, 2800);
+    }, options.long ? 9000 : 2800);
   }
 
   function escapeHtml(value) {
