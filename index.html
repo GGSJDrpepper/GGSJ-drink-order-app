@@ -18,6 +18,9 @@
         </button>
         <span id="currentViewLabel">受付</span>
         <span id="syncBadge" class="sync-badge is-local">デモ同期</span>
+        <button id="headerConfigButton" class="header-config-button" type="button" aria-label="設定を開く" title="設定">
+          <i data-lucide="settings" aria-hidden="true"></i>
+        </button>
       </header>
 
       <div id="navigationDrawer" class="nav-drawer-layer" hidden>
@@ -202,6 +205,19 @@
             <span class="setting-label">バー受信通知音</span>
             <span id="soundStatus" class="setting-status">オン</span>
           </div>
+          <label class="sound-choice-field">
+            <span>効果音</span>
+            <select id="soundChoice">
+              <option value="news-title">ニュースタイトル表示</option>
+              <option value="decision-button">決定ボタン</option>
+              <option value="level-up">レベルアップ</option>
+              <option value="bell">ベル</option>
+            </select>
+          </label>
+          <button id="soundPreview" class="button button-quiet" type="button">
+            <i data-lucide="volume-2" aria-hidden="true"></i>
+            <span>試聴</span>
+          </button>
           <button id="soundToggle" class="button button-quiet" type="button" aria-pressed="true">
             <i data-lucide="bell-ring" aria-hidden="true"></i>
             <span>通知音</span>
@@ -236,8 +252,8 @@
         </div>
         <div class="modal-actions">
           <button id="clearConfig" class="button button-quiet" type="button">
-            <i data-lucide="unlink" aria-hidden="true"></i>
-            <span>デモ同期に戻す</span>
+            <i data-lucide="refresh-cw" aria-hidden="true"></i>
+            <span>共有同期に戻す</span>
           </button>
           <button id="saveConfig" class="button button-primary" value="default" type="submit">
             <i data-lucide="save" aria-hidden="true"></i>

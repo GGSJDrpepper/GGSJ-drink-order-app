@@ -74,6 +74,24 @@ button {
   height: 27px;
 }
 
+.header-config-button {
+  width: 38px;
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.header-config-button svg {
+  width: 20px;
+  height: 20px;
+}
+
 #currentViewLabel {
   font-size: 1rem;
   font-weight: 850;
@@ -2035,6 +2053,29 @@ dialog::backdrop {
   margin-top: 3px;
   color: var(--ink);
   font-weight: 850;
+}
+
+.sound-choice-field {
+  min-width: 190px;
+  display: grid;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.sound-choice-field span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.sound-choice-field select {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--ink);
+  font-weight: 800;
 }
 
 .config-modal .button-quiet,

@@ -293,6 +293,10 @@
       closeNavigationDrawer();
       openConfig();
     });
+    $("#headerConfigButton").addEventListener("click", () => {
+      closeNavigationDrawer();
+      openConfig();
+    });
     $("#configDialog form").addEventListener("submit", (event) => event.preventDefault());
     $("#configDialog").addEventListener("keydown", handleConfigKeydown);
     $("#configCloseButton").addEventListener("click", requestCloseConfig);
@@ -1851,22 +1855,22 @@
   }
 
   async function clearConfig() {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify({ useDefaultSupabase: false, url: "", anonKey: "" }));
-    $("#supabaseUrl").value = "";
-    $("#supabaseAnonKey").value = "";
+    localStorage.removeItem(CONFIG_KEY);
+    $("#supabaseUrl").value = DEFAULT_SUPABASE_URL;
+    $("#supabaseAnonKey").value = DEFAULT_SUPABASE_ANON_KEY;
     state.sharedSettingsLoaded = false;
     $("#configDialog").close();
     teardownSupabase();
-    setSyncMode("local");
+    await configureSupabaseFromStorage();
+    await loadSharedSettings();
     await loadOrders();
     render();
-    toast("デモ同期に戻しました");
+    toast("共有同期に戻しました");
   }
 
   function readConfig() {
     try {
       const saved = JSON.parse(localStorage.getItem(CONFIG_KEY) || "null");
-      if (saved?.useDefaultSupabase === false) return saved;
       return {
         url: saved?.url || DEFAULT_SUPABASE_URL,
         anonKey: saved?.anonKey || DEFAULT_SUPABASE_ANON_KEY,
