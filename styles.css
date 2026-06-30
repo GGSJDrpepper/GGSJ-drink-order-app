@@ -1100,7 +1100,6 @@ button:focus-visible {
 #barOrders.orders-list {
   grid-template-columns: 1fr;
   align-items: start;
-  grid-auto-flow: row;
 }
 
 @media (min-width: 640px) {
@@ -1128,6 +1127,13 @@ button:focus-visible {
 
 #barOrders .empty-state {
   grid-column: 1 / -1;
+}
+
+.order-column {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 12px;
 }
 
 .bar-board {
@@ -1216,17 +1222,27 @@ button:focus-visible {
   margin-bottom: 8px;
 }
 
-.order-target-label {
+.order-target-label,
+.order-location-label {
   min-height: 28px;
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
   padding: 0 9px;
   border-radius: 999px;
-  background: var(--teal);
-  color: #ffffff;
   font-size: 0.78rem;
   font-weight: 900;
+}
+
+.order-target-label {
+  background: var(--teal);
+  color: #ffffff;
+}
+
+.order-location-label {
+  border: 1px solid #f0b56a;
+  background: #fff7ed;
+  color: #9a4b00;
 }
 
 .order-title {

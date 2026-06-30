@@ -1621,12 +1621,26 @@
       return;
     }
 
-    container.innerHTML = visibleOrders.map((order) => orderCard(order)).join("");
+    container.innerHTML = barOrderColumns(visibleOrders)
+      .map((orders) => `<div class="order-column">${orders.map((order) => orderCard(order)).join("")}</div>`)
+      .join("");
+  }
+
+  function barOrderColumns(orders) {
+    const columnCount = 3;
+    const perColumn = Math.max(3, Math.ceil(orders.length / columnCount));
+    return Array.from({ length: columnCount }, (_, index) => {
+      const start = index * perColumn;
+      return orders.slice(start, start + perColumn);
+    });
   }
 
   function orderCard(order, options = {}) {
     const compact = Boolean(options.compact);
     const location = locationLabel(order);
+    const locationBadges = barLocationBadges(order);
+    const shouldShowMetaLocation = !locationBadges && order.target !== "bar";
+    const metaLocation = shouldShowMetaLocation ? `<span>${escapeHtml(location)}</span>` : "";
     const elapsedMinutes = minutesSince(order.created_at);
     const showElapsed = elapsedMinutes >= 5 && !["served", "canceled"].includes(order.status);
     const elapsedClass = elapsedMinutes >= 10 ? " late" : "";
@@ -1642,13 +1656,14 @@
         <div class="order-main">
           <div class="order-title-row">
             <span class="order-target-label">${escapeHtml(barTargetLabel(order))}</span>
+            ${locationBadges}
             <span class="order-title">${escapeHtml(order.drink_name)}</span>
             <span class="qty-pill">x${escapeHtml(String(order.quantity))}</span>
             ${elapsed}
           </div>
           ${chipRow}
           <div class="order-meta">
-            <span>${escapeHtml(location)}</span>
+            ${metaLocation}
             <span>${escapeHtml(formatTime(order.created_at))}</span>
           </div>
           ${order.notes ? `<p class="order-note">${escapeHtml(order.notes)}</p>` : ""}
@@ -1691,6 +1706,14 @@
     if (order.target === "tournament") return "トナメ";
     if (order.target === "ring") return "リング";
     return targetLabels[order.target] || order.target;
+  }
+
+  function barLocationBadges(order) {
+    if (!order.table_no && !order.seat_no) return "";
+    const badges = [];
+    if (order.table_no) badges.push(`<span class="order-location-label">${escapeHtml(order.table_no)}卓</span>`);
+    if (order.seat_no) badges.push(`<span class="order-location-label">${escapeHtml(order.seat_no)}番席</span>`);
+    return badges.join("");
   }
 
   function locationLabel(order) {
