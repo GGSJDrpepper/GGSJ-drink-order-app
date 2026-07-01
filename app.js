@@ -23,6 +23,13 @@
   const DEFAULT_PRICE_SUGGESTIONS = [600, 700, 800, 1000];
   const DEFAULT_SUBCATEGORY_ID = "default";
   const DEFAULT_SUBCATEGORY_LABEL = "未分類";
+  const OPTION_TEMPLATES = [
+    { id: "ice", label: "氷", choices: ["氷なし", "氷少なめ", "氷1個"], required: false },
+    { id: "temperature", label: "Hot/Cold", choices: ["Hot", "ぬるめ", "Cold"], required: false },
+    { id: "milk", label: "ミルク", choices: ["ミルクあり", "ミルクなし"], required: false },
+    { id: "strength", label: "濃さ", choices: ["濃いめ", "薄め"], required: false },
+    { id: "mix", label: "割り方", choices: ["水割り", "ソーダ", "ロック", "ストレート"], required: false },
+  ];
   const DEFAULT_MENU = [
     {
       id: "soft",
@@ -318,6 +325,7 @@
       const addSubcategory = event.target.closest("[data-add-menu-subcategory]");
       const removeSubcategory = event.target.closest("[data-remove-menu-subcategory]");
       const addOptionGroup = event.target.closest("[data-add-menu-option-group]");
+      const addOptionTemplate = event.target.closest("[data-add-option-template]");
       const removeOptionGroup = event.target.closest("[data-remove-menu-option-group]");
       const addOptionChoice = event.target.closest("[data-add-menu-option-choice]");
       const removeOptionChoice = event.target.closest("[data-remove-menu-option-choice]");
@@ -380,6 +388,13 @@
         $("[data-menu-editor-option-groups]", item).insertAdjacentHTML(
           "beforeend",
           menuEditorOptionGroupBlock({ id: `option-${Date.now()}`, label: "オプション", required: false, choices: [] })
+        );
+      }
+
+      if (addOptionTemplate) {
+        addOptionTemplateToEditorItem(
+          addOptionTemplate.closest("[data-menu-editor-item]"),
+          addOptionTemplate.dataset.addOptionTemplate
         );
       }
 
@@ -2418,6 +2433,7 @@
           <div class="menu-editor-item-detail">
             <div class="menu-editor-options-block">
               <span class="menu-editor-subtitle">オプションカテゴリ</span>
+              ${menuEditorOptionTemplateButtons()}
               <div class="menu-editor-option-groups" data-menu-editor-option-groups>
                 ${(item.optionGroups || []).map((group) => menuEditorOptionGroupBlock(group)).join("")}
               </div>
@@ -2438,6 +2454,63 @@
         </div>
       </div>
     `;
+  }
+
+  function menuEditorOptionTemplateButtons() {
+    return `
+      <div class="menu-editor-template-row" aria-label="よく使うオプション">
+        <span>よく使う</span>
+        <div class="menu-editor-template-buttons">
+          ${OPTION_TEMPLATES.map((template) => `
+            <button class="menu-editor-template-button" type="button" data-add-option-template="${escapeHtml(template.id)}">
+              + ${escapeHtml(template.label)}
+            </button>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  function addOptionTemplateToEditorItem(item, templateId) {
+    if (!item) return;
+    const template = OPTION_TEMPLATES.find((option) => option.id === templateId);
+    if (!template) return;
+
+    const existingGroup = $$("[data-menu-editor-option-group]", item).find((group) =>
+      $("[data-menu-option-group-label]", group)?.value.trim() === template.label
+    );
+
+    if (existingGroup) {
+      const choicesWrap = $("[data-menu-editor-option-choices]", existingGroup);
+      const existingChoices = new Set(
+        $$("[data-menu-option-choice-input]", existingGroup).map((input) => input.value.trim()).filter(Boolean)
+      );
+      let addedCount = 0;
+      template.choices.forEach((choice) => {
+        if (existingChoices.has(choice)) return;
+        choicesWrap.insertAdjacentHTML("beforeend", menuEditorOptionChoiceBlock(choice));
+        addedCount += 1;
+      });
+      if (template.required) {
+        const requiredInput = $("[data-menu-option-group-required]", existingGroup);
+        if (requiredInput) requiredInput.checked = true;
+      }
+      toast(addedCount ? `${template.label}の不足分を追加しました` : `${template.label}は追加済みです`);
+    } else {
+      const groupsWrap = $("[data-menu-editor-option-groups]", item);
+      groupsWrap.insertAdjacentHTML(
+        "beforeend",
+        menuEditorOptionGroupBlock({
+          id: `${template.id}-${Date.now()}`,
+          label: template.label,
+          required: template.required,
+          choices: template.choices,
+        })
+      );
+      toast(`${template.label}を追加しました`);
+    }
+
+    if (window.lucide) window.lucide.createIcons();
   }
 
   function menuEditorOptionGroupBlock(group) {

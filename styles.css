@@ -1930,6 +1930,39 @@ dialog::backdrop {
   font-weight: 750;
 }
 
+.menu-editor-template-row {
+  display: grid;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.menu-editor-template-row > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.menu-editor-template-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.menu-editor-template-button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #f0b56a;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #9a4b00;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.menu-editor-template-button:active {
+  transform: translateY(1px);
+}
+
 .menu-editor-option-groups,
 .menu-editor-option-choices {
   display: grid;
