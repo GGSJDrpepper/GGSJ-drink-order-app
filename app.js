@@ -379,6 +379,7 @@
         const category = addItem.closest("[data-menu-editor-category]");
         const subcategory = addItem.closest("[data-menu-editor-subcategory]") || $("[data-menu-editor-subcategory]", category);
         const subcategoryId = subcategoryIdFromEditorRow(subcategory) || DEFAULT_SUBCATEGORY_ID;
+        closeOtherMenuEditorItems(null);
         $("[data-menu-editor-items]", subcategory || category).insertAdjacentHTML(
           "beforeend",
           menuEditorItemBlock(
@@ -396,10 +397,9 @@
 
       if (editItem) {
         const item = editItem.closest("[data-menu-editor-item]");
-        const isOpen = item.classList.toggle("open");
-        editItem.setAttribute("aria-expanded", String(isOpen));
-        editItem.setAttribute("aria-label", isOpen ? "閉じる" : "編集");
-        editItem.setAttribute("title", isOpen ? "閉じる" : "編集");
+        const isOpen = !item.classList.contains("open");
+        if (isOpen) closeOtherMenuEditorItems(item);
+        setMenuEditorItemOpen(item, isOpen);
       }
 
       if (removeItem) {
@@ -416,10 +416,10 @@
       }
 
       if (addOptionTemplate) {
-        showOptionTemplatePicker(
-          addOptionTemplate.closest("[data-menu-editor-item]"),
-          addOptionTemplate.dataset.addOptionTemplate
-        );
+        const item = addOptionTemplate.closest("[data-menu-editor-item]");
+        closeOtherMenuEditorItems(item);
+        setMenuEditorItemOpen(item, true);
+        showOptionTemplatePicker(item, addOptionTemplate.dataset.addOptionTemplate);
       }
 
       if (selectAllTemplateChoices) {
@@ -486,7 +486,12 @@
     });
     $("#menuEditor").addEventListener("focusin", (event) => {
       const input = event.target.closest?.("[data-menu-item-name]");
-      if (input) moveCaretToEnd(input);
+      if (input) {
+        const item = input.closest("[data-menu-editor-item]");
+        closeOtherMenuEditorItems(item);
+        closeOtherOptionTemplatePickers(item);
+        moveCaretToEnd(input);
+      }
     });
     $("#menuEditor").addEventListener("pointerup", (event) => {
       const input = event.target.closest?.("[data-menu-item-name]");
@@ -2511,6 +2516,31 @@
     `;
   }
 
+  function setMenuEditorItemOpen(item, isOpen) {
+    if (!item) return;
+    item.classList.toggle("open", isOpen);
+    const editButton = $("[data-edit-menu-item]", item);
+    if (!editButton) return;
+    editButton.setAttribute("aria-expanded", String(isOpen));
+    editButton.setAttribute("aria-label", isOpen ? "閉じる" : "編集");
+    editButton.setAttribute("title", isOpen ? "閉じる" : "編集");
+    if (!isOpen) closeOptionTemplatePicker(item);
+  }
+
+  function closeOtherMenuEditorItems(activeItem) {
+    $$("#menuEditor [data-menu-editor-item].open").forEach((item) => {
+      if (item === activeItem) return;
+      setMenuEditorItemOpen(item, false);
+    });
+  }
+
+  function closeOtherOptionTemplatePickers(activeItem) {
+    $$("#menuEditor [data-menu-editor-item]").forEach((item) => {
+      if (item === activeItem) return;
+      closeOptionTemplatePicker(item);
+    });
+  }
+
   function showOptionTemplatePicker(item, templateId) {
     if (!item) return;
     const template = OPTION_TEMPLATES.find((option) => option.id === templateId);
@@ -2518,7 +2548,9 @@
     if (!template || !picker) return;
 
     const singleChoice = template.choices.length === 1;
+    closeOtherOptionTemplatePickers(item);
     picker.hidden = false;
+    picker.classList.remove("is-closing");
     picker.innerHTML = `
       <section class="menu-editor-template-panel">
         <div class="menu-editor-template-panel-head">
@@ -2544,15 +2576,29 @@
         </div>
       </section>
     `;
+    requestAnimationFrame(() => picker.classList.add("is-open"));
 
     if (window.lucide) window.lucide.createIcons();
   }
 
   function closeOptionTemplatePicker(item) {
     const picker = item ? $("[data-option-template-picker]", item) : null;
-    if (!picker) return;
-    picker.hidden = true;
-    picker.innerHTML = "";
+    if (!picker || picker.hidden) return;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    const finishClose = () => {
+      if (!picker.classList.contains("is-closing") && !reduceMotion) return;
+      picker.hidden = true;
+      picker.innerHTML = "";
+      picker.classList.remove("is-open", "is-closing");
+    };
+    picker.classList.remove("is-open");
+    if (reduceMotion) {
+      picker.classList.add("is-closing");
+      finishClose();
+      return;
+    }
+    picker.classList.add("is-closing");
+    window.setTimeout(finishClose, 170);
   }
 
   function menuEditorOptionTemplateButtons() {
