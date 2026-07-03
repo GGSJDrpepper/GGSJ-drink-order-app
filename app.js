@@ -485,6 +485,13 @@
       }
     });
     $("#menuEditor").addEventListener("focusin", (event) => {
+      const categoryInput = event.target.closest?.("[data-menu-label], [data-menu-subcategory-label]");
+      if (categoryInput) {
+        closeOtherMenuEditorItems(null);
+        closeOtherOptionTemplatePickers(null);
+        return;
+      }
+
       const input = event.target.closest?.("[data-menu-item-name]");
       if (input) {
         const item = input.closest("[data-menu-editor-item]");
