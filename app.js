@@ -152,6 +152,8 @@
     soundEnabled: readSoundSetting(),
     soundChoice: readSoundChoice(),
     menu: readMenuSettings(),
+    customMenuMode: "normal",
+    customMenuCategoryId: "",
     carts: {
       reception: [],
       table: [],
@@ -179,6 +181,7 @@
     renderMenuPickers();
     setupForms();
     setupControls();
+    setupCustomMenuControls();
     setupLocalChannel();
     setupAudioUnlock();
     await configureSupabaseFromStorage();
@@ -551,6 +554,26 @@
     });
 
     $("#barOrders").addEventListener("click", handleOrderAction);
+  }
+
+  function setupCustomMenuControls() {
+    const customView = $("#view-custom");
+    if (!customView) return;
+
+    customView.addEventListener("click", (event) => {
+      const modeButton = event.target.closest("[data-custom-menu-mode]");
+      if (modeButton) {
+        state.customMenuMode = modeButton.dataset.customMenuMode || "normal";
+        renderCustomMenu();
+        return;
+      }
+
+      const categoryButton = event.target.closest("[data-custom-category]");
+      if (categoryButton) {
+        state.customMenuCategoryId = categoryButton.dataset.customCategory || "";
+        renderCustomMenu();
+      }
+    });
   }
 
   function handleConfigKeydown(event) {
@@ -1507,6 +1530,7 @@
       state.menu = normalizeMenu(row.menu, { allowEmpty: true });
       localStorage.setItem(MENU_KEY, JSON.stringify(state.menu));
       renderMenuPickers();
+      renderCustomMenu();
     }
 
     if ($("#configDialog")?.open) {
@@ -1679,6 +1703,7 @@
 
   function render() {
     renderBar();
+    renderCustomMenu();
     if (window.lucide) window.lucide.createIcons();
   }
 
@@ -1714,6 +1739,144 @@
       const start = index * perColumn;
       return orders.slice(start, start + perColumn);
     });
+  }
+
+  function renderCustomMenu() {
+    const categoryWrap = $("#customMenuCategories");
+    const content = $("#customMenuContent");
+    if (!categoryWrap || !content) return;
+
+    const categories = state.menu || [];
+    if (!categories.length) {
+      categoryWrap.innerHTML = "";
+      content.innerHTML = `<div class="empty-state">メニューが設定されていません</div>`;
+      return;
+    }
+
+    const activeCategory = categories.some((category) => category.id === state.customMenuCategoryId)
+      ? state.customMenuCategoryId
+      : categories[0].id;
+    state.customMenuCategoryId = activeCategory;
+
+    const stats = menuOrderStats(categories);
+    $$("#view-custom [data-custom-menu-mode]").forEach((button) => {
+      const active = button.dataset.customMenuMode === state.customMenuMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+
+    categoryWrap.innerHTML = categories
+      .map((category) => customCategoryButtonBlock(category, activeCategory, stats.categoryCounts.get(category.id) || 0))
+      .join("");
+
+    const category = categories.find((item) => item.id === activeCategory);
+    content.innerHTML = category
+      ? customMenuCategoryBlock(category, state.customMenuMode, stats)
+      : `<div class="empty-state">カテゴリを選択してください</div>`;
+  }
+
+  function customCategoryButtonBlock(category, activeCategory, count) {
+    const active = category.id === activeCategory;
+    return `
+      <button class="custom-category-button ${active ? "active" : ""}" type="button" data-custom-category="${escapeHtml(category.id)}" aria-pressed="${active}">
+        <span>${escapeHtml(category.label)}</span>
+        <small>${escapeHtml(String(count))}杯</small>
+      </button>
+    `;
+  }
+
+  function customMenuCategoryBlock(category, mode, stats) {
+    const groups = customMenuGroups(category, mode, stats);
+    const categoryCount = stats.categoryCounts.get(category.id) || 0;
+    const modeLabel = mode === "popular" ? "カスタムメニュー" : "通常メニュー";
+
+    return `
+      <section class="custom-menu-panel">
+        <div class="custom-menu-panel-head">
+          <div>
+            <span>${escapeHtml(modeLabel)}</span>
+            <h3>${escapeHtml(category.label)}</h3>
+          </div>
+          <strong>${escapeHtml(String(categoryCount))}杯</strong>
+        </div>
+        <div class="custom-subcategory-list">
+          ${groups.length ? groups.map((group) => customSubcategoryBlock(group)).join("") : `<div class="menu-empty compact">商品未設定</div>`}
+        </div>
+      </section>
+    `;
+  }
+
+  function customMenuGroups(category, mode, stats) {
+    const groups = menuSubcategoryGroups(category).map((group, groupIndex) => {
+      const count = stats.subcategoryCounts.get(subcategoryKey(category.id, group.id)) || 0;
+      const items = group.items.map((item, itemIndex) => ({
+        item,
+        itemIndex,
+        count: stats.itemCount(item),
+      }));
+
+      if (mode === "popular") {
+        items.sort((a, b) => b.count - a.count || a.itemIndex - b.itemIndex);
+      }
+
+      return { ...group, groupIndex, count, items };
+    });
+
+    if (mode === "popular") {
+      groups.sort((a, b) => b.count - a.count || a.groupIndex - b.groupIndex);
+    }
+
+    return groups;
+  }
+
+  function customSubcategoryBlock(group) {
+    return `
+      <section class="custom-subcategory-card">
+        <div class="custom-subcategory-head">
+          <h4>${escapeHtml(group.label)}</h4>
+          <span>${escapeHtml(String(group.count))}杯</span>
+        </div>
+        <div class="custom-menu-items">
+          ${group.items.map(({ item, count }) => customMenuItemBlock(item, count)).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  function customMenuItemBlock(item, count) {
+    return `
+      <div class="custom-menu-item">
+        <span class="custom-menu-item-name">${escapeHtml(item.name)}</span>
+        <span class="custom-menu-item-price">${escapeHtml(formatPrice(item.price))}</span>
+        <span class="custom-menu-item-count">${escapeHtml(String(count))}杯</span>
+      </div>
+    `;
+  }
+
+  function menuOrderStats(categories) {
+    const itemCounts = new Map();
+    state.orders.forEach((order) => {
+      if (order.status === "canceled") return;
+      const name = String(order.drink_name || "").trim();
+      if (!name) return;
+      itemCounts.set(name, (itemCounts.get(name) || 0) + Number(order.quantity || 1));
+    });
+
+    const categoryCounts = new Map();
+    const subcategoryCounts = new Map();
+    const itemCount = (item) => itemCounts.get(item.name) || 0;
+
+    categories.forEach((category) => {
+      let categoryTotal = 0;
+      menuSubcategoryGroups(category).forEach((group) => {
+        const groupTotal = group.items.reduce((sum, item) => sum + itemCount(item), 0);
+        subcategoryCounts.set(subcategoryKey(category.id, group.id), groupTotal);
+        categoryTotal += groupTotal;
+      });
+      categoryCounts.set(category.id, categoryTotal);
+    });
+
+    return { categoryCounts, subcategoryCounts, itemCount };
   }
 
   function orderCard(order, options = {}) {

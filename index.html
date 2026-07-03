@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f97316">
     <title>Drink Relay</title>
-    <link rel="stylesheet" href="./styles.css?v=2026070303">
+    <link rel="stylesheet" href="./styles.css?v=2026070304">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026070303"></script>
+    <script defer src="./app.js?v=2026070304"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -38,6 +38,10 @@
           <button id="configButton" class="drawer-action" type="button">
             <i data-lucide="settings" aria-hidden="true"></i>
             <span>設定</span>
+          </button>
+          <button class="tab" type="button" data-view="custom">
+            <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
+            <span>カスタム</span>
           </button>
         </nav>
       </div>
@@ -113,6 +117,27 @@
             </div>
 
             <div id="barOrders" class="orders-list"></div>
+          </div>
+        </section>
+
+        <section id="view-custom" class="view" aria-labelledby="customTitle">
+          <div class="custom-board">
+            <div class="section-head">
+              <div>
+                <h2 id="customTitle">カスタム</h2>
+                <p>通常メニューと注文数順のカスタムメニューを表示</p>
+              </div>
+            </div>
+
+            <div class="custom-mode-row" role="group" aria-label="メニュー表示切り替え">
+              <button class="custom-mode-button active" type="button" data-custom-menu-mode="normal">通常メニュー</button>
+              <button class="custom-mode-button" type="button" data-custom-menu-mode="popular">カスタムメニュー</button>
+            </div>
+
+            <div class="custom-menu-layout">
+              <div id="customMenuCategories" class="custom-category-rail" aria-label="カテゴリ"></div>
+              <div id="customMenuContent" class="custom-menu-content"></div>
+            </div>
           </div>
         </section>
       </main>
