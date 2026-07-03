@@ -1963,6 +1963,76 @@ dialog::backdrop {
   transform: translateY(1px);
 }
 
+.menu-editor-template-picker[hidden] {
+  display: none;
+}
+
+.menu-editor-template-panel {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #f0b56a;
+  border-radius: 8px;
+  background: #fffaf2;
+}
+
+.menu-editor-template-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.menu-editor-template-panel-head strong {
+  color: #8a4b00;
+  font-size: 0.9rem;
+}
+
+.menu-editor-template-choice-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.menu-editor-template-check {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid #eadfd2;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.menu-editor-template-check input {
+  width: 16px;
+  min-height: 16px;
+  padding: 0;
+}
+
+.menu-editor-template-check span {
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+.menu-editor-template-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.menu-editor-template-actions .button {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+}
+
 .menu-editor-option-groups,
 .menu-editor-option-choices {
   display: grid;

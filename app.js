@@ -24,11 +24,31 @@
   const DEFAULT_SUBCATEGORY_ID = "default";
   const DEFAULT_SUBCATEGORY_LABEL = "未分類";
   const OPTION_TEMPLATES = [
-    { id: "ice", label: "氷", choices: ["氷なし", "氷少なめ", "氷1個"], required: false },
-    { id: "temperature", label: "Hot/Cold", choices: ["Hot", "ぬるめ", "Cold"], required: false },
-    { id: "milk", label: "ミルク", choices: ["ミルクあり", "ミルクなし"], required: false },
-    { id: "strength", label: "濃さ", choices: ["濃いめ", "薄め"], required: false },
-    { id: "mix", label: "割り方", choices: ["水割り", "ソーダ", "ロック", "ストレート"], required: false },
+    { id: "hot", label: "hot", choices: ["hot"], required: false },
+    { id: "ice", label: "氷", choices: ["氷少なめ", "氷なし"], required: false },
+    { id: "bottle", label: "瓶", choices: ["瓶のまま"], required: false },
+    {
+      id: "mix",
+      label: "割り方",
+      choices: [
+        "ソーダ",
+        "牛乳",
+        "ロック",
+        "ストレート",
+        "炭酸",
+        "水",
+        "お湯",
+        "コーラ",
+        "ジンジャーエール",
+        "オレンジジュース",
+        "紅茶",
+        "烏龍茶",
+      ],
+      required: false,
+    },
+    { id: "strength", label: "濃さ", choices: ["濃いめ"], required: false },
+    { id: "lemon-lime", label: "レモンライム", choices: ["レモン", "ライム", "なし"], required: false },
+    { id: "straw", label: "ストロー", choices: ["ストローあり"], required: false },
   ];
   const DEFAULT_MENU = [
     {
@@ -326,6 +346,10 @@
       const removeSubcategory = event.target.closest("[data-remove-menu-subcategory]");
       const addOptionGroup = event.target.closest("[data-add-menu-option-group]");
       const addOptionTemplate = event.target.closest("[data-add-option-template]");
+      const applyOptionTemplate = event.target.closest("[data-apply-option-template]");
+      const cancelOptionTemplate = event.target.closest("[data-cancel-option-template]");
+      const selectAllTemplateChoices = event.target.closest("[data-template-select-all]");
+      const clearTemplateChoices = event.target.closest("[data-template-clear]");
       const removeOptionGroup = event.target.closest("[data-remove-menu-option-group]");
       const addOptionChoice = event.target.closest("[data-add-menu-option-choice]");
       const removeOptionChoice = event.target.closest("[data-remove-menu-option-choice]");
@@ -392,9 +416,39 @@
       }
 
       if (addOptionTemplate) {
-        addOptionTemplateToEditorItem(
+        showOptionTemplatePicker(
           addOptionTemplate.closest("[data-menu-editor-item]"),
           addOptionTemplate.dataset.addOptionTemplate
+        );
+      }
+
+      if (selectAllTemplateChoices) {
+        $$("[data-option-template-choice]", selectAllTemplateChoices.closest("[data-option-template-picker]")).forEach(
+          (input) => {
+            input.checked = true;
+          }
+        );
+      }
+
+      if (clearTemplateChoices) {
+        $$("[data-option-template-choice]", clearTemplateChoices.closest("[data-option-template-picker]")).forEach(
+          (input) => {
+            input.checked = false;
+          }
+        );
+      }
+
+      if (cancelOptionTemplate) {
+        closeOptionTemplatePicker(cancelOptionTemplate.closest("[data-menu-editor-item]"));
+      }
+
+      if (applyOptionTemplate) {
+        const picker = applyOptionTemplate.closest("[data-option-template-picker]");
+        const choices = $$("[data-option-template-choice]:checked", picker).map((input) => input.value);
+        addOptionTemplateToEditorItem(
+          applyOptionTemplate.closest("[data-menu-editor-item]"),
+          applyOptionTemplate.dataset.applyOptionTemplate,
+          choices
         );
       }
 
@@ -2434,6 +2488,7 @@
             <div class="menu-editor-options-block">
               <span class="menu-editor-subtitle">オプションカテゴリ</span>
               ${menuEditorOptionTemplateButtons()}
+              <div class="menu-editor-template-picker" data-option-template-picker hidden></div>
               <div class="menu-editor-option-groups" data-menu-editor-option-groups>
                 ${(item.optionGroups || []).map((group) => menuEditorOptionGroupBlock(group)).join("")}
               </div>
@@ -2456,6 +2511,50 @@
     `;
   }
 
+  function showOptionTemplatePicker(item, templateId) {
+    if (!item) return;
+    const template = OPTION_TEMPLATES.find((option) => option.id === templateId);
+    const picker = $("[data-option-template-picker]", item);
+    if (!template || !picker) return;
+
+    const singleChoice = template.choices.length === 1;
+    picker.hidden = false;
+    picker.innerHTML = `
+      <section class="menu-editor-template-panel">
+        <div class="menu-editor-template-panel-head">
+          <strong>${escapeHtml(template.label)}</strong>
+          <button class="icon-button" type="button" data-cancel-option-template aria-label="閉じる" title="閉じる">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="menu-editor-template-choice-grid">
+          ${template.choices.map((choice) => `
+            <label class="menu-editor-template-check">
+              <input data-option-template-choice type="checkbox" value="${escapeHtml(choice)}" ${singleChoice ? "checked" : ""}>
+              <span>${escapeHtml(choice)}</span>
+            </label>
+          `).join("")}
+        </div>
+        <div class="menu-editor-template-actions">
+          <button class="button button-quiet" type="button" data-template-select-all>全選択</button>
+          <button class="button button-quiet" type="button" data-template-clear>解除</button>
+          <button class="button button-primary" type="button" data-apply-option-template="${escapeHtml(template.id)}">
+            選択した内容を追加
+          </button>
+        </div>
+      </section>
+    `;
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function closeOptionTemplatePicker(item) {
+    const picker = item ? $("[data-option-template-picker]", item) : null;
+    if (!picker) return;
+    picker.hidden = true;
+    picker.innerHTML = "";
+  }
+
   function menuEditorOptionTemplateButtons() {
     return `
       <div class="menu-editor-template-row" aria-label="よく使うオプション">
@@ -2471,10 +2570,15 @@
     `;
   }
 
-  function addOptionTemplateToEditorItem(item, templateId) {
+  function addOptionTemplateToEditorItem(item, templateId, selectedChoices = []) {
     if (!item) return;
     const template = OPTION_TEMPLATES.find((option) => option.id === templateId);
     if (!template) return;
+    const templateChoices = uniqueList(selectedChoices).filter(Boolean);
+    if (!templateChoices.length) {
+      toast("追加する内容を選択してください");
+      return;
+    }
 
     const existingGroup = $$("[data-menu-editor-option-group]", item).find((group) =>
       $("[data-menu-option-group-label]", group)?.value.trim() === template.label
@@ -2486,7 +2590,7 @@
         $$("[data-menu-option-choice-input]", existingGroup).map((input) => input.value.trim()).filter(Boolean)
       );
       let addedCount = 0;
-      template.choices.forEach((choice) => {
+      templateChoices.forEach((choice) => {
         if (existingChoices.has(choice)) return;
         choicesWrap.insertAdjacentHTML("beforeend", menuEditorOptionChoiceBlock(choice));
         addedCount += 1;
@@ -2504,12 +2608,13 @@
           id: `${template.id}-${Date.now()}`,
           label: template.label,
           required: template.required,
-          choices: template.choices,
+          choices: templateChoices,
         })
       );
       toast(`${template.label}を追加しました`);
     }
 
+    closeOptionTemplatePicker(item);
     if (window.lucide) window.lucide.createIcons();
   }
 
