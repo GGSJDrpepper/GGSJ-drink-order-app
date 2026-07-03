@@ -6,6 +6,7 @@
   const SOUND_KEY = "drink-relay-sound-enabled-v1";
   const SOUND_CHOICE_KEY = "drink-relay-sound-choice-v1";
   const MENU_KEY = "drink-relay-menu-v1";
+  const RECEPTION_MENU_MODE_KEY = "drink-relay-reception-menu-mode-v1";
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
   const CHANNEL_NAME = "drink-relay-local";
   const SETTINGS_ROW_ID = "main";
@@ -152,8 +153,7 @@
     soundEnabled: readSoundSetting(),
     soundChoice: readSoundChoice(),
     menu: readMenuSettings(),
-    customMenuMode: "normal",
-    customMenuCategoryId: "",
+    receptionMenuMode: readReceptionMenuMode(),
     carts: {
       reception: [],
       table: [],
@@ -181,7 +181,8 @@
     renderMenuPickers();
     setupForms();
     setupControls();
-    setupCustomMenuControls();
+    setupReceptionModeMenu();
+    updateHeaderViewLabel();
     setupLocalChannel();
     setupAudioUnlock();
     await configureSupabaseFromStorage();
@@ -213,11 +214,35 @@
     $$(".view").forEach((view) => {
       view.classList.toggle("active", view.id === `view-${state.view}`);
     });
-    const activeTab = $$(".tab").find((tab) => tab.dataset.view === viewName);
-    $("#currentViewLabel").textContent = activeTab?.textContent.trim() || "";
+    updateHeaderViewLabel();
     closeNavigationDrawer();
     render();
     if (window.lucide) window.lucide.createIcons();
+  }
+
+  function updateHeaderViewLabel() {
+    const modeButton = $("#receptionModeButton");
+    const modeMenu = $("#receptionModeMenu");
+    if (state.view === "reception") {
+      $("#currentViewLabel").textContent = receptionModeLabel();
+      if (modeButton) modeButton.hidden = false;
+      $$("#receptionModeMenu [data-reception-mode]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.receptionMode === state.receptionMenuMode);
+      });
+      return;
+    }
+
+    const activeTab = $$(".tab").find((tab) => tab.dataset.view === state.view);
+    $("#currentViewLabel").textContent = activeTab?.textContent.trim() || "";
+    if (modeButton) {
+      modeButton.hidden = true;
+      modeButton.setAttribute("aria-expanded", "false");
+    }
+    if (modeMenu) modeMenu.hidden = true;
+  }
+
+  function receptionModeLabel() {
+    return state.receptionMenuMode === "custom" ? "受付（カスタム）" : "受付（通常）";
   }
 
   function setupNavigationDrawer() {
@@ -556,23 +581,33 @@
     $("#barOrders").addEventListener("click", handleOrderAction);
   }
 
-  function setupCustomMenuControls() {
-    const customView = $("#view-custom");
-    if (!customView) return;
+  function setupReceptionModeMenu() {
+    const button = $("#receptionModeButton");
+    const menu = $("#receptionModeMenu");
+    if (!button || !menu) return;
 
-    customView.addEventListener("click", (event) => {
-      const modeButton = event.target.closest("[data-custom-menu-mode]");
-      if (modeButton) {
-        state.customMenuMode = modeButton.dataset.customMenuMode || "normal";
-        renderCustomMenu();
-        return;
-      }
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const nextOpen = menu.hidden;
+      menu.hidden = !nextOpen;
+      button.setAttribute("aria-expanded", String(nextOpen));
+    });
 
-      const categoryButton = event.target.closest("[data-custom-category]");
-      if (categoryButton) {
-        state.customMenuCategoryId = categoryButton.dataset.customCategory || "";
-        renderCustomMenu();
-      }
+    menu.addEventListener("click", (event) => {
+      const modeButton = event.target.closest("[data-reception-mode]");
+      if (!modeButton) return;
+      state.receptionMenuMode = modeButton.dataset.receptionMode === "custom" ? "custom" : "normal";
+      localStorage.setItem(RECEPTION_MENU_MODE_KEY, state.receptionMenuMode);
+      menu.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+      updateHeaderViewLabel();
+      renderMenuPickers();
+    });
+
+    document.addEventListener("click", (event) => {
+      if (menu.hidden || event.target.closest(".view-title-wrap")) return;
+      menu.hidden = true;
+      button.setAttribute("aria-expanded", "false");
     });
   }
 
@@ -1254,8 +1289,18 @@
       `
     ).join("");
 
+    const useCustomOrder = form.dataset.source === "reception" && state.receptionMenuMode === "custom";
+    const stats = useCustomOrder ? menuOrderStats(state.menu) : null;
     $("[data-drink-buttons]", picker).innerHTML = state.menu
-      .map((category) => menuCategorySectionBlock(category, currentCategoryId, currentItemId, form.dataset.source))
+      .map((category) =>
+        menuCategorySectionBlock(
+          category,
+          currentCategoryId,
+          currentItemId,
+          form.dataset.source,
+          useCustomOrder ? rankedMenuSubcategoryGroups(category, stats) : menuSubcategoryGroups(category)
+        )
+      )
       .join("") || `<div class="menu-empty">商品未設定</div>`;
 
     if (currentItem && state.activeSheet?.form === form) renderItemSheet(form, currentItem);
@@ -1263,8 +1308,7 @@
     updateCustomDrinkField(form);
   }
 
-  function menuCategorySectionBlock(category, currentCategoryId, currentItemId, source) {
-    const groups = menuSubcategoryGroups(category);
+  function menuCategorySectionBlock(category, currentCategoryId, currentItemId, source, groups = menuSubcategoryGroups(category)) {
     const showSubcategories = shouldShowSubcategoryUi(groups);
     const subcategoryNav = showSubcategories
       ? `
@@ -1327,6 +1371,21 @@
         items: items.filter((item) => item.subcategory_id === subcategory.id),
       }))
       .filter((group) => group.items.length);
+  }
+
+  function rankedMenuSubcategoryGroups(category, stats) {
+    return menuSubcategoryGroups(category)
+      .map((group, groupIndex) => ({
+        ...group,
+        groupIndex,
+        count: stats.subcategoryCounts.get(subcategoryKey(category.id, group.id)) || 0,
+        items: group.items
+          .map((item, itemIndex) => ({ item, itemIndex, count: stats.itemCount(item) }))
+          .sort((a, b) => b.count - a.count || a.itemIndex - b.itemIndex)
+          .map((entry) => entry.item),
+      }))
+      .sort((a, b) => b.count - a.count || a.groupIndex - b.groupIndex)
+      .map(({ groupIndex, count, ...group }) => group);
   }
 
   function shouldShowSubcategoryUi(groups) {
@@ -1530,7 +1589,6 @@
       state.menu = normalizeMenu(row.menu, { allowEmpty: true });
       localStorage.setItem(MENU_KEY, JSON.stringify(state.menu));
       renderMenuPickers();
-      renderCustomMenu();
     }
 
     if ($("#configDialog")?.open) {
@@ -1703,7 +1761,6 @@
 
   function render() {
     renderBar();
-    renderCustomMenu();
     if (window.lucide) window.lucide.createIcons();
   }
 
@@ -1739,118 +1796,6 @@
       const start = index * perColumn;
       return orders.slice(start, start + perColumn);
     });
-  }
-
-  function renderCustomMenu() {
-    const categoryWrap = $("#customMenuCategories");
-    const content = $("#customMenuContent");
-    if (!categoryWrap || !content) return;
-
-    const categories = state.menu || [];
-    if (!categories.length) {
-      categoryWrap.innerHTML = "";
-      content.innerHTML = `<div class="empty-state">メニューが設定されていません</div>`;
-      return;
-    }
-
-    const activeCategory = categories.some((category) => category.id === state.customMenuCategoryId)
-      ? state.customMenuCategoryId
-      : categories[0].id;
-    state.customMenuCategoryId = activeCategory;
-
-    const stats = menuOrderStats(categories);
-    $$("#view-custom [data-custom-menu-mode]").forEach((button) => {
-      const active = button.dataset.customMenuMode === state.customMenuMode;
-      button.classList.toggle("active", active);
-      button.setAttribute("aria-pressed", String(active));
-    });
-
-    categoryWrap.innerHTML = categories
-      .map((category) => customCategoryButtonBlock(category, activeCategory, stats.categoryCounts.get(category.id) || 0))
-      .join("");
-
-    const category = categories.find((item) => item.id === activeCategory);
-    content.innerHTML = category
-      ? customMenuCategoryBlock(category, state.customMenuMode, stats)
-      : `<div class="empty-state">カテゴリを選択してください</div>`;
-  }
-
-  function customCategoryButtonBlock(category, activeCategory, count) {
-    const active = category.id === activeCategory;
-    return `
-      <button class="custom-category-button ${active ? "active" : ""}" type="button" data-custom-category="${escapeHtml(category.id)}" aria-pressed="${active}">
-        <span>${escapeHtml(category.label)}</span>
-        <small>${escapeHtml(String(count))}杯</small>
-      </button>
-    `;
-  }
-
-  function customMenuCategoryBlock(category, mode, stats) {
-    const groups = customMenuGroups(category, mode, stats);
-    const categoryCount = stats.categoryCounts.get(category.id) || 0;
-    const modeLabel = mode === "popular" ? "カスタムメニュー" : "通常メニュー";
-
-    return `
-      <section class="custom-menu-panel">
-        <div class="custom-menu-panel-head">
-          <div>
-            <span>${escapeHtml(modeLabel)}</span>
-            <h3>${escapeHtml(category.label)}</h3>
-          </div>
-          <strong>${escapeHtml(String(categoryCount))}杯</strong>
-        </div>
-        <div class="custom-subcategory-list">
-          ${groups.length ? groups.map((group) => customSubcategoryBlock(group)).join("") : `<div class="menu-empty compact">商品未設定</div>`}
-        </div>
-      </section>
-    `;
-  }
-
-  function customMenuGroups(category, mode, stats) {
-    const groups = menuSubcategoryGroups(category).map((group, groupIndex) => {
-      const count = stats.subcategoryCounts.get(subcategoryKey(category.id, group.id)) || 0;
-      const items = group.items.map((item, itemIndex) => ({
-        item,
-        itemIndex,
-        count: stats.itemCount(item),
-      }));
-
-      if (mode === "popular") {
-        items.sort((a, b) => b.count - a.count || a.itemIndex - b.itemIndex);
-      }
-
-      return { ...group, groupIndex, count, items };
-    });
-
-    if (mode === "popular") {
-      groups.sort((a, b) => b.count - a.count || a.groupIndex - b.groupIndex);
-    }
-
-    return groups;
-  }
-
-  function customSubcategoryBlock(group) {
-    return `
-      <section class="custom-subcategory-card">
-        <div class="custom-subcategory-head">
-          <h4>${escapeHtml(group.label)}</h4>
-          <span>${escapeHtml(String(group.count))}杯</span>
-        </div>
-        <div class="custom-menu-items">
-          ${group.items.map(({ item, count }) => customMenuItemBlock(item, count)).join("")}
-        </div>
-      </section>
-    `;
-  }
-
-  function customMenuItemBlock(item, count) {
-    return `
-      <div class="custom-menu-item">
-        <span class="custom-menu-item-name">${escapeHtml(item.name)}</span>
-        <span class="custom-menu-item-price">${escapeHtml(formatPrice(item.price))}</span>
-        <span class="custom-menu-item-count">${escapeHtml(String(count))}杯</span>
-      </div>
-    `;
   }
 
   function menuOrderStats(categories) {
@@ -2893,6 +2838,10 @@
 
   function readSoundChoice() {
     return normalizeSoundChoice(localStorage.getItem(SOUND_CHOICE_KEY) || SOUND_OPTIONS[0].id);
+  }
+
+  function readReceptionMenuMode() {
+    return localStorage.getItem(RECEPTION_MENU_MODE_KEY) === "custom" ? "custom" : "normal";
   }
 
   function normalizeSoundChoice(value) {
