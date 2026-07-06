@@ -697,19 +697,35 @@ button:focus-visible {
   display: grid;
   grid-template-columns: 132px minmax(0, 1fr);
   align-items: stretch;
-  height: min(680px, calc(100vh - 190px));
+  height: min(680px, calc(100svh - 190px));
   min-height: 430px;
   overflow: hidden;
   border-top: 1px solid #eeeeee;
   border-bottom: 1px solid #eeeeee;
   border-radius: 0;
   background: #ffffff;
+  overscroll-behavior: contain;
+}
+
+@supports (height: 100dvh) {
+  .menu-picker {
+    height: min(680px, calc(100dvh - 190px));
+  }
 }
 
 .menu-category-list {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
   display: grid;
   align-content: start;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   border-right: 0;
   background: #f5f5f5;
 }
@@ -738,8 +754,12 @@ button:focus-visible {
 }
 
 .menu-item-grid {
+  min-height: 0;
+  max-height: 100%;
   display: block;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   gap: 0;
 }
 
