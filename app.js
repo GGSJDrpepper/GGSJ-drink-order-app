@@ -527,6 +527,7 @@
     });
     $("#orderEditClose").addEventListener("click", closeOrderEdit);
     $("#orderEditCancel").addEventListener("click", closeOrderEdit);
+    $("#deleteOrderEdit").addEventListener("click", deleteOrderEdit);
     $("#saveOrderEdit").addEventListener("click", saveOrderEdit);
     $("#orderEditLocation").addEventListener("click", handleOrderEditChoice);
     $$("input[name='editTarget']").forEach((input) => {
@@ -1890,6 +1891,27 @@
       }
     } finally {
       button.disabled = false;
+    }
+  }
+
+  async function deleteOrderEdit() {
+    const orderId = state.editingOrderId;
+    const order = state.orders.find((item) => item.id === orderId);
+    if (!order) return;
+
+    const deleteButton = $("#deleteOrderEdit");
+    const saveButton = $("#saveOrderEdit");
+    deleteButton.disabled = true;
+    saveButton.disabled = true;
+
+    try {
+      const deleted = await updateOrder(orderId, { status: "canceled" });
+      if (deleted) {
+        closeOrderEdit();
+      }
+    } finally {
+      deleteButton.disabled = false;
+      saveButton.disabled = false;
     }
   }
 

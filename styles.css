@@ -23,7 +23,9 @@
 
 body {
   margin: 0;
+  width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
   background: var(--paper);
   color: var(--ink);
 }
@@ -39,15 +41,18 @@ button {
 }
 
 .app-shell {
+  width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 .app-menu-bar {
   position: sticky;
   top: 0;
   z-index: 10;
+  width: 100%;
   min-height: 54px;
   display: flex;
   align-items: center;
@@ -62,6 +67,7 @@ button {
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex: 0 1 auto;
 }
 
 .header-config-button {
@@ -285,6 +291,12 @@ p {
   padding: 0 14px;
   background: var(--teal);
   color: #ffffff;
+}
+
+.button-danger {
+  padding: 0 14px;
+  background: var(--rose-soft);
+  color: var(--rose);
 }
 
 .button-quiet {
@@ -1406,6 +1418,8 @@ button:focus-visible {
 
 dialog {
   width: min(520px, calc(100vw - 28px));
+  max-width: calc(100vw - 28px);
+  margin: auto;
   border: 0;
   padding: 0;
   border-radius: 8px;
@@ -1418,6 +1432,7 @@ dialog {
 
 #orderEditDialog {
   width: min(760px, calc(100vw - 28px));
+  max-width: calc(100vw - 28px);
 }
 
 #configDialog {
@@ -1436,6 +1451,7 @@ dialog::backdrop {
 .config-modal,
 .order-edit-modal,
 .confirm-modal {
+  width: 100%;
   padding: 14px;
   box-shadow: none;
 }
