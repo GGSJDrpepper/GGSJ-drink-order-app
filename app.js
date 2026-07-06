@@ -177,7 +177,6 @@
 
   async function init() {
     setupTabs();
-    setupNavigationDrawer();
     setupChoiceButtons();
     renderMenuPickers();
     setupForms();
@@ -197,6 +196,12 @@
   }
 
   function setupTabs() {
+    $("#headerReceptionButton")?.addEventListener("click", () => {
+      switchView("reception");
+    });
+    $("#headerBarButton")?.addEventListener("click", () => {
+      switchView("bar");
+    });
     $$(".tab").forEach((tab) => {
       tab.addEventListener("click", () => {
         switchView(tab.dataset.view);
@@ -206,6 +211,13 @@
 
   function switchView(viewName) {
     state.view = viewName;
+    $$("#headerReceptionButton, #headerBarButton").forEach((button) => {
+      const isReceptionButton = button.id === "headerReceptionButton";
+      const active = (isReceptionButton && viewName === "reception") || (!isReceptionButton && viewName === "bar");
+      button.classList.toggle("active", active);
+      if (active) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    });
     $$(".tab").forEach((item) => {
       const active = item.dataset.view === viewName;
       item.classList.toggle("active", active);
@@ -216,7 +228,6 @@
       view.classList.toggle("active", view.id === `view-${state.view}`);
     });
     updateHeaderViewLabel();
-    closeNavigationDrawer();
     render();
     if (window.lucide) window.lucide.createIcons();
   }
@@ -224,49 +235,19 @@
   function updateHeaderViewLabel() {
     const modeButton = $("#receptionModeButton");
     const modeMenu = $("#receptionModeMenu");
-    if (state.view === "reception") {
-      $("#currentViewLabel").textContent = receptionModeLabel();
-      if (modeButton) modeButton.hidden = false;
-      $$("#receptionModeMenu [data-reception-mode]").forEach((button) => {
-        button.classList.toggle("active", button.dataset.receptionMode === state.receptionMenuMode);
-      });
-      return;
+    $("#currentViewLabel").textContent = receptionModeLabel();
+    if (modeButton) modeButton.hidden = false;
+    $$("#receptionModeMenu [data-reception-mode]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.receptionMode === state.receptionMenuMode);
+    });
+    if (state.view !== "reception" && modeMenu) {
+      modeMenu.hidden = true;
+      modeButton?.setAttribute("aria-expanded", "false");
     }
-
-    const activeTab = $$(".tab").find((tab) => tab.dataset.view === state.view);
-    $("#currentViewLabel").textContent = activeTab?.textContent.trim() || "";
-    if (modeButton) {
-      modeButton.hidden = true;
-      modeButton.setAttribute("aria-expanded", "false");
-    }
-    if (modeMenu) modeMenu.hidden = true;
   }
 
   function receptionModeLabel() {
     return state.receptionMenuMode === "custom" ? "受付（カスタム）" : "受付（通常）";
-  }
-
-  function setupNavigationDrawer() {
-    $("#menuButton").addEventListener("click", openNavigationDrawer);
-    $("#navigationDrawer").addEventListener("click", (event) => {
-      if (event.target.closest("[data-menu-close]")) closeNavigationDrawer();
-    });
-  }
-
-  function openNavigationDrawer() {
-    const drawer = $("#navigationDrawer");
-    drawer.hidden = false;
-    $("#menuButton").setAttribute("aria-expanded", "true");
-    requestAnimationFrame(() => drawer.classList.add("open"));
-  }
-
-  function closeNavigationDrawer() {
-    const drawer = $("#navigationDrawer");
-    drawer.classList.remove("open");
-    $("#menuButton").setAttribute("aria-expanded", "false");
-    setTimeout(() => {
-      if (!drawer.classList.contains("open")) drawer.hidden = true;
-    }, 180);
   }
 
   function setupForms() {
@@ -345,12 +326,10 @@
       playChime();
     });
 
-    $("#configButton").addEventListener("click", () => {
-      closeNavigationDrawer();
+    $("#configButton")?.addEventListener("click", () => {
       openConfig();
     });
     $("#headerConfigButton").addEventListener("click", () => {
-      closeNavigationDrawer();
       openConfig();
     });
     $("#configDialog form").addEventListener("submit", (event) => event.preventDefault());
@@ -546,7 +525,6 @@
     $$("input[name='confirmPaymentStatus']").forEach((input) => {
       input.addEventListener("change", updateConfirmPaymentMethodVisibility);
     });
-    $("#receptionOrders").addEventListener("click", handleReceptionOrderListClick);
     $("#orderEditClose").addEventListener("click", closeOrderEdit);
     $("#orderEditCancel").addEventListener("click", closeOrderEdit);
     $("#saveOrderEdit").addEventListener("click", saveOrderEdit);
@@ -615,7 +593,8 @@
       localStorage.setItem(RECEPTION_MENU_MODE_KEY, state.receptionMenuMode);
       menu.hidden = true;
       button.setAttribute("aria-expanded", "false");
-      updateHeaderViewLabel();
+      if (state.view !== "reception") switchView("reception");
+      else updateHeaderViewLabel();
       renderMenuPickers();
     });
 
@@ -1765,6 +1744,7 @@
 
     if (action === "making") updateOrder(id, { status: "making" });
     if (action === "made") updateOrder(id, { status: "made" });
+    if (action === "edit") openOrderEdit(id);
     if (action === "served") {
       if (order.payment_status === "uncollected") {
         toast("未徴収です。先に会計済みにしてください");
@@ -1776,65 +1756,9 @@
     if (action === "cancel") updateOrder(id, { status: "canceled" });
   }
 
-  function handleReceptionOrderListClick(event) {
-    const button = event.target.closest("[data-edit-sent-order]");
-    if (!button) return;
-    openOrderEdit(button.dataset.editSentOrder);
-  }
-
-  function editableReceptionOrders() {
-    return state.orders.filter((order) => !["served", "canceled"].includes(order.status));
-  }
-
   function render() {
-    renderReceptionOrders();
     renderBar();
     if (window.lucide) window.lucide.createIcons();
-  }
-
-  function renderReceptionOrders() {
-    const container = $("#receptionOrders");
-    if (!container) return;
-    const orders = editableReceptionOrders();
-    if (!orders.length) {
-      container.innerHTML = `<div class="empty-state compact-empty">修正できる送信済みオーダーはありません</div>`;
-      return;
-    }
-
-    container.innerHTML = orders.map((order) => receptionOrderEditCard(order)).join("");
-  }
-
-  function receptionOrderEditCard(order) {
-    const locationBadges = barLocationBadges(order);
-    const location = !locationBadges && order.target !== "bar"
-      ? `<span class="reception-order-location">${escapeHtml(locationLabel(order))}</span>`
-      : "";
-    const payment = order.payment_status === "uncollected"
-      ? `<span class="reception-order-payment">${escapeHtml(paymentMethodLabels[order.payment_method] || order.payment_method)}</span>`
-      : "";
-
-    return `
-      <article class="reception-order-card status-${escapeHtml(order.status)}" data-reception-order-id="${escapeHtml(order.id)}">
-        <div class="reception-order-main">
-          <div class="reception-order-title-row">
-            <span class="order-target-label">${escapeHtml(barTargetLabel(order))}</span>
-            ${locationBadges}
-            <strong>${escapeHtml(order.drink_name)}</strong>
-            <span class="qty-pill">x${escapeHtml(String(order.quantity))}</span>
-          </div>
-          <div class="reception-order-meta">
-            ${location}
-            ${payment}
-            <span>${escapeHtml(formatTime(order.created_at))}</span>
-          </div>
-          ${order.notes ? `<div class="reception-order-note">${escapeHtml(order.notes)}</div>` : ""}
-        </div>
-        <button class="button button-quiet reception-order-edit-button" type="button" data-edit-sent-order="${escapeHtml(order.id)}">
-          <i data-lucide="pencil" aria-hidden="true"></i>
-          <span>編集</span>
-        </button>
-      </article>
-    `;
   }
 
   function openOrderEdit(orderId) {
@@ -1861,7 +1785,7 @@
 
   function orderEditSummaryBlock(order) {
     const locationBadges = barLocationBadges(order);
-    const location = order.target === "bar" ? "バーカウンター" : locationLabel(order);
+    const location = order.target === "bar" ? "バーカウンター" : locationBadges ? "" : locationLabel(order);
     return `
       <div class="order-edit-summary-title">
         <span class="order-target-label">${escapeHtml(barTargetLabel(order))}</span>
@@ -1870,7 +1794,7 @@
         <span class="qty-pill">x${escapeHtml(String(order.quantity))}</span>
       </div>
       <div class="order-edit-summary-meta">
-        <span>${escapeHtml(location)}</span>
+        ${location ? `<span>${escapeHtml(location)}</span>` : ""}
         <span>${escapeHtml(formatTime(order.created_at))}</span>
       </div>
       ${order.notes ? `<div class="order-edit-summary-note">${escapeHtml(order.notes)}</div>` : ""}
@@ -2096,6 +2020,7 @@
         ${order.status !== "made" ? actionButton("made", "作成済み", "", "button-made") : ""}
         ${order.payment_status === "uncollected" ? actionButton("paid", "会計済み", "", "button-pay") : ""}
         ${actionButton("served", "提供済み", "", "button-served")}
+        ${actionButton("edit", "修正", "", "button-edit")}
       </div>
     `;
   }

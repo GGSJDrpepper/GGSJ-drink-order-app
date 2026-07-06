@@ -51,27 +51,17 @@ button {
   min-height: 54px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   padding: 0 clamp(12px, 3vw, 28px);
   border-bottom: 1px solid #eeeeee;
   background: #ffffff;
 }
 
-.menu-trigger {
-  width: 42px;
-  min-height: 42px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--ink);
-}
-
-.menu-trigger svg {
-  width: 27px;
-  height: 27px;
+.header-view-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .header-config-button {
@@ -96,8 +86,25 @@ button {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
+}
+
+.header-view-button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.header-view-button.active {
+  color: var(--ink);
 }
 
 #currentViewLabel {
@@ -161,95 +168,6 @@ button {
 .reception-mode-menu button.active {
   background: var(--teal-soft);
   color: var(--teal);
-}
-
-.nav-drawer-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  pointer-events: none;
-}
-
-.nav-drawer-layer[hidden] {
-  display: none;
-}
-
-.drawer-scrim {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: rgba(47, 47, 47, 0.26);
-  opacity: 0;
-  transition: opacity 180ms ease;
-}
-
-.drawer-panel {
-  position: relative;
-  width: min(320px, calc(100vw - 44px));
-  min-height: 100vh;
-  display: grid;
-  align-content: start;
-  gap: 6px;
-  padding: 18px 14px;
-  background: #ffffff;
-  box-shadow: 18px 0 48px rgba(47, 47, 47, 0.16);
-  transform: translateX(-105%);
-  transition: transform 180ms ease;
-}
-
-.nav-drawer-layer.open {
-  pointer-events: auto;
-}
-
-.nav-drawer-layer.open .drawer-scrim {
-  opacity: 1;
-}
-
-.nav-drawer-layer.open .drawer-panel {
-  transform: translateX(0);
-}
-
-.drawer-title {
-  padding: 8px 8px 12px;
-  color: var(--muted);
-  font-size: 0.86rem;
-  font-weight: 850;
-}
-
-.drawer-panel .tab,
-.drawer-action {
-  width: 100%;
-  min-height: 52px;
-  justify-content: flex-start;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 8px;
-  background: #ffffff;
-  color: var(--ink);
-}
-
-.drawer-panel .tab.active,
-.drawer-action:hover {
-  color: var(--teal);
-  background: #fff7ef;
-  box-shadow: none;
-}
-
-.drawer-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  font-weight: 800;
-}
-
-.drawer-action svg {
-  width: 19px;
-  height: 19px;
 }
 
 .topbar {
@@ -1179,83 +1097,9 @@ button:focus-visible {
 }
 
 .history-list,
-.reception-order-list,
 .orders-list {
   display: grid;
   gap: 12px;
-}
-
-.reception-edit-panel {
-  margin-top: 18px;
-  padding: 14px;
-  border-top: 8px solid #f5f5f5;
-  background: #ffffff;
-}
-
-.reception-edit-panel .section-head {
-  margin-bottom: 10px;
-}
-
-.reception-order-list {
-  gap: 8px;
-}
-
-.reception-order-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: #ffffff;
-}
-
-.reception-order-card.status-made {
-  background: #f7f7f7;
-}
-
-.reception-order-main {
-  min-width: 0;
-  display: grid;
-  gap: 6px;
-}
-
-.reception-order-title-row,
-.reception-order-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.reception-order-title-row strong {
-  font-size: 0.92rem;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-.reception-order-meta,
-.reception-order-note {
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 750;
-  line-height: 1.4;
-}
-
-.reception-order-payment {
-  color: var(--rose);
-}
-
-.reception-order-edit-button {
-  min-height: 34px;
-  padding: 0 10px;
-  font-size: 0.82rem;
-}
-
-.reception-order-edit-button svg {
-  width: 16px;
-  height: 16px;
 }
 
 #barOrders.orders-list {
@@ -1523,6 +1367,11 @@ button:focus-visible {
 .button-pay {
   background: var(--amber-soft);
   color: #8a4b00;
+}
+
+.button-edit {
+  background: #f3f3f3;
+  color: var(--ink);
 }
 
 .button-cancel {
@@ -2467,6 +2316,7 @@ dialog::backdrop {
 }
 
 .config-modal .button-quiet,
+.order-edit-modal .button-quiet,
 .confirm-modal .button-quiet {
   color: var(--ink);
   background: #ffffff;

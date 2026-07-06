@@ -5,51 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f97316">
     <title>Drink Relay</title>
-    <link rel="stylesheet" href="./styles.css?v=2026070702">
+    <link rel="stylesheet" href="./styles.css?v=2026070703">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026070702"></script>
+    <script defer src="./app.js?v=2026070703"></script>
   </head>
   <body>
     <div class="app-shell">
       <header class="app-menu-bar">
-        <button id="menuButton" class="menu-trigger" type="button" aria-label="メニューを開く" aria-expanded="false" aria-controls="navigationDrawer">
-          <i data-lucide="menu" aria-hidden="true"></i>
-        </button>
-        <div class="view-title-wrap">
-          <span id="currentViewLabel">受付（通常）</span>
-          <button id="receptionModeButton" class="reception-mode-button" type="button" aria-label="受付メニューを切り替え" aria-expanded="false" aria-controls="receptionModeMenu">
-            <i data-lucide="chevron-down" aria-hidden="true"></i>
-          </button>
-          <div id="receptionModeMenu" class="reception-mode-menu" hidden>
-            <button type="button" data-reception-mode="normal">受付（通常）</button>
-            <button type="button" data-reception-mode="custom">受付（カスタム）</button>
+        <div class="header-view-switcher" aria-label="画面切り替え">
+          <div class="view-title-wrap">
+            <button id="headerReceptionButton" class="header-view-button active" type="button" aria-current="page">
+              <span id="currentViewLabel">受付（通常）</span>
+            </button>
+            <button id="receptionModeButton" class="reception-mode-button" type="button" aria-label="受付メニューを切り替え" aria-expanded="false" aria-controls="receptionModeMenu">
+              <i data-lucide="chevron-down" aria-hidden="true"></i>
+            </button>
+            <div id="receptionModeMenu" class="reception-mode-menu" hidden>
+              <button type="button" data-reception-mode="normal">受付（通常）</button>
+              <button type="button" data-reception-mode="custom">受付（カスタム）</button>
+            </div>
           </div>
+          <button id="headerBarButton" class="header-view-button" type="button">
+            <span>バー</span>
+          </button>
         </div>
         <span id="syncBadge" class="sync-badge is-local">デモ同期</span>
         <button id="headerConfigButton" class="header-config-button" type="button" aria-label="設定を開く" title="設定">
           <i data-lucide="settings" aria-hidden="true"></i>
         </button>
       </header>
-
-      <div id="navigationDrawer" class="nav-drawer-layer" hidden>
-        <button class="drawer-scrim" type="button" data-menu-close aria-label="メニューを閉じる"></button>
-        <nav class="drawer-panel" aria-label="画面切り替え">
-          <div class="drawer-title">メニュー</div>
-          <button class="tab active" type="button" data-view="reception" aria-current="page">
-            <i data-lucide="concierge-bell" aria-hidden="true"></i>
-            <span>受付</span>
-          </button>
-          <button class="tab" type="button" data-view="bar">
-            <i data-lucide="martini" aria-hidden="true"></i>
-            <span>バー</span>
-          </button>
-          <button id="configButton" class="drawer-action" type="button">
-            <i data-lucide="settings" aria-hidden="true"></i>
-            <span>設定</span>
-          </button>
-        </nav>
-      </div>
 
       <main>
         <section id="view-reception" class="view active" aria-label="受付">
@@ -84,13 +69,6 @@
                 </button>
               </div>
             </form>
-
-            <section class="reception-edit-panel" aria-labelledby="receptionEditTitle">
-              <div class="section-head compact">
-                <h2 id="receptionEditTitle">送信済み修正</h2>
-              </div>
-              <div id="receptionOrders" class="reception-order-list"></div>
-            </section>
           </div>
         </section>
 
@@ -211,7 +189,7 @@
     <dialog id="orderEditDialog">
       <form class="order-edit-modal" method="dialog">
         <div class="section-head compact">
-          <h2>送信済み修正</h2>
+          <h2>オーダー修正</h2>
           <button id="orderEditClose" class="icon-button" value="cancel" type="button" aria-label="閉じる" title="閉じる">
             <i data-lucide="x" aria-hidden="true"></i>
           </button>
