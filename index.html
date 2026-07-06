@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f97316">
     <title>Drink Relay</title>
-    <link rel="stylesheet" href="./styles.css?v=2026070305">
+    <link rel="stylesheet" href="./styles.css?v=2026070701">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026070305"></script>
+    <script defer src="./app.js?v=2026070701"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -85,6 +85,12 @@
               </div>
             </form>
 
+            <section class="reception-edit-panel" aria-labelledby="receptionEditTitle">
+              <div class="section-head compact">
+                <h2 id="receptionEditTitle">送信済み修正</h2>
+              </div>
+              <div id="receptionOrders" class="reception-order-list"></div>
+            </section>
           </div>
         </section>
 
@@ -197,6 +203,54 @@
           <button id="sendConfirmedOrder" class="button button-primary" type="button">
             <i data-lucide="send" aria-hidden="true"></i>
             <span>バーへ送信</span>
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="orderEditDialog">
+      <form class="order-edit-modal" method="dialog">
+        <div class="section-head compact">
+          <h2>送信済み修正</h2>
+          <button id="orderEditClose" class="icon-button" value="cancel" type="button" aria-label="閉じる" title="閉じる">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="orderEditSummary" class="order-edit-summary"></div>
+        <fieldset class="control-group">
+          <legend>届け先</legend>
+          <div class="segmented destination-row">
+            <label><input type="radio" name="editTarget" value="tournament"><span>トーナメント</span></label>
+            <label><input type="radio" name="editTarget" value="ring"><span>リング</span></label>
+            <label><input type="radio" name="editTarget" value="bar"><span>バーカウンター</span></label>
+          </div>
+        </fieldset>
+        <div id="orderEditLocation" class="order-edit-location"></div>
+        <section class="confirm-payment-panel" aria-label="会計修正">
+          <fieldset class="control-group">
+            <legend>会計</legend>
+            <div class="segmented">
+              <label><input type="radio" name="editPaymentStatus" value="paid"><span>徴収済み</span></label>
+              <label><input type="radio" name="editPaymentStatus" value="uncollected"><span>未徴収</span></label>
+            </div>
+          </fieldset>
+          <label id="orderEditPaymentMethodWrap" class="confirm-payment-method" hidden>
+            <span>お支払い方法</span>
+            <select id="orderEditPaymentMethod">
+              <option value="cash">現金</option>
+              <option value="card">カード</option>
+              <option value="paypay">PayPay</option>
+              <option value="coin">コイン</option>
+              <option value="transit">交通系</option>
+              <option value="unknown">不明</option>
+            </select>
+          </label>
+        </section>
+        <div class="modal-actions confirm-actions">
+          <button id="orderEditCancel" class="button button-quiet" type="button">キャンセル</button>
+          <button id="saveOrderEdit" class="button button-primary" type="button">
+            <i data-lucide="save" aria-hidden="true"></i>
+            <span>上書き保存</span>
           </button>
         </div>
       </form>

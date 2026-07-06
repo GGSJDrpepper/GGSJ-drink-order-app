@@ -452,6 +452,7 @@ main {
 .history-panel,
 .bar-board,
 .config-modal,
+.order-edit-modal,
 .confirm-modal {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -1158,9 +1159,83 @@ button:focus-visible {
 }
 
 .history-list,
+.reception-order-list,
 .orders-list {
   display: grid;
   gap: 12px;
+}
+
+.reception-edit-panel {
+  margin-top: 18px;
+  padding: 14px;
+  border-top: 8px solid #f5f5f5;
+  background: #ffffff;
+}
+
+.reception-edit-panel .section-head {
+  margin-bottom: 10px;
+}
+
+.reception-order-list {
+  gap: 8px;
+}
+
+.reception-order-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.reception-order-card.status-made {
+  background: #f7f7f7;
+}
+
+.reception-order-main {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.reception-order-title-row,
+.reception-order-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reception-order-title-row strong {
+  font-size: 0.92rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.reception-order-meta,
+.reception-order-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.reception-order-payment {
+  color: var(--rose);
+}
+
+.reception-order-edit-button {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+}
+
+.reception-order-edit-button svg {
+  width: 16px;
+  height: 16px;
 }
 
 #barOrders.orders-list {
@@ -1189,6 +1264,11 @@ button:focus-visible {
   border-radius: 8px;
   color: var(--muted);
   text-align: center;
+}
+
+.empty-state.compact-empty {
+  min-height: 72px;
+  padding: 16px;
 }
 
 #barOrders .empty-state {
@@ -1467,6 +1547,10 @@ dialog {
   width: min(960px, calc(100vw - 28px));
 }
 
+#orderEditDialog {
+  width: min(760px, calc(100vw - 28px));
+}
+
 #configDialog {
   width: min(960px, calc(100vw - 28px));
 }
@@ -1481,14 +1565,56 @@ dialog::backdrop {
 }
 
 .config-modal,
+.order-edit-modal,
 .confirm-modal {
   padding: 14px;
   box-shadow: none;
 }
 
+.order-edit-modal,
 .confirm-modal {
   max-height: calc(100vh - 36px);
   overflow: auto;
+}
+
+.order-edit-summary {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff9f4;
+}
+
+.order-edit-summary-title,
+.order-edit-summary-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-edit-summary-title strong {
+  overflow-wrap: anywhere;
+}
+
+.order-edit-summary-meta,
+.order-edit-summary-note {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.order-edit-location {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.order-edit-location[hidden] {
+  display: none;
 }
 
 .confirm-summary {

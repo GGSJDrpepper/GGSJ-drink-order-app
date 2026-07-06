@@ -159,6 +159,7 @@
       table: [],
     },
     pendingConfirmation: null,
+    editingOrderId: "",
     activeSheet: null,
     audioContext: null,
     notificationAudio: null,
@@ -544,6 +545,20 @@
     });
     $$("input[name='confirmPaymentStatus']").forEach((input) => {
       input.addEventListener("change", updateConfirmPaymentMethodVisibility);
+    });
+    $("#receptionOrders").addEventListener("click", handleReceptionOrderListClick);
+    $("#orderEditClose").addEventListener("click", closeOrderEdit);
+    $("#orderEditCancel").addEventListener("click", closeOrderEdit);
+    $("#saveOrderEdit").addEventListener("click", saveOrderEdit);
+    $("#orderEditLocation").addEventListener("click", handleOrderEditChoice);
+    $$("input[name='editTarget']").forEach((input) => {
+      input.addEventListener("change", updateOrderEditTargetVisibility);
+    });
+    $$("input[name='editPaymentStatus']").forEach((input) => {
+      input.addEventListener("change", updateOrderEditPaymentVisibility);
+    });
+    $("#orderEditDialog").addEventListener("close", () => {
+      state.editingOrderId = "";
     });
     $("#itemSheetLayer").addEventListener("click", (event) => {
       if (event.target.closest("[data-sheet-close]")) closeItemSheet();
@@ -1674,7 +1689,7 @@
 
   async function updateOrder(id, patch) {
     const order = state.orders.find((item) => item.id === id);
-    if (!order) return;
+    if (!order) return false;
 
     const next = normalizeOrder({
       ...order,
@@ -1698,9 +1713,11 @@
         upsertOrder(order);
         render();
         toast("更新に失敗しました");
-        return;
+        return false;
       }
     }
+
+    return true;
   }
 
   function handleRealtimePayload(payload) {
@@ -1759,9 +1776,210 @@
     if (action === "cancel") updateOrder(id, { status: "canceled" });
   }
 
+  function handleReceptionOrderListClick(event) {
+    const button = event.target.closest("[data-edit-sent-order]");
+    if (!button) return;
+    openOrderEdit(button.dataset.editSentOrder);
+  }
+
+  function editableReceptionOrders() {
+    return state.orders.filter((order) => !["served", "canceled"].includes(order.status));
+  }
+
   function render() {
+    renderReceptionOrders();
     renderBar();
     if (window.lucide) window.lucide.createIcons();
+  }
+
+  function renderReceptionOrders() {
+    const container = $("#receptionOrders");
+    if (!container) return;
+    const orders = editableReceptionOrders();
+    if (!orders.length) {
+      container.innerHTML = `<div class="empty-state compact-empty">修正できる送信済みオーダーはありません</div>`;
+      return;
+    }
+
+    container.innerHTML = orders.map((order) => receptionOrderEditCard(order)).join("");
+  }
+
+  function receptionOrderEditCard(order) {
+    const locationBadges = barLocationBadges(order);
+    const location = !locationBadges && order.target !== "bar"
+      ? `<span class="reception-order-location">${escapeHtml(locationLabel(order))}</span>`
+      : "";
+    const payment = order.payment_status === "uncollected"
+      ? `<span class="reception-order-payment">${escapeHtml(paymentMethodLabels[order.payment_method] || order.payment_method)}</span>`
+      : "";
+
+    return `
+      <article class="reception-order-card status-${escapeHtml(order.status)}" data-reception-order-id="${escapeHtml(order.id)}">
+        <div class="reception-order-main">
+          <div class="reception-order-title-row">
+            <span class="order-target-label">${escapeHtml(barTargetLabel(order))}</span>
+            ${locationBadges}
+            <strong>${escapeHtml(order.drink_name)}</strong>
+            <span class="qty-pill">x${escapeHtml(String(order.quantity))}</span>
+          </div>
+          <div class="reception-order-meta">
+            ${location}
+            ${payment}
+            <span>${escapeHtml(formatTime(order.created_at))}</span>
+          </div>
+          ${order.notes ? `<div class="reception-order-note">${escapeHtml(order.notes)}</div>` : ""}
+        </div>
+        <button class="button button-quiet reception-order-edit-button" type="button" data-edit-sent-order="${escapeHtml(order.id)}">
+          <i data-lucide="pencil" aria-hidden="true"></i>
+          <span>編集</span>
+        </button>
+      </article>
+    `;
+  }
+
+  function openOrderEdit(orderId) {
+    const order = state.orders.find((item) => item.id === orderId);
+    if (!order || ["served", "canceled"].includes(order.status)) {
+      toast("このオーダーは編集できません");
+      return;
+    }
+
+    state.editingOrderId = order.id;
+    $("#orderEditSummary").innerHTML = orderEditSummaryBlock(order);
+    const targetInput = $(`input[name='editTarget'][value='${order.target || "ring"}']`);
+    if (targetInput) targetInput.checked = true;
+    renderOrderEditLocation(order.table_no, order.seat_no);
+    const paymentStatus = order.payment_status || "uncollected";
+    const paymentStatusInput = $(`input[name='editPaymentStatus'][value='${paymentStatus}']`);
+    if (paymentStatusInput) paymentStatusInput.checked = true;
+    $("#orderEditPaymentMethod").value = normalizePaymentMethod(order.payment_method);
+    updateOrderEditTargetVisibility();
+    updateOrderEditPaymentVisibility();
+    $("#orderEditDialog").showModal();
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function orderEditSummaryBlock(order) {
+    const locationBadges = barLocationBadges(order);
+    const location = order.target === "bar" ? "バーカウンター" : locationLabel(order);
+    return `
+      <div class="order-edit-summary-title">
+        <span class="order-target-label">${escapeHtml(barTargetLabel(order))}</span>
+        ${locationBadges}
+        <strong>${escapeHtml(order.drink_name)}</strong>
+        <span class="qty-pill">x${escapeHtml(String(order.quantity))}</span>
+      </div>
+      <div class="order-edit-summary-meta">
+        <span>${escapeHtml(location)}</span>
+        <span>${escapeHtml(formatTime(order.created_at))}</span>
+      </div>
+      ${order.notes ? `<div class="order-edit-summary-note">${escapeHtml(order.notes)}</div>` : ""}
+    `;
+  }
+
+  function renderOrderEditLocation(tableNo = "", seatNo = "") {
+    $("#orderEditLocation").innerHTML = `
+      ${orderEditChoiceGroup("tableNo", "テーブル", TABLES, tableNo)}
+      ${orderEditChoiceGroup("seatNo", "席番号", SEATS, tableNo ? seatNo : "", !tableNo)}
+    `;
+  }
+
+  function orderEditChoiceGroup(type, label, values, selectedValue = "", hiddenGroup = false) {
+    const hidden = hiddenGroup ? " hidden" : "";
+    return `
+      <fieldset class="control-group choice-panel confirm-choice-panel" data-order-edit-choice-group="${type}"${hidden}>
+        <legend>${escapeHtml(label)}</legend>
+        <div class="choice-grid ${type === "tableNo" ? "table-choice-grid" : "seat-choice-grid"}">
+          ${values.map((value) => `
+            <button class="choice-button ${value === selectedValue ? "active" : ""}" type="button" data-order-edit-choice="${type}" data-choice-value="${escapeHtml(value)}">
+              ${escapeHtml(value)}
+            </button>
+          `).join("")}
+        </div>
+      </fieldset>
+    `;
+  }
+
+  function handleOrderEditChoice(event) {
+    const button = event.target.closest("[data-order-edit-choice]");
+    if (!button) return;
+    const group = button.closest("[data-order-edit-choice-group]");
+    const wasActive = button.classList.contains("active");
+    $$(".choice-button", group).forEach((item) => item.classList.remove("active"));
+    if (!wasActive) button.classList.add("active");
+    if (button.dataset.orderEditChoice === "tableNo") updateOrderEditSeatVisibility();
+  }
+
+  function updateOrderEditTargetVisibility() {
+    const target = orderEditTarget();
+    $("#orderEditLocation").hidden = target === "bar";
+    if (target !== "bar") updateOrderEditSeatVisibility();
+  }
+
+  function updateOrderEditSeatVisibility() {
+    const location = $("#orderEditLocation");
+    const seatGroup = $("[data-order-edit-choice-group='seatNo']", location);
+    if (!seatGroup) return;
+    const hasTable = Boolean($("[data-order-edit-choice='tableNo'].active", location));
+    seatGroup.hidden = !hasTable;
+    if (!hasTable) {
+      $$("[data-order-edit-choice='seatNo']", seatGroup).forEach((button) => button.classList.remove("active"));
+    }
+  }
+
+  function updateOrderEditPaymentVisibility() {
+    $("#orderEditPaymentMethodWrap").hidden = orderEditPaymentStatus() !== "uncollected";
+  }
+
+  function closeOrderEdit() {
+    const dialog = $("#orderEditDialog");
+    if (dialog.open) dialog.close();
+    state.editingOrderId = "";
+  }
+
+  async function saveOrderEdit() {
+    const orderId = state.editingOrderId;
+    const order = state.orders.find((item) => item.id === orderId);
+    if (!order) return;
+
+    const button = $("#saveOrderEdit");
+    button.disabled = true;
+
+    try {
+      const target = orderEditTarget();
+      const tableNo = target === "bar" ? "" : activeOrderEditValue("tableNo");
+      const seatNo = target === "bar" || !tableNo ? "" : activeOrderEditValue("seatNo");
+      const paymentStatus = orderEditPaymentStatus();
+      const patch = {
+        target,
+        table_no: tableNo,
+        seat_no: seatNo,
+        payment_status: paymentStatus,
+        payment_method: paymentStatus === "uncollected" ? normalizePaymentMethod($("#orderEditPaymentMethod").value) : "cash",
+        paid_at: paymentStatus === "uncollected" ? null : order.paid_at,
+      };
+
+      const saved = await updateOrder(orderId, patch);
+      if (saved) {
+        closeOrderEdit();
+        toast("オーダー情報を上書きしました");
+      }
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function orderEditTarget() {
+    const value = $("input[name='editTarget']:checked")?.value || "ring";
+    return ["tournament", "ring", "bar"].includes(value) ? value : "ring";
+  }
+
+  function orderEditPaymentStatus() {
+    return $("input[name='editPaymentStatus']:checked")?.value || "uncollected";
+  }
+
+  function activeOrderEditValue(type) {
+    return $(`#orderEditLocation [data-order-edit-choice="${type}"].active`)?.dataset.choiceValue || "";
   }
 
   function renderBar() {
@@ -1891,6 +2109,10 @@
     `;
   }
 
+  function normalizePaymentMethod(value) {
+    return Object.prototype.hasOwnProperty.call(paymentMethodLabels, value) ? value : "cash";
+  }
+
   function barTargetLabel(order) {
     if (order.target === "tournament") return "トナメ";
     if (order.target === "ring") return "リング";
@@ -1960,7 +2182,7 @@
       table_no: order.table_no || "",
       seat_no: order.seat_no || "",
       payment_status: order.payment_status || "uncollected",
-      payment_method: order.payment_method || "cash",
+      payment_method: normalizePaymentMethod(order.payment_method || "cash"),
       notes: order.notes || "",
       status: order.status || "ordered",
       made_at: order.made_at || null,
