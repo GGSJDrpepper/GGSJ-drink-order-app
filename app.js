@@ -165,6 +165,9 @@
     notificationAudio: null,
     notificationAudioUnavailable: false,
     notificationAudioId: "",
+    notificationBuffer: null,
+    notificationBufferId: "",
+    notificationBufferPromise: null,
     configSnapshot: "",
     configActiveCategoryId: "",
     booted: false,
@@ -211,6 +214,9 @@
 
   function switchView(viewName) {
     state.view = viewName;
+    if (viewName === "bar" && state.soundEnabled) {
+      unlockAudio();
+    }
     $$("#headerReceptionButton, #headerBarButton").forEach((button) => {
       const isReceptionButton = button.id === "headerReceptionButton";
       const active = (isReceptionButton && viewName === "reception") || (!isReceptionButton && viewName === "bar");
@@ -319,6 +325,7 @@
       state.soundChoice = normalizeSoundChoice(event.target.value);
       resetNotificationAudio();
       saveSoundChoice();
+      if (state.soundEnabled) unlockAudio();
       toast("効果音を変更しました");
     });
     $("#soundPreview").addEventListener("click", async () => {
@@ -3074,10 +3081,13 @@
     }
 
     primeNotificationAudio();
+    warmNotificationBuffer();
   }
 
-  async function playChime() {
-    if (await playNotificationAudio()) return;
+  function playChime() {
+    if (playBufferedNotificationAudio()) return;
+    warmNotificationBuffer();
+    if (playPrimedNotificationAudio()) return;
     playFallbackBell();
   }
 
@@ -3094,19 +3104,77 @@
     }, { once: true });
     state.notificationAudio = audio;
     state.notificationAudioId = option.id;
+    audio.load();
   }
 
-  async function playNotificationAudio() {
+  async function warmNotificationBuffer() {
+    const option = selectedSoundOption();
+    if (!option.url || !state.audioContext) return null;
+    if (state.notificationBuffer && state.notificationBufferId === option.id) {
+      return state.notificationBuffer;
+    }
+    if (state.notificationBufferPromise && state.notificationBufferId === option.id) {
+      return state.notificationBufferPromise;
+    }
+
+    state.notificationAudioUnavailable = false;
+    state.notificationBufferId = option.id;
+    state.notificationBufferPromise = fetch(option.url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`sound fetch failed: ${response.status}`);
+        return response.arrayBuffer();
+      })
+      .then((arrayBuffer) => state.audioContext.decodeAudioData(arrayBuffer))
+      .then((buffer) => {
+        if (state.soundChoice === option.id) {
+          state.notificationBuffer = buffer;
+          state.notificationBufferId = option.id;
+        }
+        return buffer;
+      })
+      .catch((error) => {
+        console.warn(error);
+        return null;
+      })
+      .finally(() => {
+        if (state.notificationBufferId === option.id) {
+          state.notificationBufferPromise = null;
+        }
+      });
+
+    return state.notificationBufferPromise;
+  }
+
+  function playBufferedNotificationAudio() {
+    const option = selectedSoundOption();
+    if (!option.url) return false;
+    if (!state.audioContext || !state.notificationBuffer || state.notificationBufferId !== option.id) return false;
+    if (state.audioContext.state === "suspended") {
+      state.audioContext.resume();
+      return false;
+    }
+
+    const source = state.audioContext.createBufferSource();
+    const gain = state.audioContext.createGain();
+    source.buffer = state.notificationBuffer;
+    gain.gain.setValueAtTime(1, state.audioContext.currentTime);
+    source.connect(gain).connect(state.audioContext.destination);
+    source.start();
+    return true;
+  }
+
+  function playPrimedNotificationAudio() {
     if (!selectedSoundOption().url) return false;
     if (state.notificationAudioUnavailable) return false;
     primeNotificationAudio();
     const audio = state.notificationAudio;
     if (!audio) return false;
+    if (audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return false;
     try {
       audio.pause();
       audio.currentTime = 0;
       audio.volume = 1;
-      await audio.play();
+      audio.play().catch(() => {});
       return true;
     } catch {
       return false;
@@ -3120,6 +3188,9 @@
     state.notificationAudio = null;
     state.notificationAudioUnavailable = false;
     state.notificationAudioId = "";
+    state.notificationBuffer = null;
+    state.notificationBufferId = "";
+    state.notificationBufferPromise = null;
   }
 
   function playFallbackBell() {
