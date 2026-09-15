@@ -8,10 +8,10 @@
     <link rel="preload" as="audio" href="./sounds/news-title.mp3">
     <link rel="preload" as="audio" href="./sounds/decision-button.mp3">
     <link rel="preload" as="audio" href="./sounds/level-up.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026091501">
+    <link rel="stylesheet" href="./styles.css?v=2026091502">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026091501"></script>
+    <script defer src="./app.js?v=2026091502"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -34,6 +34,9 @@
           </button>
         </div>
         <span id="syncBadge" class="sync-badge is-local">デモ同期</span>
+        <button id="headerSoundPreviewButton" class="header-config-button" type="button" aria-label="通知音を試聴" title="通知音を試聴">
+          <i data-lucide="bell-ring" aria-hidden="true"></i>
+        </button>
         <button id="headerConfigButton" class="header-config-button" type="button" aria-label="設定を開く" title="設定">
           <i data-lucide="settings" aria-hidden="true"></i>
         </button>

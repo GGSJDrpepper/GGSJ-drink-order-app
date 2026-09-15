@@ -328,10 +328,8 @@
       if (state.soundEnabled) unlockAudio();
       toast("効果音を変更しました");
     });
-    $("#soundPreview").addEventListener("click", async () => {
-      await unlockAudio();
-      playChime();
-    });
+    $("#soundPreview").addEventListener("click", previewNotificationSound);
+    $("#headerSoundPreviewButton").addEventListener("click", previewNotificationSound);
 
     $("#configButton")?.addEventListener("click", () => {
       openConfig();
@@ -580,6 +578,11 @@
     });
 
     $("#barOrders").addEventListener("click", handleOrderAction);
+  }
+
+  async function previewNotificationSound() {
+    await unlockAudio();
+    playChime();
   }
 
   function setupReceptionModeMenu() {
