@@ -14,7 +14,7 @@
   --green: #15803d;
   --green-soft: #def7e8;
   --shadow: 0 16px 40px rgba(47, 47, 47, 0.08);
-  --sticky-confirm-space: calc(90px + env(safe-area-inset-bottom, 0px));
+  --sticky-confirm-space: calc(66px + env(safe-area-inset-bottom, 0px));
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -628,7 +628,7 @@ button:focus-visible {
   display: grid;
   grid-template-columns: 132px minmax(0, 1fr);
   align-items: stretch;
-  height: min(680px, calc(100svh - 190px));
+  height: calc(100svh - 172px);
   min-height: 430px;
   overflow: hidden;
   border-top: 1px solid #eeeeee;
@@ -640,7 +640,7 @@ button:focus-visible {
 
 @supports (height: 100dvh) {
   .menu-picker {
-    height: min(680px, calc(100dvh - 190px));
+    height: calc(100dvh - 172px);
   }
 }
 
@@ -2439,6 +2439,7 @@ dialog::backdrop {
   }
 
   .menu-picker {
+    --sticky-confirm-space: calc(76px + env(safe-area-inset-bottom, 0px));
     grid-template-columns: 108px minmax(0, 1fr);
   }
 
