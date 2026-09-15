@@ -168,8 +168,12 @@
     notificationBuffer: null,
     notificationBufferId: "",
     notificationBufferPromise: null,
+    notificationWarmTimer: null,
+    audioUnlockPromise: null,
+    iconRefreshTimer: null,
     configSnapshot: "",
     configActiveCategoryId: "",
+    configDraftMenu: null,
     booted: false,
   };
 
@@ -376,7 +380,10 @@
       let refreshCategoryTabs = false;
 
       if (removeCategory) {
-        removeCategory.closest("[data-menu-editor-category]")?.remove();
+        const category = removeCategory.closest("[data-menu-editor-category]");
+        const categoryId = menuEditorCategoryIdFromBlock(category);
+        state.configDraftMenu = configEditorMenu().filter((item) => item.id !== categoryId);
+        category?.remove();
         refreshCategoryTabs = true;
       }
 
@@ -478,7 +485,7 @@
         removeOptionChoice.closest("[data-menu-editor-option-choice]")?.remove();
       }
 
-      if (!$("#menuEditor [data-menu-editor-category]")) {
+      if (!configEditorMenu().length) {
         addMenuEditorCategory();
         return;
       }
@@ -487,7 +494,7 @@
         refreshMenuEditorCategoryTabs();
       }
 
-      if (window.lucide) window.lucide.createIcons();
+      scheduleIconRefresh();
     });
     $("#menuEditor").addEventListener("input", (event) => {
       const input = event.target.closest?.("[data-menu-item-price]");
@@ -1606,6 +1613,7 @@
     }
 
     if ($("#configDialog")?.open) {
+      state.configDraftMenu = normalizeMenu(state.menu, { allowEmpty: true });
       renderMenuEditor();
       state.configSnapshot = configDraftSnapshot();
     }
@@ -2188,6 +2196,7 @@
     const config = readConfig();
     $("#supabaseUrl").value = config.url || "";
     $("#supabaseAnonKey").value = config.anonKey || "";
+    state.configDraftMenu = normalizeMenu(state.menu, { allowEmpty: true });
     renderMenuEditor();
     updateSoundButton();
     hideConfigUnsavedPrompt();
@@ -2248,7 +2257,7 @@
 
   function showConfigUnsavedPrompt() {
     $("#configUnsavedPrompt").hidden = false;
-    if (window.lucide) window.lucide.createIcons();
+    scheduleIconRefresh();
   }
 
   function hideConfigUnsavedPrompt() {
@@ -2310,51 +2319,55 @@
   }
 
   function readMenuSettingsFromForm() {
-    const nextMenu = [];
-    $$("#menuEditor [data-menu-editor-category]").forEach((block, index) => {
-      const label = $("[data-menu-label]", block).value.trim();
-      if (!label) return;
-      const subcategories = subcategoriesFromEditorBlock(block);
-      const items = $$("[data-menu-editor-item]", block)
-        .map((row, itemIndex) => {
-          const name = $("[data-menu-item-name]", row).value.trim();
-          if (!name) return null;
-          const optionGroups = $$("[data-menu-editor-option-group]", row)
-            .map((group, groupIndex) => {
-              const label = $("[data-menu-option-group-label]", group).value.trim();
-              if (!label) return null;
-              const choices = $$("[data-menu-option-choice]", group)
-                .map((choiceRow) => $("[data-menu-option-choice-input]", choiceRow).value.trim())
-                .filter(Boolean);
-              return {
-                id: $("[data-menu-option-group-id]", group).value || makeMenuId(label, groupIndex),
-                label,
-                required: Boolean($("[data-menu-option-group-required]", group)?.checked),
-                choices: uniqueList(choices),
-              };
-            })
-            .filter(Boolean);
-          return {
-            id: $("[data-menu-item-id]", row).value || makeMenuId(name, itemIndex),
-            name,
-            price: normalizePrice($("[data-menu-item-price]", row)?.value),
-            subcategory_id:
-              subcategoryIdFromEditorRow(row.closest("[data-menu-editor-subcategory]")) ||
-              $("[data-menu-item-subcategory]", row)?.value ||
-              subcategories[0]?.id ||
-              DEFAULT_SUBCATEGORY_ID,
-            optionGroups,
-          };
-        })
-        .filter(Boolean);
-      nextMenu.push({
-        id: $("[data-menu-id]", block).value || makeMenuId(label, index),
-        label,
-        subcategories,
-        items,
-      });
-    });
-    return normalizeMenu(nextMenu, { allowEmpty: true });
+    syncActiveMenuEditorCategory();
+    return normalizeMenu(configEditorMenu(), { allowEmpty: true });
+  }
+
+  function menuEditorCategoryFromBlock(block, index = 0) {
+    if (!block) return null;
+    const label = $("[data-menu-label]", block)?.value.trim();
+    if (!label) return null;
+    const subcategories = subcategoriesFromEditorBlock(block);
+    const items = $$("[data-menu-editor-item]", block)
+      .map((row, itemIndex) => {
+        const name = $("[data-menu-item-name]", row)?.value.trim();
+        if (!name) return null;
+        return {
+          id: $("[data-menu-item-id]", row)?.value || makeMenuId(name, itemIndex),
+          name,
+          price: normalizePrice($("[data-menu-item-price]", row)?.value),
+          subcategory_id:
+            subcategoryIdFromEditorRow(row.closest("[data-menu-editor-subcategory]")) ||
+            $("[data-menu-item-subcategory]", row)?.value ||
+            subcategories[0]?.id ||
+            DEFAULT_SUBCATEGORY_ID,
+          optionGroups: readMenuEditorItemOptionGroups(row),
+        };
+      })
+      .filter(Boolean);
+    return {
+      id: $("[data-menu-id]", block)?.value || makeMenuId(label, index),
+      label,
+      subcategories,
+      items,
+    };
+  }
+
+  function configEditorMenu() {
+    return Array.isArray(state.configDraftMenu) ? state.configDraftMenu : state.menu;
+  }
+
+  function syncActiveMenuEditorCategory() {
+    const block = $("#menuEditor [data-menu-editor-category]");
+    if (!block) return;
+    const currentId = menuEditorCategoryIdFromBlock(block);
+    const category = menuEditorCategoryFromBlock(block);
+    if (!category) return;
+    const menu = [...configEditorMenu()];
+    const index = menu.findIndex((item) => item.id === currentId);
+    if (index >= 0) menu[index] = category;
+    else menu.push(category);
+    state.configDraftMenu = menu;
   }
 
   function normalizeMenu(menu, options = {}) {
@@ -2587,14 +2600,16 @@
   }
 
   function renderMenuEditor() {
-    const activeId = activeMenuEditorCategoryId(state.menu);
+    const menu = configEditorMenu();
+    const activeId = activeMenuEditorCategoryId(menu);
+    const activeCategory = menu.find((category) => category.id === activeId);
     $("#menuEditor").innerHTML = `
-      ${menuEditorCategoryTabs(state.menu, activeId)}
+      ${menuEditorCategoryTabs(menu, activeId)}
       <div class="menu-editor-panels" data-menu-editor-panels>
-        ${state.menu.map((category) => menuEditorBlock(category, activeId)).join("")}
+        ${activeCategory ? menuEditorBlock(activeCategory, activeId) : ""}
       </div>
     `;
-    if (window.lucide) window.lucide.createIcons();
+    scheduleIconRefresh();
   }
 
   function activeMenuEditorCategoryId(menu) {
@@ -2627,34 +2642,43 @@
   }
 
   function refreshMenuEditorCategoryTabs(preferredId = state.configActiveCategoryId) {
+    syncActiveMenuEditorCategory();
     const tabs = $("[data-menu-editor-category-tabs]");
     if (!tabs) return;
-    const categories = $$("#menuEditor [data-menu-editor-category]");
-    if (!categories.length) return;
-    const ids = categories.map((block, index) => menuEditorCategoryIdFromBlock(block, index));
+    const menu = configEditorMenu();
+    if (!menu.length) return;
+    const ids = menu.map((category) => category.id);
     const activeId = ids.includes(preferredId) ? preferredId : ids[0];
-    state.configActiveCategoryId = activeId;
-    tabs.innerHTML = categories.map((block, index) => {
-      const id = menuEditorCategoryIdFromBlock(block, index);
-      const label = $("[data-menu-label]", block)?.value.trim() || `カテゴリ${index + 1}`;
-      const itemCount = $$("[data-menu-editor-item]", block).length;
-      return menuEditorCategoryTabBlock(id, label, itemCount, activeId);
-    }).join("");
-    selectMenuEditorCategory(activeId);
+    tabs.innerHTML = menu
+      .map((category) => menuEditorCategoryTabBlock(category.id, category.label, category.items.length, activeId))
+      .join("");
+    const currentBlock = $("#menuEditor [data-menu-editor-category]");
+    if (!currentBlock || menuEditorCategoryIdFromBlock(currentBlock) !== activeId) {
+      renderActiveMenuEditorCategory(activeId);
+    } else {
+      state.configActiveCategoryId = activeId;
+    }
   }
 
   function selectMenuEditorCategory(categoryId) {
+    if (!configEditorMenu().some((category) => category.id === categoryId)) return;
+    syncActiveMenuEditorCategory();
     state.configActiveCategoryId = categoryId;
     $$("[data-config-category-tab]").forEach((button) => {
       const active = button.dataset.configCategoryTab === categoryId;
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", String(active));
     });
-    $$("[data-menu-editor-category]").forEach((block, index) => {
-      const active = menuEditorCategoryIdFromBlock(block, index) === categoryId;
-      block.classList.toggle("active", active);
-      block.hidden = !active;
-    });
+    renderActiveMenuEditorCategory(categoryId);
+  }
+
+  function renderActiveMenuEditorCategory(categoryId) {
+    const panels = $("[data-menu-editor-panels]");
+    const category = configEditorMenu().find((item) => item.id === categoryId);
+    if (!panels || !category) return;
+    state.configActiveCategoryId = categoryId;
+    panels.innerHTML = menuEditorBlock(category, categoryId);
+    scheduleIconRefresh();
   }
 
   function menuEditorBlock(category, activeId) {
@@ -2777,10 +2801,12 @@
     const isOpen = Boolean(options.open);
     const price = normalizePrice(item.price);
     const subcategoryId = options.subcategoryId || item.subcategory_id || DEFAULT_SUBCATEGORY_ID;
+    const optionGroups = cloneOptionGroups(item.optionGroups || []);
     return `
       <div class="menu-editor-item ${isOpen ? "open" : ""}" data-menu-editor-item>
         <input data-menu-item-id type="hidden" value="${escapeHtml(item.id || "")}">
         <input data-menu-item-subcategory type="hidden" value="${escapeHtml(subcategoryId)}">
+        <input data-menu-item-options type="hidden" value="${escapeHtml(JSON.stringify(optionGroups))}">
         <div class="menu-editor-item-main">
           <div class="menu-editor-product-fields">
             <label>
@@ -2792,19 +2818,8 @@
               <input data-menu-item-price type="number" min="0" step="10" value="${escapeHtml(String(price))}">
             </label>
           </div>
-          <div class="menu-editor-item-detail">
-            <div class="menu-editor-options-block">
-              <span class="menu-editor-subtitle">オプションカテゴリ</span>
-              ${menuEditorOptionTemplateButtons()}
-              <div class="menu-editor-template-picker" data-option-template-picker hidden></div>
-              <div class="menu-editor-option-groups" data-menu-editor-option-groups>
-                ${(item.optionGroups || []).map((group) => menuEditorOptionGroupBlock(group)).join("")}
-              </div>
-              <button class="button button-quiet menu-add-option" type="button" data-add-menu-option-group>
-                <i data-lucide="plus" aria-hidden="true"></i>
-                <span>オプションカテゴリ追加</span>
-              </button>
-            </div>
+          <div class="menu-editor-item-detail" data-menu-editor-item-detail ${isOpen ? 'data-hydrated="true"' : ""}>
+            ${isOpen ? menuEditorItemDetailBlock(optionGroups) : ""}
           </div>
         </div>
         <div class="menu-editor-item-actions">
@@ -2821,6 +2836,8 @@
 
   function setMenuEditorItemOpen(item, isOpen) {
     if (!item) return;
+    if (isOpen) hydrateMenuEditorItemDetail(item);
+    else releaseMenuEditorItemDetail(item);
     item.classList.toggle("open", isOpen);
     const editButton = $("[data-edit-menu-item]", item);
     if (!editButton) return;
@@ -2828,6 +2845,88 @@
     editButton.setAttribute("aria-label", isOpen ? "閉じる" : "編集");
     editButton.setAttribute("title", isOpen ? "閉じる" : "編集");
     if (!isOpen) closeOptionTemplatePicker(item);
+  }
+
+  function menuEditorItemDetailBlock(optionGroups = []) {
+    return `
+      <div class="menu-editor-options-block">
+        <span class="menu-editor-subtitle">オプションカテゴリ</span>
+        ${menuEditorOptionTemplateButtons()}
+        <div class="menu-editor-template-picker" data-option-template-picker hidden></div>
+        <div class="menu-editor-option-groups" data-menu-editor-option-groups>
+          ${optionGroups.map((group) => menuEditorOptionGroupBlock(group)).join("")}
+        </div>
+        <button class="button button-quiet menu-add-option" type="button" data-add-menu-option-group>
+          <i data-lucide="plus" aria-hidden="true"></i>
+          <span>オプションカテゴリ追加</span>
+        </button>
+      </div>
+    `;
+  }
+
+  function hydrateMenuEditorItemDetail(item) {
+    const detail = $("[data-menu-editor-item-detail]", item);
+    if (!detail || detail.dataset.hydrated === "true") return;
+    delete detail.dataset.releaseToken;
+    detail.innerHTML = menuEditorItemDetailBlock(readStoredMenuEditorItemOptionGroups(item));
+    detail.dataset.hydrated = "true";
+  }
+
+  function releaseMenuEditorItemDetail(item) {
+    const detail = $("[data-menu-editor-item-detail]", item);
+    if (!detail || detail.dataset.hydrated !== "true") return;
+    storeMenuEditorItemOptionGroups(item);
+    const releaseToken = `${Date.now()}-${Math.random()}`;
+    detail.dataset.releaseToken = releaseToken;
+    window.setTimeout(() => {
+      if (
+        item.classList.contains("open") ||
+        detail.dataset.hydrated !== "true" ||
+        detail.dataset.releaseToken !== releaseToken
+      ) return;
+      detail.innerHTML = "";
+      delete detail.dataset.hydrated;
+      delete detail.dataset.releaseToken;
+    }, 210);
+  }
+
+  function readStoredMenuEditorItemOptionGroups(item) {
+    try {
+      const stored = JSON.parse($("[data-menu-item-options]", item)?.value || "[]");
+      return cloneOptionGroups(normalizeOptionGroups({ optionGroups: stored }));
+    } catch {
+      return [];
+    }
+  }
+
+  function readHydratedMenuEditorItemOptionGroups(item) {
+    return $$("[data-menu-editor-option-group]", item)
+      .map((group, groupIndex) => {
+        const label = $("[data-menu-option-group-label]", group)?.value.trim();
+        if (!label) return null;
+        const choices = $$("[data-menu-option-choice]", group)
+          .map((choiceRow) => $("[data-menu-option-choice-input]", choiceRow)?.value.trim())
+          .filter(Boolean);
+        return {
+          id: $("[data-menu-option-group-id]", group)?.value || makeMenuId(label, groupIndex),
+          label,
+          required: Boolean($("[data-menu-option-group-required]", group)?.checked),
+          choices: uniqueList(choices),
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function readMenuEditorItemOptionGroups(item) {
+    const detail = $("[data-menu-editor-item-detail]", item);
+    return detail?.dataset.hydrated === "true"
+      ? readHydratedMenuEditorItemOptionGroups(item)
+      : readStoredMenuEditorItemOptionGroups(item);
+  }
+
+  function storeMenuEditorItemOptionGroups(item) {
+    const input = $("[data-menu-item-options]", item);
+    if (input) input.value = JSON.stringify(readHydratedMenuEditorItemOptionGroups(item));
   }
 
   function closeOtherMenuEditorItems(activeItem) {
@@ -2881,7 +2980,7 @@
     `;
     requestAnimationFrame(() => picker.classList.add("is-open"));
 
-    if (window.lucide) window.lucide.createIcons();
+    scheduleIconRefresh();
   }
 
   function closeOptionTemplatePicker(item) {
@@ -2964,7 +3063,7 @@
     }
 
     closeOptionTemplatePicker(item);
-    if (window.lucide) window.lucide.createIcons();
+    scheduleIconRefresh();
   }
 
   function menuEditorOptionGroupBlock(group) {
@@ -3007,16 +3106,16 @@
   }
 
   function addMenuEditorCategory() {
-    const index = $$("#menuEditor [data-menu-editor-category]").length;
+    syncActiveMenuEditorCategory();
+    const menu = [...configEditorMenu()];
+    const index = menu.length;
     const id = `custom-${Date.now()}-${index}`;
     const subcategories = [{ id: DEFAULT_SUBCATEGORY_ID, label: DEFAULT_SUBCATEGORY_LABEL }];
-    const panels = $("[data-menu-editor-panels]") || $("#menuEditor");
-    panels.insertAdjacentHTML(
-      "beforeend",
-      menuEditorBlock({ id, label: `カテゴリ${index + 1}`, subcategories, items: [] }, id)
-    );
-    refreshMenuEditorCategoryTabs(id);
-    if (window.lucide) window.lucide.createIcons();
+    menu.push({ id, label: `カテゴリ${index + 1}`, subcategories, items: [] });
+    state.configDraftMenu = menu;
+    state.configActiveCategoryId = id;
+    renderMenuEditor();
+    scheduleIconRefresh();
   }
 
   function readSoundSetting() {
@@ -3060,7 +3159,7 @@
 
   function setupAudioUnlock() {
     const unlock = () => {
-      if (state.soundEnabled) unlockAudio();
+      if (state.view === "bar" && state.soundEnabled) unlockAudio();
     };
     document.addEventListener("pointerdown", unlock, { once: true });
     document.addEventListener("keydown", unlock, { once: true });
@@ -3083,24 +3182,38 @@
   }
 
   async function unlockAudio() {
-    if (!state.audioContext) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) return;
-      state.audioContext = new AudioContextClass();
-    }
-    if (state.audioContext.state === "suspended") {
-      await state.audioContext.resume();
-    }
+    if (state.audioUnlockPromise) return state.audioUnlockPromise;
+    state.audioUnlockPromise = (async () => {
+      if (!state.audioContext) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        state.audioContext = new AudioContextClass();
+      }
+      if (state.audioContext.state === "suspended") {
+        await state.audioContext.resume();
+      }
 
-    primeNotificationAudio();
-    warmNotificationBuffer();
+      primeNotificationAudio();
+      scheduleNotificationWarmup();
+    })().finally(() => {
+      state.audioUnlockPromise = null;
+    });
+    return state.audioUnlockPromise;
   }
 
   function playChime() {
     if (playBufferedNotificationAudio()) return;
-    warmNotificationBuffer();
+    scheduleNotificationWarmup();
     if (playPrimedNotificationAudio()) return;
     playFallbackBell();
+  }
+
+  function scheduleNotificationWarmup(delay = 220) {
+    if (state.notificationBuffer || state.notificationBufferPromise || state.notificationWarmTimer) return;
+    state.notificationWarmTimer = window.setTimeout(() => {
+      state.notificationWarmTimer = null;
+      warmNotificationBuffer();
+    }, delay);
   }
 
   function primeNotificationAudio() {
@@ -3194,6 +3307,10 @@
   }
 
   function resetNotificationAudio() {
+    if (state.notificationWarmTimer) {
+      window.clearTimeout(state.notificationWarmTimer);
+      state.notificationWarmTimer = null;
+    }
     if (state.notificationAudio) {
       state.notificationAudio.pause();
     }
@@ -3203,6 +3320,19 @@
     state.notificationBuffer = null;
     state.notificationBufferId = "";
     state.notificationBufferPromise = null;
+  }
+
+  function scheduleIconRefresh() {
+    if (!window.lucide || state.iconRefreshTimer) return;
+    const refresh = () => {
+      state.iconRefreshTimer = null;
+      if (window.lucide) window.lucide.createIcons();
+    };
+    if ("requestIdleCallback" in window) {
+      state.iconRefreshTimer = window.requestIdleCallback(refresh, { timeout: 300 });
+    } else {
+      state.iconRefreshTimer = window.setTimeout(refresh, 16);
+    }
   }
 
   function playFallbackBell() {
