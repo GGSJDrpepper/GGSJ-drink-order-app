@@ -329,7 +329,7 @@
       toast("効果音を変更しました");
     });
     $("#soundPreview").addEventListener("click", previewNotificationSound);
-    $("#headerSoundPreviewButton").addEventListener("click", previewNotificationSound);
+    $("#headerSoundPreviewButton").addEventListener("click", enableNotificationSoundAndPreview);
 
     $("#configButton")?.addEventListener("click", () => {
       openConfig();
@@ -583,6 +583,15 @@
   async function previewNotificationSound() {
     await unlockAudio();
     playChime();
+  }
+
+  async function enableNotificationSoundAndPreview() {
+    if (!state.soundEnabled) {
+      state.soundEnabled = true;
+      saveSoundSetting();
+      updateSoundButton();
+    }
+    await previewNotificationSound();
   }
 
   function setupReceptionModeMenu() {
