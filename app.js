@@ -17,7 +17,7 @@
     { id: "news-title", label: "ニュースタイトル表示", url: "./sounds/news-title.mp3" },
     { id: "decision-button", label: "決定ボタン", url: "./sounds/decision-button.mp3" },
     { id: "level-up", label: "レベルアップ", url: "./sounds/level-up.mp3" },
-    { id: "bell", label: "ベル（高音）", url: "./sounds/bell-accent16-high.mp3" },
+    { id: "bell", label: "ベル（高音）", url: "./sounds/bell-accent16-high.mp3", gain: 1.8 },
   ];
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
@@ -589,6 +589,7 @@
 
   async function previewNotificationSound() {
     await unlockAudio();
+    await warmNotificationBuffer();
     playChime();
   }
 
@@ -3275,9 +3276,20 @@
 
     const source = state.audioContext.createBufferSource();
     const gain = state.audioContext.createGain();
+    const volumeGain = Math.max(0, Number(option.gain || 1));
     source.buffer = state.notificationBuffer;
-    gain.gain.setValueAtTime(1, state.audioContext.currentTime);
-    source.connect(gain).connect(state.audioContext.destination);
+    gain.gain.setValueAtTime(volumeGain, state.audioContext.currentTime);
+    if (volumeGain > 1 && state.audioContext.createDynamicsCompressor) {
+      const limiter = state.audioContext.createDynamicsCompressor();
+      limiter.threshold.setValueAtTime(-6, state.audioContext.currentTime);
+      limiter.knee.setValueAtTime(6, state.audioContext.currentTime);
+      limiter.ratio.setValueAtTime(12, state.audioContext.currentTime);
+      limiter.attack.setValueAtTime(0.003, state.audioContext.currentTime);
+      limiter.release.setValueAtTime(0.18, state.audioContext.currentTime);
+      source.connect(gain).connect(limiter).connect(state.audioContext.destination);
+    } else {
+      source.connect(gain).connect(state.audioContext.destination);
+    }
     source.start();
     return true;
   }
