@@ -89,6 +89,12 @@ button {
   height: 20px;
 }
 
+.header-config-button.is-previewing {
+  border-color: #f3bd82;
+  background: #fff0dc;
+  color: #c85d00;
+}
+
 .view-title-wrap {
   position: relative;
   display: inline-flex;

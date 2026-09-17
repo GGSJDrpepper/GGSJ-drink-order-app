@@ -342,7 +342,7 @@
       toast("効果音を変更しました");
     });
     $("#soundPreview").addEventListener("click", previewNotificationSound);
-    $("#headerSoundPreviewButton").addEventListener("click", enableNotificationSoundAndPreview);
+    $("#headerSoundPreviewButton").addEventListener("click", handleHeaderSoundPreview);
 
     $("#configButton")?.addEventListener("click", () => {
       openConfig();
@@ -609,6 +609,21 @@
       updateSoundButton();
     }
     await previewNotificationSound();
+  }
+
+  async function handleHeaderSoundPreview(event) {
+    const button = event.currentTarget;
+    if (button.classList.contains("is-previewing")) return;
+    button.classList.add("is-previewing");
+    button.setAttribute("aria-busy", "true");
+
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    try {
+      await enableNotificationSoundAndPreview();
+    } finally {
+      button.classList.remove("is-previewing");
+      button.removeAttribute("aria-busy");
+    }
   }
 
   function setupReceptionModeMenu() {
@@ -1064,8 +1079,7 @@
       const items = collectConfirmItems();
       const paymentStatus = confirmPaymentStatus();
       const paymentMethod = paymentStatus === "uncollected" ? $("#confirmPaymentMethod").value : "cash";
-      for (const item of items) {
-        await createOrder({
+      const savePromise = createOrders(items.map((item) => ({
           source: draft.source,
           drink_name: item.drink_name,
           quantity: 1,
@@ -1077,12 +1091,12 @@
           notes: combinedOrderNote(item.selected_options),
           status: "ordered",
           events: [eventEntry("ordered")],
-        });
-      }
+        })));
       state.carts[draft.source] = [];
       resetForm(form);
       renderMenuPickers();
       closeConfirm();
+      await savePromise;
     } finally {
       button.disabled = false;
     }
@@ -1664,33 +1678,44 @@
     state.broadcast?.postMessage({ type: "orders-changed" });
   }
 
-  async function createOrder(input) {
-    const now = new Date().toISOString();
-    const order = normalizeOrder({
-      id: crypto.randomUUID(),
-      created_at: now,
-      updated_at: now,
-      ...input,
+  async function createOrders(inputs) {
+    const startedAt = Date.now();
+    const orders = inputs.map((input, index) => {
+      const now = new Date(startedAt + index).toISOString();
+      return normalizeOrder({
+        id: crypto.randomUUID(),
+        created_at: now,
+        updated_at: now,
+        ...input,
+      });
     });
 
+    orders.forEach((order) => {
+      upsertOrder(order);
+      state.knownIds.add(order.id);
+    });
+
+    if (state.view === "bar") {
+      renderBar();
+      scheduleIconRefresh();
+    }
+
     if (state.syncMode === "supabase" && state.supabase) {
-      const { data, error } = await state.supabase.from("drink_orders").insert(toDatabaseRow(order)).select().single();
+      const { data, error } = await state.supabase
+        .from("drink_orders")
+        .insert(orders.map(toDatabaseRow))
+        .select();
       if (error) {
         console.error(error);
         toast(supabaseErrorMessage("共有同期に失敗したためデモ同期へ保存しました", error), { long: true });
         setSyncMode("local", "送信失敗");
       } else {
-        upsertOrder(normalizeOrder(data));
-        state.knownIds.add(order.id);
-        render();
+        (data || []).map(normalizeOrder).forEach(upsertOrder);
         return;
       }
     }
 
-    upsertOrder(order);
-    state.knownIds.add(order.id);
     saveLocalOrders();
-    render();
   }
 
   async function updateOrder(id, patch) {
@@ -1710,14 +1735,16 @@
 
     upsertOrder(next);
     if (state.syncMode === "local") saveLocalOrders();
-    render();
+    renderBar();
+    scheduleIconRefresh();
 
     if (state.syncMode === "supabase" && state.supabase) {
       const { error } = await state.supabase.from("drink_orders").update(toDatabaseRow(next)).eq("id", id);
       if (error) {
         console.error(error);
         upsertOrder(order);
-        render();
+        renderBar();
+        scheduleIconRefresh();
         toast("更新に失敗しました");
         return false;
       }
