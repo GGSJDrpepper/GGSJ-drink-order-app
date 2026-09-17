@@ -17,7 +17,7 @@
     { id: "news-title", label: "ニュースタイトル表示", url: "./sounds/news-title.mp3" },
     { id: "decision-button", label: "決定ボタン", url: "./sounds/decision-button.mp3" },
     { id: "level-up", label: "レベルアップ", url: "./sounds/level-up.mp3" },
-    { id: "bell", label: "ベル", url: "" },
+    { id: "bell", label: "ベル（高音）", url: "./sounds/bell-accent16-high.mp3" },
   ];
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
