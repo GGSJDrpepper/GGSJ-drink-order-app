@@ -2040,9 +2040,12 @@
     const locationBadges = barLocationBadges(order);
     const locationRow = locationBadges ? `<div class="order-location-row">${locationBadges}</div>` : "";
     const elapsedMinutes = minutesSince(order.created_at);
-    const showElapsed = elapsedMinutes >= 5 && !["served", "canceled"].includes(order.status);
-    const elapsedClass = elapsedMinutes >= 10 ? " late" : "";
-    const elapsed = showElapsed ? `<span class="elapsed${elapsedClass}">${escapeHtml(elapsedLabel(order.created_at))}</span>` : "";
+    const isWaiting = !["served", "canceled"].includes(order.status);
+    const waitingClass = isWaiting && elapsedMinutes >= 10
+      ? " wait-critical"
+      : isWaiting && elapsedMinutes >= 5
+        ? " wait-warning"
+        : "";
     const statusClass = `status-${order.status}`;
     const isUncollected = order.payment_status === "uncollected";
     const paymentMethod = normalizePaymentMethod(order.payment_method);
@@ -2054,14 +2057,13 @@
     const quantityPill = quantity >= 2 ? `<span class="qty-pill">x${escapeHtml(String(quantity))}</span>` : "";
 
     return `
-      <article class="order-card ${statusClass}${paymentClass}" data-order-id="${escapeHtml(order.id)}">
+      <article class="order-card ${statusClass}${paymentClass}${waitingClass}" data-order-id="${escapeHtml(order.id)}">
         <div class="order-main">
           ${paymentIndicator}
           <div class="order-title-row">
             <span class="order-target-label">${escapeHtml(barTargetLabel(order))}</span>
             <span class="order-title">${escapeHtml(order.drink_name)}</span>
             ${quantityPill}
-            ${elapsed}
           </div>
           ${locationRow}
           <div class="order-meta">
