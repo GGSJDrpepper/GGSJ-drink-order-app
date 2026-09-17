@@ -351,8 +351,9 @@ p {
 }
 
 main {
+  --main-inline-padding: clamp(10px, 2.6vw, 24px);
   flex: 1;
-  padding: 12px clamp(10px, 2.6vw, 24px) 104px;
+  padding: 12px var(--main-inline-padding) 104px;
 }
 
 .view {
@@ -1176,8 +1177,19 @@ button:focus-visible {
 }
 
 .bar-board {
-  width: min(1240px, 100%);
-  margin: 0 auto;
+  width: 100%;
+  min-height: calc(100vh - 54px);
+  margin: 0;
+  padding: clamp(12px, 2vw, 20px);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+#view-bar {
+  margin-top: -12px;
+  margin-right: calc(0px - var(--main-inline-padding));
+  margin-left: calc(0px - var(--main-inline-padding));
 }
 
 .stats-row {
