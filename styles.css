@@ -14,7 +14,7 @@
   --green: #15803d;
   --green-soft: #def7e8;
   --shadow: 0 16px 40px rgba(47, 47, 47, 0.08);
-  --sticky-confirm-space: calc(66px + env(safe-area-inset-bottom, 0px));
+  --sticky-confirm-space: calc(76px + env(safe-area-inset-bottom, 0px));
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -902,7 +902,7 @@ button:focus-visible {
   bottom: 0;
   z-index: 9;
   width: min(1220px, 100vw);
-  min-height: 66px;
+  min-height: 76px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -918,10 +918,18 @@ button:focus-visible {
 
 .confirm-button {
   flex: 0 1 360px;
-  min-height: 46px;
+  min-height: 56px;
+  gap: 8px;
   border-radius: 999px;
   background: #ffac2f;
   color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.confirm-button svg {
+  width: 22px;
+  height: 22px;
 }
 
 .confirm-button:disabled {
@@ -2431,7 +2439,7 @@ dialog::backdrop {
   }
 
   .menu-picker {
-    --sticky-confirm-space: calc(76px + env(safe-area-inset-bottom, 0px));
+    --sticky-confirm-space: calc(86px + env(safe-area-inset-bottom, 0px));
     grid-template-columns: 108px minmax(0, 1fr);
   }
 
@@ -2514,6 +2522,6 @@ dialog::backdrop {
   }
 
   .form-actions .button {
-    min-height: 52px;
+    min-height: 58px;
   }
 }
