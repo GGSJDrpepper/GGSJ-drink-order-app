@@ -1584,6 +1584,18 @@ dialog::backdrop {
   margin-bottom: 12px;
 }
 
+.confirm-order-location {
+  display: grid;
+  gap: 8px;
+  padding: 2px 2px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.confirm-order-location h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
 .confirm-item {
   display: grid;
   gap: 10px;
@@ -1695,30 +1707,6 @@ dialog::backdrop {
   color: var(--muted);
   font-size: 0.82rem;
   font-weight: 750;
-}
-
-.confirm-cup-list {
-  display: grid;
-  gap: 8px;
-}
-
-.confirm-cup {
-  display: grid;
-  grid-template-columns: minmax(62px, 0.16fr) minmax(0, 1fr);
-  gap: 8px;
-  align-items: start;
-  padding-top: 8px;
-  border-top: 1px solid #eeeeee;
-}
-
-.confirm-cup-label {
-  min-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  color: #8f8f8f;
-  font-size: 0.78rem;
-  font-weight: 900;
-  white-space: nowrap;
 }
 
 .confirm-location-grid {
@@ -2459,7 +2447,6 @@ dialog::backdrop {
 
   .menu-editor-category-head,
   .confirm-item,
-  .confirm-cup,
   .confirm-location-grid {
     grid-template-columns: 1fr;
   }

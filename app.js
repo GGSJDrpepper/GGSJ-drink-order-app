@@ -801,9 +801,13 @@
 
     if (preservePayment) updateConfirmPaymentMethodVisibility();
     else setConfirmPaymentDefaults(draft);
-    $("#confirmItems").innerHTML = draft.items
-      .map((item, index) => confirmItemBlock(item, index, draft.items.length, preservedSelections))
+    const hasDelivery = draft.items.some((item) => (item.target || "ring") !== "bar");
+    const location = confirmOrderLocation(draft, preservedSelections);
+    const locationBlock = hasDelivery ? confirmOrderLocationBlock(location) : "";
+    const itemBlocks = draft.items
+      .map((item, index) => confirmItemBlock(item, index, draft.items.length))
       .join("");
+    $("#confirmItems").innerHTML = `${locationBlock}${itemBlocks}`;
     if (window.lucide) window.lucide.createIcons();
   }
 
@@ -834,17 +838,31 @@
     );
   }
 
-  function confirmItemBlock(item, index, total, preservedSelections) {
+  function confirmOrderLocation(draft, preservedSelections = {}) {
+    if (preservedSelections.order) return normalizeLocation(preservedSelections.order);
+    const deliveryItem = draft.items.find((item) => (item.target || "ring") !== "bar");
+    return normalizeLocation(deliveryItem?.locations?.[0]);
+  }
+
+  function confirmOrderLocationBlock(location) {
+    return `
+      <section class="confirm-order-location" data-confirm-order-location>
+        <h3>お届け先</h3>
+        <div class="confirm-location-grid">
+          ${confirmChoiceGroup("order", "tableNo", "テーブル", TABLES, location.tableNo)}
+          ${confirmChoiceGroup("order", "seatNo", "席番号", SEATS, location.seatNo, !location.tableNo)}
+        </div>
+      </section>
+    `;
+  }
+
+  function confirmItemBlock(item, index, total) {
     const label = total > 1 ? `${index + 1}件目` : "1件目";
     const target = item.target || "ring";
     const quantity = Math.max(1, Math.min(20, Number(item.quantity || 1)));
     const options = item.selected_options.length
       ? `<div class="confirm-options">${escapeHtml(item.selected_options.join(" / "))}</div>`
       : "";
-    const cups = Array.from({ length: quantity }, (_, cupIndex) =>
-      confirmCupBlock(item, cupIndex, preservedSelections)
-    ).join("");
-
     return `
       <section class="confirm-item" data-confirm-cart-id="${escapeHtml(item.id)}">
         <div class="confirm-item-head">
@@ -870,36 +888,7 @@
             </button>
           </div>
         </div>
-        <div class="confirm-cup-list">
-          ${cups}
-        </div>
       </section>
-    `;
-  }
-
-  function confirmCupBlock(item, cupIndex, preservedSelections) {
-    const rowId = `${item.id}-${cupIndex}`;
-    const target = item.target || "ring";
-    const selected = preservedSelections[rowId] || normalizeLocation(item.locations?.[cupIndex]);
-    const label = Number(item.quantity || 1) > 1 ? `${cupIndex + 1}杯目` : "1杯";
-    const dataAttrs = `data-confirm-item="${cupIndex}" data-confirm-cart-id="${escapeHtml(item.id)}" data-confirm-cup-index="${cupIndex}" data-confirm-row-id="${escapeHtml(rowId)}" data-confirm-target="${escapeHtml(target)}" data-confirm-drink="${escapeHtml(item.drink_name)}" data-confirm-options="${escapeHtml(JSON.stringify(item.selected_options || []))}"`;
-
-    if (target === "bar") {
-      return `
-        <div class="confirm-cup" ${dataAttrs}>
-          <div class="confirm-cup-label">${escapeHtml(label)}</div>
-        </div>
-      `;
-    }
-
-    return `
-      <div class="confirm-cup" ${dataAttrs}>
-        <div class="confirm-cup-label">${escapeHtml(label)}</div>
-        <div class="confirm-location-grid">
-          ${confirmChoiceGroup(rowId, "tableNo", "テーブル", TABLES, selected.tableNo)}
-          ${confirmChoiceGroup(rowId, "seatNo", "席番号", SEATS, selected.seatNo, !selected.tableNo)}
-        </div>
-      </div>
     `;
   }
 
@@ -938,12 +927,12 @@
     const wasActive = button.classList.contains("active");
     $$(".choice-button", group).forEach((item) => item.classList.remove("active"));
     if (!wasActive) button.classList.add("active");
-    if (button.dataset.confirmChoice === "tableNo") updateSeatChoicesForConfirmItem(button);
-    persistConfirmCupSelection(button.closest("[data-confirm-item]"));
+    if (button.dataset.confirmChoice === "tableNo") updateConfirmSeatChoices(button);
+    persistConfirmOrderLocation(button.closest("[data-confirm-order-location]"));
   }
 
-  function updateSeatChoicesForConfirmItem(tableButton) {
-    const block = tableButton.closest("[data-confirm-item]");
+  function updateConfirmSeatChoices(tableButton) {
+    const block = tableButton.closest("[data-confirm-order-location]");
     const seatGroup = $("[data-confirm-choice-group='seatNo']", block);
     if (!seatGroup) return;
     const hasTable = Boolean($("[data-confirm-choice='tableNo'].active", block));
@@ -1002,37 +991,40 @@
   }
 
   function locationsForItem(item, quantity, selections = {}) {
+    if (selections.order) {
+      const location = normalizeLocation(selections.order);
+      return Array.from({ length: quantity }, () => ({ ...location }));
+    }
     return Array.from({ length: quantity }, (_, index) =>
       normalizeLocation(selections[`${item.id}-${index}`] || item.locations?.[index])
     );
   }
 
   function captureConfirmSelections() {
-    const selections = {};
-    $$("#confirmItems [data-confirm-item][data-confirm-row-id]").forEach((block) => {
-      selections[block.dataset.confirmRowId] = {
+    const block = $("#confirmItems [data-confirm-order-location]");
+    if (!block) return {};
+    return {
+      order: {
         tableNo: activeConfirmValue(block, "tableNo"),
         seatNo: activeConfirmValue(block, "seatNo"),
-      };
-    });
-    return selections;
+      },
+    };
   }
 
-  function persistConfirmCupSelection(block) {
+  function persistConfirmOrderLocation(block) {
     const pending = state.pendingConfirmation;
     if (!pending || !block) return;
-    const cartId = block.dataset.confirmCartId;
-    const cupIndex = Number(block.dataset.confirmCupIndex || 0);
-    const item = pending.draft.items.find((entry) => entry.id === cartId);
-    if (!item) return;
-    const quantity = Math.max(1, Math.min(20, Number(item.quantity || 1)));
-    const locations = locationsForItem(item, quantity);
-    locations[cupIndex] = {
+    const location = {
       tableNo: activeConfirmValue(block, "tableNo"),
       seatNo: activeConfirmValue(block, "seatNo"),
     };
-    item.locations = locations;
-    syncLiveCartItem(pending.draft.source, cartId, { locations });
+    pending.draft.items.forEach((item) => {
+      if ((item.target || "ring") === "bar") return;
+      const quantity = Math.max(1, Math.min(20, Number(item.quantity || 1)));
+      const locations = Array.from({ length: quantity }, () => ({ ...location }));
+      item.locations = locations;
+      syncLiveCartItem(pending.draft.source, item.id, { locations });
+    });
   }
 
   function persistConfirmSelections() {
@@ -1041,6 +1033,11 @@
     if (!pending) return selections;
 
     pending.draft.items.forEach((item) => {
+      if ((item.target || "ring") === "bar") {
+        item.locations = [];
+        syncLiveCartItem(pending.draft.source, item.id, { locations: [] });
+        return;
+      }
       const quantity = Math.max(1, Math.min(20, Number(item.quantity || 1)));
       const locations = locationsForItem(item, quantity, selections);
       item.locations = locations;
@@ -1087,28 +1084,25 @@
   }
 
   function collectConfirmItems() {
-    return $$("#confirmItems [data-confirm-item]").map((block) => {
-      const target = block.dataset.confirmTarget || "ring";
+    const draft = state.pendingConfirmation?.draft;
+    if (!draft) return [];
+    const locationBlock = $("#confirmItems [data-confirm-order-location]");
+    const tableNo = activeConfirmValue(locationBlock, "tableNo");
+    const seatNo = activeConfirmValue(locationBlock, "seatNo");
+    return expandCartItems(draft.items).map((item) => {
+      const target = item.target || "ring";
       return {
-        drink_name: block.dataset.confirmDrink || "",
-        selected_options: parseJsonList(block.dataset.confirmOptions),
+        drink_name: item.drink_name || "",
+        selected_options: [...(item.selected_options || [])],
         target,
-        tableNo: target === "bar" ? "" : activeConfirmValue(block, "tableNo"),
-        seatNo: target === "bar" ? "" : activeConfirmValue(block, "seatNo"),
+        tableNo: target === "bar" ? "" : tableNo,
+        seatNo: target === "bar" ? "" : seatNo,
       };
     });
   }
 
-  function parseJsonList(value) {
-    try {
-      const parsed = JSON.parse(value || "[]");
-      return Array.isArray(parsed) ? parsed.map((item) => String(item)) : [];
-    } catch {
-      return [];
-    }
-  }
-
   function activeConfirmValue(block, type) {
+    if (!block) return "";
     return $(`[data-confirm-choice="${type}"].active`, block)?.dataset.choiceValue || "";
   }
 
