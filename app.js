@@ -884,7 +884,7 @@
                 <i data-lucide="plus" aria-hidden="true"></i>
               </button>
             </div>
-            <button class="confirm-remove-button" type="button" data-confirm-remove-cart="${escapeHtml(item.id)}" aria-label="取り消し">
+            <button class="confirm-remove-button" type="button" data-confirm-remove-cart="${escapeHtml(item.id)}" aria-label="${quantity > 1 ? "1杯取り消す" : "商品を取り消す"}">
               <i data-lucide="x" aria-hidden="true"></i>
             </button>
           </div>
@@ -967,6 +967,23 @@
     const pending = state.pendingConfirmation;
     if (!pending) return;
     const selections = persistConfirmSelections();
+    const item = pending.draft.items.find((entry) => entry.id === cartId);
+    if (!item) return;
+    const quantity = Math.max(1, Math.min(20, Number(item.quantity || 1)));
+    if (quantity > 1) {
+      const nextQuantity = quantity - 1;
+      item.quantity = nextQuantity;
+      item.locations = locationsForItem(item, nextQuantity, selections);
+      syncLiveCartItem(pending.draft.source, cartId, {
+        quantity: nextQuantity,
+        locations: item.locations,
+      });
+      updateConfirmButtonState(pending.form);
+      renderMenuPickers();
+      renderConfirmContents(pending.draft, selections, true);
+      return;
+    }
+
     pending.draft.items = pending.draft.items.filter((item) => item.id !== cartId);
     state.carts[pending.draft.source] = (state.carts[pending.draft.source] || []).filter((item) => item.id !== cartId);
     updateConfirmButtonState(pending.form);
