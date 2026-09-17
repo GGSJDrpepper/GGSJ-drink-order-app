@@ -1799,13 +1799,7 @@
     if (action === "making") updateOrder(id, { status: "making" });
     if (action === "made") updateOrder(id, { status: "made" });
     if (action === "edit") openOrderEdit(id);
-    if (action === "served") {
-      if (order.payment_status === "uncollected") {
-        toast("未徴収です。先に会計済みにしてください");
-        return;
-      }
-      updateOrder(id, { status: "served" });
-    }
+    if (action === "served") updateOrder(id, { status: "served" });
     if (action === "paid") updateOrder(id, { payment_status: "paid" });
     if (action === "cancel") updateOrder(id, { status: "canceled" });
   }
