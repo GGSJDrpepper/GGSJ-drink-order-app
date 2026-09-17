@@ -140,6 +140,15 @@
     unknown: "不明",
   };
 
+  const paymentMethodIcons = {
+    cash: "banknote",
+    card: "credit-card",
+    paypay: "qr-code",
+    coin: "coins",
+    transit: "train-front",
+    unknown: "circle-help",
+  };
+
   const state = {
     view: "reception",
     filter: "open",
@@ -2038,13 +2047,15 @@
     const elapsedClass = elapsedMinutes >= 10 ? " late" : "";
     const elapsed = showElapsed ? `<span class="elapsed${elapsedClass}">${escapeHtml(elapsedLabel(order.created_at))}</span>` : "";
     const statusClass = `status-${order.status}`;
-    const paymentChip = order.payment_status === "uncollected"
-      ? `<span class="chip payment-method">${escapeHtml(paymentMethodLabels[order.payment_method] || order.payment_method)}</span>`
+    const isUncollected = order.payment_status === "uncollected";
+    const paymentMethod = normalizePaymentMethod(order.payment_method);
+    const paymentClass = isUncollected ? ` payment-uncollected payment-${paymentMethod}` : "";
+    const paymentIndicator = isUncollected
+      ? `<span class="payment-method-icon" aria-label="${escapeHtml(paymentMethodLabels[paymentMethod])}" title="${escapeHtml(paymentMethodLabels[paymentMethod])}"><i data-lucide="${paymentMethodIcons[paymentMethod]}" aria-hidden="true"></i></span>`
       : "";
-    const chipRow = paymentChip ? `<div class="chip-row">${paymentChip}</div>` : "";
 
     return `
-      <article class="order-card ${statusClass}" data-order-id="${escapeHtml(order.id)}">
+      <article class="order-card ${statusClass}${paymentClass}" data-order-id="${escapeHtml(order.id)}">
         <div class="order-main">
           <div class="order-title-row">
             <span class="order-target-label">${escapeHtml(barTargetLabel(order))}</span>
@@ -2053,7 +2064,6 @@
             <span class="qty-pill">x${escapeHtml(String(order.quantity))}</span>
             ${elapsed}
           </div>
-          ${chipRow}
           <div class="order-meta">
             ${metaLocation}
             <span>${escapeHtml(formatTime(order.created_at))}</span>
@@ -2063,6 +2073,7 @@
         <div class="order-side">
           ${compact ? compactActions(order) : fullActions(order)}
         </div>
+        ${paymentIndicator}
       </article>
     `;
   }

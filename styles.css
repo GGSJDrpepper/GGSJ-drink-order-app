@@ -1212,6 +1212,7 @@ button:focus-visible {
 }
 
 .order-card {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
@@ -1220,6 +1221,62 @@ button:focus-visible {
   border-left: 6px solid var(--amber);
   border-radius: 8px;
   background: #ffffff;
+}
+
+.order-card.payment-cash {
+  --payment-accent: #68b984;
+  --payment-soft: #eaf8ef;
+}
+
+.order-card.payment-card {
+  --payment-accent: #55aee6;
+  --payment-soft: #eaf6fd;
+}
+
+.order-card.payment-paypay {
+  --payment-accent: #e5484d;
+  --payment-soft: #fff0f0;
+}
+
+.order-card.payment-coin {
+  --payment-accent: #d6a600;
+  --payment-soft: #fff8d9;
+}
+
+.order-card.payment-transit {
+  --payment-accent: #7b73d1;
+  --payment-soft: #f0efff;
+}
+
+.order-card.payment-unknown {
+  --payment-accent: #8b8b8b;
+  --payment-soft: #f2f2f2;
+}
+
+.order-card.payment-uncollected .order-main {
+  padding-right: 38px;
+}
+
+.payment-method-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--payment-accent);
+  border-radius: 50%;
+  color: var(--payment-accent);
+  background: var(--payment-soft);
+}
+
+.payment-method-icon svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 2.5;
 }
 
 .order-card.status-made {
@@ -1236,6 +1293,12 @@ button:focus-visible {
 .order-card.status-canceled {
   border-left-color: var(--rose);
   opacity: 0.68;
+}
+
+.order-card.payment-uncollected {
+  border-color: var(--payment-accent);
+  border-left-width: 6px;
+  box-shadow: inset 0 0 0 2px var(--payment-accent);
 }
 
 .order-main {
