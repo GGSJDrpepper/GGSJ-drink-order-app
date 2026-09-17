@@ -1253,36 +1253,40 @@ button:focus-visible {
   --payment-soft: #f2f2f2;
 }
 
-.order-card.payment-uncollected .order-main {
-  padding-left: 44px;
+.payment-indicator-row {
+  min-height: 44px;
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
 }
 
 .payment-method-icon {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 1;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #ffffff;
   border-radius: 9px;
-  color: #ffffff;
-  background: var(--payment-accent);
-  box-shadow: 0 0 0 2px var(--payment-accent);
+  color: var(--payment-accent);
+  background: #ffffff;
+  overflow: hidden;
 }
 
 .payment-method-icon svg {
-  width: 19px;
-  height: 19px;
+  width: 26px;
+  height: 26px;
   stroke-width: 2.5;
 }
 
-.payment-method-letter {
-  font-size: 1.35rem;
-  font-weight: 950;
+.payment-method-icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.payment-method-emoji {
+  font-size: 2.35rem;
   line-height: 1;
 }
 
@@ -1330,6 +1334,14 @@ button:focus-visible {
 .order-title-row {
   gap: 10px;
   margin-bottom: 8px;
+}
+
+.order-location-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 8px;
 }
 
 .order-target-label,

@@ -140,12 +140,13 @@
     unknown: "不明",
   };
 
-  const paymentMethodIcons = {
-    cash: "banknote",
-    card: "credit-card",
-    coin: "coins",
-    transit: "train-front",
-    unknown: "circle-help",
+  const paymentMethodVisuals = {
+    cash: { type: "emoji", value: "💴" },
+    card: { type: "emoji", value: "💳" },
+    paypay: { type: "image", value: "./assets/payment-paypay.png" },
+    coin: { type: "image", value: "./assets/payment-coin.png" },
+    transit: { type: "image", value: "./assets/payment-transit.png" },
+    unknown: { type: "icon", value: "circle-help" },
   };
 
   const state = {
@@ -1833,16 +1834,15 @@
 
   function orderEditSummaryBlock(order) {
     const locationBadges = barLocationBadges(order);
-    const location = order.target === "bar" ? "バーカウンター" : locationBadges ? "" : locationLabel(order);
+    const quantity = Math.max(1, Number(order.quantity || 1));
     return `
       <div class="order-edit-summary-title">
         <span class="order-target-label">${escapeHtml(barTargetLabel(order))}</span>
         ${locationBadges}
         <strong>${escapeHtml(order.drink_name)}</strong>
-        <span class="qty-pill">x${escapeHtml(String(order.quantity))}</span>
+        ${quantity >= 2 ? `<span class="qty-pill">x${escapeHtml(String(quantity))}</span>` : ""}
       </div>
       <div class="order-edit-summary-meta">
-        ${location ? `<span>${escapeHtml(location)}</span>` : ""}
         <span>${escapeHtml(formatTime(order.created_at))}</span>
       </div>
       ${order.notes ? `<div class="order-edit-summary-note">${escapeHtml(order.notes)}</div>` : ""}
@@ -2037,10 +2037,8 @@
 
   function orderCard(order, options = {}) {
     const compact = Boolean(options.compact);
-    const location = locationLabel(order);
     const locationBadges = barLocationBadges(order);
-    const shouldShowMetaLocation = !locationBadges && order.target !== "bar";
-    const metaLocation = shouldShowMetaLocation ? `<span>${escapeHtml(location)}</span>` : "";
+    const locationRow = locationBadges ? `<div class="order-location-row">${locationBadges}</div>` : "";
     const elapsedMinutes = minutesSince(order.created_at);
     const showElapsed = elapsedMinutes >= 5 && !["served", "canceled"].includes(order.status);
     const elapsedClass = elapsedMinutes >= 10 ? " late" : "";
@@ -2050,21 +2048,23 @@
     const paymentMethod = normalizePaymentMethod(order.payment_method);
     const paymentClass = isUncollected ? ` payment-uncollected payment-${paymentMethod}` : "";
     const paymentIndicator = isUncollected
-      ? `<span class="payment-method-icon" aria-label="${escapeHtml(paymentMethodLabels[paymentMethod])}" title="${escapeHtml(paymentMethodLabels[paymentMethod])}">${paymentMethod === "paypay" ? '<span class="payment-method-letter" aria-hidden="true">P</span>' : `<i data-lucide="${paymentMethodIcons[paymentMethod]}" aria-hidden="true"></i>`}</span>`
+      ? `<div class="payment-indicator-row">${paymentMethodIndicator(paymentMethod)}</div>`
       : "";
+    const quantity = Math.max(1, Number(order.quantity || 1));
+    const quantityPill = quantity >= 2 ? `<span class="qty-pill">x${escapeHtml(String(quantity))}</span>` : "";
 
     return `
       <article class="order-card ${statusClass}${paymentClass}" data-order-id="${escapeHtml(order.id)}">
         <div class="order-main">
+          ${paymentIndicator}
           <div class="order-title-row">
             <span class="order-target-label">${escapeHtml(barTargetLabel(order))}</span>
-            ${locationBadges}
             <span class="order-title">${escapeHtml(order.drink_name)}</span>
-            <span class="qty-pill">x${escapeHtml(String(order.quantity))}</span>
+            ${quantityPill}
             ${elapsed}
           </div>
+          ${locationRow}
           <div class="order-meta">
-            ${metaLocation}
             <span>${escapeHtml(formatTime(order.created_at))}</span>
           </div>
           ${order.notes ? `<p class="order-note">${escapeHtml(order.notes)}</p>` : ""}
@@ -2072,9 +2072,17 @@
         <div class="order-side">
           ${compact ? compactActions(order) : fullActions(order)}
         </div>
-        ${paymentIndicator}
       </article>
     `;
+  }
+
+  function paymentMethodIndicator(paymentMethod) {
+    const visual = paymentMethodVisuals[paymentMethod] || paymentMethodVisuals.unknown;
+    const label = escapeHtml(paymentMethodLabels[paymentMethod] || paymentMethodLabels.unknown);
+    let content = `<i data-lucide="${visual.value}" aria-hidden="true"></i>`;
+    if (visual.type === "emoji") content = `<span class="payment-method-emoji" aria-hidden="true">${visual.value}</span>`;
+    if (visual.type === "image") content = `<img src="${visual.value}" alt="" aria-hidden="true">`;
+    return `<span class="payment-method-icon payment-visual-${visual.type}" aria-label="${label}" title="${label}">${content}</span>`;
   }
 
   function compactActions(order) {
