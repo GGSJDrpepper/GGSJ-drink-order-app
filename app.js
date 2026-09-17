@@ -885,7 +885,7 @@
           </div>
           <div class="confirm-item-tools">
             <div class="confirm-quantity-stepper" aria-label="杯数">
-              <button class="confirm-qty-button" type="button" data-confirm-qty-action="decrease" data-confirm-cart-id="${escapeHtml(item.id)}" aria-label="杯数を減らす" ${quantity <= 1 ? "disabled" : ""}>
+              <button class="confirm-qty-button" type="button" data-confirm-qty-action="decrease" data-confirm-cart-id="${escapeHtml(item.id)}" aria-label="${quantity <= 1 ? "商品を削除" : "杯数を減らす"}">
                 <i data-lucide="minus" aria-hidden="true"></i>
               </button>
               <span>${escapeHtml(String(quantity))}杯</span>
@@ -893,9 +893,6 @@
                 <i data-lucide="plus" aria-hidden="true"></i>
               </button>
             </div>
-            <button class="confirm-remove-button" type="button" data-confirm-remove-cart="${escapeHtml(item.id)}" aria-label="${quantity > 1 ? "1杯取り消す" : "商品を取り消す"}">
-              <i data-lucide="x" aria-hidden="true"></i>
-            </button>
           </div>
         </div>
       </section>
@@ -922,12 +919,6 @@
     const quantityButton = event.target.closest("[data-confirm-qty-action]");
     if (quantityButton) {
       handleConfirmQuantityChange(quantityButton);
-      return;
-    }
-
-    const removeButton = event.target.closest("[data-confirm-remove-cart]");
-    if (removeButton) {
-      removeConfirmCartItem(removeButton.dataset.confirmRemoveCart);
       return;
     }
 
@@ -961,6 +952,10 @@
     if (!item) return;
     const current = Number(item.quantity || 1);
     const delta = button.dataset.confirmQtyAction === "increase" ? 1 : -1;
+    if (delta < 0 && current <= 1) {
+      removeConfirmCartItem(cartId);
+      return;
+    }
     const nextQuantity = Math.max(1, Math.min(20, current + delta));
     if (nextQuantity === current) return;
     const selections = persistConfirmSelections();
@@ -976,23 +971,6 @@
     const pending = state.pendingConfirmation;
     if (!pending) return;
     const selections = persistConfirmSelections();
-    const item = pending.draft.items.find((entry) => entry.id === cartId);
-    if (!item) return;
-    const quantity = Math.max(1, Math.min(20, Number(item.quantity || 1)));
-    if (quantity > 1) {
-      const nextQuantity = quantity - 1;
-      item.quantity = nextQuantity;
-      item.locations = locationsForItem(item, nextQuantity, selections);
-      syncLiveCartItem(pending.draft.source, cartId, {
-        quantity: nextQuantity,
-        locations: item.locations,
-      });
-      updateConfirmButtonState(pending.form);
-      renderMenuPickers();
-      renderConfirmContents(pending.draft, selections, true);
-      return;
-    }
-
     pending.draft.items = pending.draft.items.filter((item) => item.id !== cartId);
     state.carts[pending.draft.source] = (state.carts[pending.draft.source] || []).filter((item) => item.id !== cartId);
     updateConfirmButtonState(pending.form);
@@ -2037,8 +2015,6 @@
 
   function orderCard(order, options = {}) {
     const compact = Boolean(options.compact);
-    const locationBadges = barLocationBadges(order);
-    const locationRow = locationBadges ? `<div class="order-location-row">${locationBadges}</div>` : "";
     const elapsedMinutes = minutesSince(order.created_at);
     const isWaiting = !["served", "canceled"].includes(order.status);
     const waitingClass = isWaiting && elapsedMinutes >= 10
@@ -2060,13 +2036,14 @@
       <article class="order-card ${statusClass}${paymentClass}${waitingClass}" data-order-id="${escapeHtml(order.id)}">
         <div class="order-main">
           ${paymentIndicator}
-          <div class="order-title-row">
-            <span class="order-target-label">${escapeHtml(barTargetLabel(order))}</span>
-            <span class="order-title">${escapeHtml(order.drink_name)}</span>
-            ${quantityPill}
+          <div class="order-destination-row">
+            <span class="order-target-label">${escapeHtml(barDestinationLabel(order))}</span>
             <span class="order-time">${escapeHtml(formatTime(order.created_at))}</span>
           </div>
-          ${locationRow}
+          <div class="order-product-row">
+            <span class="order-title">${escapeHtml(order.drink_name)}</span>
+            ${quantityPill}
+          </div>
           ${order.notes ? `<p class="order-note">${escapeHtml(order.notes)}</p>` : ""}
         </div>
         <div class="order-side">
@@ -2120,6 +2097,15 @@
     if (order.target === "tournament") return "トナメ";
     if (order.target === "ring") return "リング";
     return targetLabels[order.target] || order.target;
+  }
+
+  function barDestinationLabel(order) {
+    const target = barTargetLabel(order);
+    if (!order.table_no && !order.seat_no) return target;
+    const table = String(order.table_no || "").trim();
+    const seat = String(order.seat_no || "").trim();
+    const location = table && seat ? `${table}-${seat}` : table || seat;
+    return `${target} ${location}`;
   }
 
   function barLocationBadges(order) {

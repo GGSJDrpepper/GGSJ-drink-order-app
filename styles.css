@@ -1341,7 +1341,8 @@ button:focus-visible {
   opacity: 0.58;
 }
 
-.order-title-row,
+.order-destination-row,
+.order-product-row,
 .order-meta,
 .chip-row,
 .status-actions {
@@ -1351,8 +1352,13 @@ button:focus-visible {
   gap: 8px;
 }
 
-.order-title-row {
-  gap: 10px;
+.order-destination-row {
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.order-product-row {
+  gap: 8px;
   margin-bottom: 8px;
 }
 
@@ -1394,7 +1400,6 @@ button:focus-visible {
 }
 
 .order-time {
-  margin-left: auto;
   color: var(--muted);
   font-size: 0.88rem;
   font-weight: 700;
@@ -1782,26 +1787,16 @@ dialog::backdrop {
   white-space: nowrap;
 }
 
-.confirm-qty-button,
-.confirm-remove-button {
+.confirm-qty-button {
   width: 30px;
   min-height: 30px;
   display: grid;
   place-items: center;
   padding: 0;
   border-radius: 7px;
-}
-
-.confirm-qty-button {
   border: 1px solid var(--line);
   background: #ffffff;
   color: var(--ink);
-}
-
-.confirm-remove-button {
-  border: 1px solid var(--rose-soft);
-  background: var(--rose-soft);
-  color: var(--rose);
 }
 
 .confirm-qty-button:disabled {
@@ -1809,8 +1804,7 @@ dialog::backdrop {
   opacity: 0.35;
 }
 
-.confirm-qty-button svg,
-.confirm-remove-button svg {
+.confirm-qty-button svg {
   width: 18px;
   height: 18px;
 }
