@@ -1234,8 +1234,8 @@ button:focus-visible {
 }
 
 .order-card.payment-paypay {
-  --payment-accent: #e5484d;
-  --payment-soft: #fff0f0;
+  --payment-accent: #ff0033;
+  --payment-soft: #fff0f3;
 }
 
 .order-card.payment-coin {
@@ -1254,29 +1254,36 @@ button:focus-visible {
 }
 
 .order-card.payment-uncollected .order-main {
-  padding-right: 38px;
+  padding-left: 44px;
 }
 
 .payment-method-icon {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 10px;
+  left: 10px;
   z-index: 1;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--payment-accent);
-  border-radius: 50%;
-  color: var(--payment-accent);
-  background: var(--payment-soft);
+  border: 2px solid #ffffff;
+  border-radius: 9px;
+  color: #ffffff;
+  background: var(--payment-accent);
+  box-shadow: 0 0 0 2px var(--payment-accent);
 }
 
 .payment-method-icon svg {
   width: 19px;
   height: 19px;
   stroke-width: 2.5;
+}
+
+.payment-method-letter {
+  font-size: 1.35rem;
+  font-weight: 950;
+  line-height: 1;
 }
 
 .order-card.status-made {
@@ -1297,8 +1304,9 @@ button:focus-visible {
 
 .order-card.payment-uncollected {
   border-color: var(--payment-accent);
-  border-left-width: 6px;
-  box-shadow: inset 0 0 0 2px var(--payment-accent);
+  border-width: 4px;
+  border-left-width: 8px;
+  box-shadow: inset 0 0 0 1px #ffffff;
 }
 
 .order-main {

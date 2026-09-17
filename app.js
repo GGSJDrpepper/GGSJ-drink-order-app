@@ -143,7 +143,6 @@
   const paymentMethodIcons = {
     cash: "banknote",
     card: "credit-card",
-    paypay: "qr-code",
     coin: "coins",
     transit: "train-front",
     unknown: "circle-help",
@@ -2051,7 +2050,7 @@
     const paymentMethod = normalizePaymentMethod(order.payment_method);
     const paymentClass = isUncollected ? ` payment-uncollected payment-${paymentMethod}` : "";
     const paymentIndicator = isUncollected
-      ? `<span class="payment-method-icon" aria-label="${escapeHtml(paymentMethodLabels[paymentMethod])}" title="${escapeHtml(paymentMethodLabels[paymentMethod])}"><i data-lucide="${paymentMethodIcons[paymentMethod]}" aria-hidden="true"></i></span>`
+      ? `<span class="payment-method-icon" aria-label="${escapeHtml(paymentMethodLabels[paymentMethod])}" title="${escapeHtml(paymentMethodLabels[paymentMethod])}">${paymentMethod === "paypay" ? '<span class="payment-method-letter" aria-hidden="true">P</span>' : `<i data-lucide="${paymentMethodIcons[paymentMethod]}" aria-hidden="true"></i>`}</span>`
       : "";
 
     return `
@@ -2090,7 +2089,6 @@
     return `
       <div class="status-actions">
         ${order.status !== "made" ? actionButton("made", "作成済み", "", "button-made") : ""}
-        ${order.payment_status === "uncollected" ? actionButton("paid", "会計済み", "", "button-pay") : ""}
         ${actionButton("served", "提供済み", "", "button-served")}
         ${actionButton("edit", "修正", "", "button-edit")}
       </div>
