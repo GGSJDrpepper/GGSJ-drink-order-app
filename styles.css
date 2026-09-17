@@ -1389,8 +1389,15 @@ button:focus-visible {
 }
 
 .order-target-label {
+  gap: 5px;
   background: var(--teal);
   color: #ffffff;
+}
+
+.order-location-code {
+  font-size: 0.94rem;
+  line-height: 1;
+  font-weight: 900;
 }
 
 .order-location-label {

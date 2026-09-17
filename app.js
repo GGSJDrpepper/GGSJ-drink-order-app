@@ -2052,13 +2052,17 @@
       : "";
     const quantity = Math.max(1, Number(order.quantity || 1));
     const quantityPill = quantity >= 2 ? `<span class="qty-pill">x${escapeHtml(String(quantity))}</span>` : "";
+    const locationCode = barLocationCode(order);
 
     return `
       <article class="order-card ${statusClass}${paymentClass}${waitingClass}" data-order-id="${escapeHtml(order.id)}">
         <div class="order-main">
           ${paymentIndicator}
           <div class="order-destination-row">
-            <span class="order-target-label">${escapeHtml(barDestinationLabel(order))}</span>
+            <span class="order-target-label">
+              <span>${escapeHtml(barTargetLabel(order))}</span>
+              ${locationCode ? `<strong class="order-location-code">${escapeHtml(locationCode)}</strong>` : ""}
+            </span>
             <span class="order-time">${escapeHtml(formatTime(order.created_at))}</span>
           </div>
           <div class="order-product-row">
@@ -2120,13 +2124,11 @@
     return targetLabels[order.target] || order.target;
   }
 
-  function barDestinationLabel(order) {
-    const target = barTargetLabel(order);
-    if (!order.table_no && !order.seat_no) return target;
+  function barLocationCode(order) {
+    if (!order.table_no && !order.seat_no) return "";
     const table = String(order.table_no || "").trim();
     const seat = String(order.seat_no || "").trim();
-    const location = table && seat ? `${table}-${seat}` : table || seat;
-    return `${target} ${location}`;
+    return table && seat ? `${table}-${seat}` : table || seat;
   }
 
   function barLocationBadges(order) {
