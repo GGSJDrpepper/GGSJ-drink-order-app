@@ -2064,11 +2064,9 @@
             <span class="order-target-label">${escapeHtml(barTargetLabel(order))}</span>
             <span class="order-title">${escapeHtml(order.drink_name)}</span>
             ${quantityPill}
+            <span class="order-time">${escapeHtml(formatTime(order.created_at))}</span>
           </div>
           ${locationRow}
-          <div class="order-meta">
-            <span>${escapeHtml(formatTime(order.created_at))}</span>
-          </div>
           ${order.notes ? `<p class="order-note">${escapeHtml(order.notes)}</p>` : ""}
         </div>
         <div class="order-side">
