@@ -8,10 +8,10 @@
     <link rel="preload" as="audio" href="./sounds/news-title.mp3">
     <link rel="preload" as="audio" href="./sounds/decision-button.mp3">
     <link rel="preload" as="audio" href="./sounds/level-up.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026091822">
+    <link rel="stylesheet" href="./styles.css?v=2026091823">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026091822"></script>
+    <script defer src="./app.js?v=2026091823"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -167,17 +167,10 @@
               <label><input type="radio" name="confirmPaymentStatus" value="uncollected"><span>未徴収</span></label>
             </div>
           </fieldset>
-          <label id="confirmPaymentMethodWrap" class="confirm-payment-method" hidden>
-            <span>お支払い方法</span>
-            <select id="confirmPaymentMethod">
-              <option value="cash">現金</option>
-              <option value="card">カード</option>
-              <option value="paypay">PayPay</option>
-              <option value="coin">コイン</option>
-              <option value="transit">交通系</option>
-              <option value="unknown">不明</option>
-            </select>
-          </label>
+          <fieldset id="confirmPaymentMethodWrap" class="confirm-payment-method" hidden>
+            <legend>お支払い方法</legend>
+            <div class="payment-method-choice-grid" data-payment-method-picker="confirmPaymentMethod"></div>
+          </fieldset>
         </section>
         <div id="confirmItems" class="confirm-items"></div>
         <div class="modal-actions confirm-actions">
@@ -220,17 +213,10 @@
               <label><input type="radio" name="editPaymentStatus" value="uncollected"><span>未徴収</span></label>
             </div>
           </fieldset>
-          <label id="orderEditPaymentMethodWrap" class="confirm-payment-method" hidden>
-            <span>お支払い方法</span>
-            <select id="orderEditPaymentMethod">
-              <option value="cash">現金</option>
-              <option value="card">カード</option>
-              <option value="paypay">PayPay</option>
-              <option value="coin">コイン</option>
-              <option value="transit">交通系</option>
-              <option value="unknown">不明</option>
-            </select>
-          </label>
+          <fieldset id="orderEditPaymentMethodWrap" class="confirm-payment-method" hidden>
+            <legend>お支払い方法</legend>
+            <div class="payment-method-choice-grid" data-payment-method-picker="orderEditPaymentMethod"></div>
+          </fieldset>
         </section>
         <div class="modal-actions confirm-actions">
           <button id="deleteOrderEdit" class="button button-danger" type="button">削除</button>

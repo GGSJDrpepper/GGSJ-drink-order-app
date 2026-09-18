@@ -141,6 +141,7 @@
     paypay: "PayPay",
     coin: "コイン",
     transit: "交通系",
+    id: "iD",
     unknown: "不明",
   };
 
@@ -150,6 +151,7 @@
     paypay: { type: "image", value: "./assets/payment-paypay.png" },
     coin: { type: "image", value: "./assets/payment-coin.png" },
     transit: { type: "image", value: "./assets/payment-transit.png" },
+    id: { type: "image", value: "./assets/payment-id.png" },
     unknown: { type: "icon", value: "circle-help" },
   };
 
@@ -332,6 +334,7 @@
   }
 
   function setupControls() {
+    renderPaymentMethodPickers();
     $("#soundToggle").addEventListener("click", async () => {
       state.soundEnabled = !state.soundEnabled;
       saveSoundSetting();
@@ -851,7 +854,7 @@
     const defaultStatus = draft.source === "reception" ? "paid" : "uncollected";
     const input = $(`input[name='confirmPaymentStatus'][value='${defaultStatus}']`);
     if (input) input.checked = true;
-    $("#confirmPaymentMethod").value = "cash";
+    setPaymentMethodValue("confirmPaymentMethod", "cash");
     updateConfirmPaymentMethodVisibility();
   }
 
@@ -1106,7 +1109,7 @@
     try {
       const items = collectConfirmItems();
       const paymentStatus = confirmPaymentStatus();
-      const paymentMethod = paymentStatus === "uncollected" ? $("#confirmPaymentMethod").value : "cash";
+      const paymentMethod = paymentStatus === "uncollected" ? paymentMethodValue("confirmPaymentMethod") : "cash";
       const savePromise = createOrders(items.map((item) => ({
           source: draft.source,
           drink_name: item.drink_name,
@@ -1887,7 +1890,7 @@
     const paymentStatus = order.payment_status || "uncollected";
     const paymentStatusInput = $(`input[name='editPaymentStatus'][value='${paymentStatus}']`);
     if (paymentStatusInput) paymentStatusInput.checked = true;
-    $("#orderEditPaymentMethod").value = normalizePaymentMethod(order.payment_method);
+    setPaymentMethodValue("orderEditPaymentMethod", normalizePaymentMethod(order.payment_method));
     updateOrderEditTargetVisibility();
     updateOrderEditPaymentVisibility();
     $("#orderEditDialog").showModal();
@@ -1990,7 +1993,7 @@
         table_no: tableNo,
         seat_no: seatNo,
         payment_status: paymentStatus,
-        payment_method: paymentStatus === "uncollected" ? normalizePaymentMethod($("#orderEditPaymentMethod").value) : "cash",
+        payment_method: paymentStatus === "uncollected" ? paymentMethodValue("orderEditPaymentMethod") : "cash",
         paid_at: paymentStatus === "uncollected" ? null : order.paid_at,
       };
 
@@ -2149,6 +2152,45 @@
     if (visual.type === "emoji") content = `<span class="payment-method-emoji" aria-hidden="true">${visual.value}</span>`;
     if (visual.type === "image") content = `<img src="${visual.value}" alt="" aria-hidden="true">`;
     return `<span class="payment-method-icon payment-visual-${visual.type}" aria-label="${label}" title="${label}">${content}</span>`;
+  }
+
+  function renderPaymentMethodPickers() {
+    $$('[data-payment-method-picker]').forEach((picker) => {
+      const groupName = picker.dataset.paymentMethodPicker;
+      picker.innerHTML = Object.keys(paymentMethodLabels)
+        .map((method) => paymentMethodChoiceBlock(groupName, method))
+        .join("");
+    });
+    setPaymentMethodValue("confirmPaymentMethod", "cash");
+    setPaymentMethodValue("orderEditPaymentMethod", "cash");
+  }
+
+  function paymentMethodChoiceBlock(groupName, method) {
+    const visual = paymentMethodVisuals[method] || paymentMethodVisuals.unknown;
+    const label = paymentMethodLabels[method] || paymentMethodLabels.unknown;
+    let icon = `<i data-lucide="${escapeHtml(visual.value)}" aria-hidden="true"></i>`;
+    if (visual.type === "emoji") icon = `<span class="payment-choice-emoji" aria-hidden="true">${visual.value}</span>`;
+    if (visual.type === "image") icon = `<img src="${escapeHtml(visual.value)}" alt="" aria-hidden="true">`;
+    return `
+      <label class="payment-method-choice">
+        <input type="radio" name="${escapeHtml(groupName)}" value="${escapeHtml(method)}">
+        <span class="payment-method-choice-content">
+          <span class="payment-choice-icon payment-visual-${escapeHtml(visual.type)}">${icon}</span>
+          <span class="payment-choice-label">${escapeHtml(label)}</span>
+        </span>
+      </label>
+    `;
+  }
+
+  function paymentMethodValue(groupName) {
+    return normalizePaymentMethod($(`input[name='${groupName}']:checked`)?.value || "cash");
+  }
+
+  function setPaymentMethodValue(groupName, value) {
+    const normalized = normalizePaymentMethod(value);
+    const input = $(`input[name='${groupName}'][value='${normalized}']`)
+      || $(`input[name='${groupName}'][value='cash']`);
+    if (input) input.checked = true;
   }
 
   function compactActions(order) {

@@ -9,7 +9,7 @@ create table if not exists public.drink_orders (
   table_no text,
   seat_no text,
   payment_status text not null check (payment_status in ('paid', 'uncollected')),
-  payment_method text not null check (payment_method in ('cash', 'card', 'paypay', 'coin', 'transit', 'unknown')),
+  payment_method text not null check (payment_method in ('cash', 'card', 'paypay', 'coin', 'transit', 'id', 'unknown')),
   notes text,
   status text not null check (status in ('ordered', 'making', 'made', 'served', 'canceled')),
   made_at timestamptz,
@@ -71,7 +71,7 @@ alter table public.drink_orders
 
 alter table public.drink_orders
   add constraint drink_orders_payment_method_check
-  check (payment_method in ('cash', 'card', 'paypay', 'coin', 'transit', 'unknown'))
+  check (payment_method in ('cash', 'card', 'paypay', 'coin', 'transit', 'id', 'unknown'))
   not valid;
 
 do $$
