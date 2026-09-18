@@ -788,7 +788,7 @@ button:focus-visible {
   min-height: 62px;
   justify-content: space-between;
   gap: 14px;
-  padding: 0 16px;
+  padding: 0 clamp(28px, 4vw, 52px) 0 16px;
   border: 0;
   border-bottom: 1px solid #eeeeee;
   border-radius: 0;
