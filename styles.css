@@ -1760,11 +1760,9 @@ dialog::backdrop {
 
 .payment-method-choice-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(76px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 5px;
-  overflow-x: auto;
   padding: 1px 1px 3px;
-  scrollbar-width: thin;
 }
 
 .payment-method-choice {
@@ -1844,7 +1842,25 @@ dialog::backdrop {
 
 @media (max-width: 640px) {
   .payment-method-choice-grid {
-    grid-template-columns: repeat(7, minmax(72px, 1fr));
+    gap: 3px;
+  }
+
+  .payment-method-choice-content {
+    min-height: 44px;
+    padding: 2px 1px;
+  }
+
+  .payment-choice-icon {
+    width: 24px;
+    height: 18px;
+  }
+
+  .payment-choice-emoji {
+    font-size: 1.1rem;
+  }
+
+  .payment-choice-label {
+    font-size: 0.58rem;
   }
 }
 

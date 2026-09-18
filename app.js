@@ -138,20 +138,20 @@
   const paymentMethodLabels = {
     cash: "現金",
     card: "カード",
+    id: "iD",
     paypay: "PayPay",
     coin: "コイン",
     transit: "交通系",
-    id: "iD",
     unknown: "不明",
   };
 
   const paymentMethodVisuals = {
     cash: { type: "emoji", value: "💴" },
     card: { type: "emoji", value: "💳" },
+    id: { type: "image", value: "./assets/payment-id.png" },
     paypay: { type: "image", value: "./assets/payment-paypay.png" },
     coin: { type: "image", value: "./assets/payment-coin.png" },
     transit: { type: "image", value: "./assets/payment-transit.png" },
-    id: { type: "image", value: "./assets/payment-id.png" },
     unknown: { type: "icon", value: "circle-help" },
   };
 
