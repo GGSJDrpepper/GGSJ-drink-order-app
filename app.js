@@ -2132,7 +2132,7 @@
               <span>${escapeHtml(barTargetLabel(order))}</span>
               ${locationCode ? `<strong class="order-location-code">${escapeHtml(locationCode)}</strong>` : ""}
             </span>
-            <span class="order-time">${escapeHtml(formatTime(order.created_at))}</span>
+            <span class="order-time">${escapeHtml(elapsedLabel(order.created_at))}</span>
           </div>
           <div class="order-product-row">
             <span class="order-title">${escapeHtml(order.drink_name)}</span>
