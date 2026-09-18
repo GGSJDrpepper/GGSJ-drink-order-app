@@ -295,6 +295,9 @@
         const subcategoryButton = event.target.closest("[data-menu-subcategory]");
         if (subcategoryButton && form.contains(subcategoryButton)) {
           const picker = subcategoryButton.closest("[data-drink-picker]");
+          const categoryId = subcategoryButton.dataset.menuSubcategoryCategory;
+          picker.dataset.activeCategory = categoryId;
+          updateMenuCategoryActive(picker, categoryId);
           updateMenuSubcategoryActive(picker, subcategoryButton.dataset.menuSubcategory);
           scrollToMenuSubcategory(picker, subcategoryButton.dataset.menuSubcategory);
           return;
@@ -306,6 +309,9 @@
           const categoryId = categoryButton.dataset.menuCategory;
           picker.dataset.activeCategory = categoryId;
           updateMenuCategoryActive(picker, categoryId);
+          const firstSubcategory = $$("[data-menu-subcategory]", picker)
+            .find((button) => button.dataset.menuSubcategoryCategory === categoryId);
+          if (firstSubcategory) updateMenuSubcategoryActive(picker, firstSubcategory.dataset.menuSubcategory);
           scrollToMenuSection(picker, categoryId);
           return;
         }
@@ -1346,17 +1352,38 @@
 
     const useCustomOrder = form.dataset.source === "reception" && state.receptionMenuMode === "custom";
     const stats = useCustomOrder ? menuOrderStats(state.menu) : null;
-    $("[data-drink-buttons]", picker).innerHTML = state.menu
-      .map((category) =>
-        menuCategorySectionBlock(
-          category,
-          currentCategoryId,
-          currentItemId,
-          form.dataset.source,
-          useCustomOrder ? rankedMenuSubcategoryGroups(category, stats) : menuSubcategoryGroups(category)
-        )
+    const categoryGroups = state.menu.map((category) => ({
+      category,
+      groups: useCustomOrder ? rankedMenuSubcategoryGroups(category, stats) : menuSubcategoryGroups(category),
+    }));
+    const availableSubcategories = categoryGroups.flatMap(({ category, groups }) =>
+      groups.map((group) => ({ category, group, key: subcategoryKey(category.id, group.id) }))
+    );
+    const requestedSubcategory = picker.dataset.activeSubcategory || "";
+    const activeSubcategory = availableSubcategories.some((item) => item.key === requestedSubcategory)
+      ? requestedSubcategory
+      : availableSubcategories.find((item) => item.category.id === activeCategory)?.key || availableSubcategories[0]?.key || "";
+    picker.dataset.activeSubcategory = activeSubcategory;
+
+    const globalSubcategoryNav = availableSubcategories.length
+      ? `
+        <div class="menu-global-subcategory-row" aria-label="全サブカテゴリ">
+          ${availableSubcategories.map(({ category, group, key }) => `
+            <button class="menu-subcategory-chip ${key === activeSubcategory ? "active" : ""}" type="button" data-menu-subcategory="${escapeHtml(key)}" data-menu-subcategory-category="${escapeHtml(category.id)}">
+              ${escapeHtml(group.label)}
+            </button>
+          `).join("")}
+        </div>
+      `
+      : "";
+    const categorySections = categoryGroups
+      .map(({ category, groups }) =>
+        menuCategorySectionBlock(category, currentCategoryId, currentItemId, form.dataset.source, groups)
       )
-      .join("") || `<div class="menu-empty">商品未設定</div>`;
+      .join("");
+    $("[data-drink-buttons]", picker).innerHTML = categorySections
+      ? `${globalSubcategoryNav}${categorySections}`
+      : `<div class="menu-empty">商品未設定</div>`;
 
     if (currentItem && state.activeSheet?.form === form) renderItemSheet(form, currentItem);
     updateConfirmButtonState(form);
@@ -1365,17 +1392,6 @@
 
   function menuCategorySectionBlock(category, currentCategoryId, currentItemId, source, groups = menuSubcategoryGroups(category)) {
     const showSubcategories = shouldShowSubcategoryUi(groups);
-    const subcategoryNav = showSubcategories
-      ? `
-        <div class="menu-subcategory-row" aria-label="${escapeHtml(category.label)}のサブカテゴリ">
-          ${groups.map((group, index) => `
-            <button class="menu-subcategory-chip ${index === 0 ? "active" : ""}" type="button" data-menu-subcategory="${escapeHtml(subcategoryKey(category.id, group.id))}">
-              ${escapeHtml(group.label)}
-            </button>
-          `).join("")}
-        </div>
-      `
-      : "";
     const groupBlocks = groups
       .map((group) => {
         const itemButtons = group.items.map((item) => {
@@ -1409,7 +1425,6 @@
     return `
       <section class="menu-category-section" data-menu-section="${escapeHtml(category.id)}">
         <h3 class="menu-category-heading">${escapeHtml(category.label)}</h3>
-        ${subcategoryNav}
         ${groupBlocks || `<div class="menu-empty compact">商品未設定</div>`}
       </section>
     `;
@@ -1463,6 +1478,7 @@
   }
 
   function updateMenuSubcategoryActive(picker, subcategoryId) {
+    picker.dataset.activeSubcategory = subcategoryId;
     $$("[data-menu-subcategory]", picker).forEach((button) => {
       button.classList.toggle("active", button.dataset.menuSubcategory === subcategoryId);
     });
@@ -1480,8 +1496,8 @@
     const sectionRect = section.getBoundingClientRect();
     const categorySection = section.closest("[data-menu-section]");
     const stickyOffset = section.matches("[data-menu-subsection]") && categorySection
-      ? ($(".menu-category-heading", categorySection)?.offsetHeight || 0)
-        + ($(".menu-subcategory-row", categorySection)?.offsetHeight || 0)
+      ? ($(".menu-global-subcategory-row", picker)?.offsetHeight || 0)
+        + ($(".menu-category-heading", categorySection)?.offsetHeight || 0)
       : 0;
     const maxTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
     const top = Math.min(maxTop, Math.max(0, sectionRect.top - scrollerRect.top + scroller.scrollTop - stickyOffset));

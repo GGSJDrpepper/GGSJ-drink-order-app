@@ -694,6 +694,7 @@ button:focus-visible {
 }
 
 .menu-item-grid {
+  --menu-global-subcategory-height: 55px;
   min-height: 0;
   max-height: 100%;
   display: block;
@@ -715,7 +716,7 @@ button:focus-visible {
 
 .menu-category-heading {
   position: sticky;
-  top: 0;
+  top: var(--menu-global-subcategory-height);
   z-index: 4;
   min-height: 44px;
   display: flex;
@@ -730,10 +731,13 @@ button:focus-visible {
   line-height: 1.2;
 }
 
-.menu-subcategory-row {
+.menu-global-subcategory-row {
   position: sticky;
-  top: 44px;
-  z-index: 4;
+  top: 0;
+  z-index: 5;
+  min-height: var(--menu-global-subcategory-height);
+  height: var(--menu-global-subcategory-height);
+  box-sizing: border-box;
   display: flex;
   gap: 8px;
   overflow-x: auto;
