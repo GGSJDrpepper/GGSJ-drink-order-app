@@ -1478,8 +1478,13 @@
     if (!scroller || !section) return;
     const scrollerRect = scroller.getBoundingClientRect();
     const sectionRect = section.getBoundingClientRect();
+    const categorySection = section.closest("[data-menu-section]");
+    const stickyOffset = section.matches("[data-menu-subsection]") && categorySection
+      ? ($(".menu-category-heading", categorySection)?.offsetHeight || 0)
+        + ($(".menu-subcategory-row", categorySection)?.offsetHeight || 0)
+      : 0;
     const maxTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
-    const top = Math.min(maxTop, Math.max(0, sectionRect.top - scrollerRect.top + scroller.scrollTop));
+    const top = Math.min(maxTop, Math.max(0, sectionRect.top - scrollerRect.top + scroller.scrollTop - stickyOffset));
     animateMenuScroll(scroller, top, 160);
   }
 

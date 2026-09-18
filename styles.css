@@ -714,6 +714,9 @@ button:focus-visible {
 }
 
 .menu-category-heading {
+  position: sticky;
+  top: 0;
+  z-index: 4;
   min-height: 44px;
   display: flex;
   align-items: center;
@@ -728,12 +731,16 @@ button:focus-visible {
 }
 
 .menu-subcategory-row {
+  position: sticky;
+  top: 44px;
+  z-index: 4;
   display: flex;
   gap: 8px;
   overflow-x: auto;
   padding: 10px 16px;
   border-bottom: 1px solid #eeeeee;
   background: #ffffff;
+  box-shadow: 0 3px 8px rgba(47, 43, 39, 0.06);
 }
 
 .menu-subcategory-chip {
