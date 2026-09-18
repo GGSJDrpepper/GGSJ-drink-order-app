@@ -555,6 +555,7 @@
     $("#menuEditor").addEventListener("wheel", handleMenuEditorWheel, { passive: false });
     $("#backToOrder").addEventListener("click", closeConfirm);
     $("#sendConfirmedOrder").addEventListener("click", sendConfirmedOrders);
+    $("#confirmLocation").addEventListener("click", handleConfirmChoice);
     $("#confirmItems").addEventListener("click", handleConfirmChoice);
     $("#confirmDialog").addEventListener("close", () => {
       persistConfirmSelections();
@@ -853,7 +854,8 @@
     const itemBlocks = draft.items
       .map((item, index) => confirmItemBlock(item, index, draft.items.length))
       .join("");
-    $("#confirmItems").innerHTML = `${locationBlock}${itemBlocks}`;
+    $("#confirmLocation").innerHTML = locationBlock;
+    $("#confirmItems").innerHTML = itemBlocks;
     if (window.lucide) window.lucide.createIcons();
   }
 
@@ -1053,7 +1055,7 @@
   }
 
   function captureConfirmSelections() {
-    const block = $("#confirmItems [data-confirm-order-location]");
+    const block = $("#confirmLocation [data-confirm-order-location]");
     if (!block) return {};
     return {
       order: {
@@ -1138,7 +1140,7 @@
   function collectConfirmItems() {
     const draft = state.pendingConfirmation?.draft;
     if (!draft) return [];
-    const locationBlock = $("#confirmItems [data-confirm-order-location]");
+    const locationBlock = $("#confirmLocation [data-confirm-order-location]");
     const tableNo = activeConfirmValue(locationBlock, "tableNo");
     const seatNo = activeConfirmValue(locationBlock, "seatNo");
     return expandCartItems(draft.items).map((item) => {

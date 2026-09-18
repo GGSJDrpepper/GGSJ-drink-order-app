@@ -1607,7 +1607,15 @@ dialog {
 
 #confirmDialog {
   width: min(960px, calc(100vw - 28px));
-  transform: translateY(-12px);
+  max-height: calc(100vh - 24px);
+  margin: auto auto 12px;
+  overflow: visible;
+}
+
+@supports (height: 100dvh) {
+  #confirmDialog {
+    max-height: calc(100dvh - 24px);
+  }
 }
 
 #orderEditDialog {
@@ -1640,6 +1648,27 @@ dialog::backdrop {
 .confirm-modal {
   max-height: calc(100vh - 36px);
   overflow: auto;
+}
+
+#confirmDialog .confirm-modal {
+  max-height: calc(100vh - 24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#confirmDialog .section-head,
+#confirmDialog .confirm-summary,
+#confirmDialog .confirm-payment-panel,
+#confirmDialog .confirm-location-shell,
+#confirmDialog .confirm-actions {
+  flex: 0 0 auto;
+}
+
+@supports (height: 100dvh) {
+  #confirmDialog .confirm-modal {
+    max-height: calc(100dvh - 24px);
+  }
 }
 
 .order-edit-summary {
@@ -1869,6 +1898,19 @@ dialog::backdrop {
   display: grid;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+#confirmDialog .confirm-items {
+  min-height: 0;
+  flex: 0 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 3px;
+}
+
+.confirm-location-shell {
+  flex: 0 0 auto;
 }
 
 .confirm-order-location {
