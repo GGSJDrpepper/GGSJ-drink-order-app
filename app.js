@@ -314,8 +314,12 @@
           updateMenuCategoryActive(picker, categoryId);
           const firstSubcategory = $$("[data-menu-subcategory]", picker)
             .find((button) => button.dataset.menuSubcategoryCategory === categoryId);
-          if (firstSubcategory) updateMenuSubcategoryActive(picker, firstSubcategory.dataset.menuSubcategory);
-          scrollToMenuSection(picker, categoryId);
+          if (firstSubcategory) {
+            updateMenuSubcategoryActive(picker, firstSubcategory.dataset.menuSubcategory);
+            scrollToMenuSubcategory(picker, firstSubcategory.dataset.menuSubcategory);
+          } else {
+            scrollToMenuSection(picker, categoryId);
+          }
           return;
         }
 
