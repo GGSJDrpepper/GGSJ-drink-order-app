@@ -254,7 +254,6 @@
     });
     updateHeaderViewLabel();
     render();
-    if (window.lucide) window.lucide.createIcons();
   }
 
   function updateHeaderViewLabel() {
@@ -558,8 +557,10 @@
     $("#confirmLocation").addEventListener("click", handleConfirmChoice);
     $("#confirmItems").addEventListener("click", handleConfirmChoice);
     $("#confirmDialog").addEventListener("close", () => {
+      const shouldRefreshMenu = Boolean(state.pendingConfirmation);
       persistConfirmSelections();
       state.pendingConfirmation = null;
+      if (shouldRefreshMenu) renderMenuPickers();
     });
     $$("input[name='confirmPaymentStatus']").forEach((input) => {
       input.addEventListener("change", () => {
@@ -829,13 +830,18 @@
     renderConfirm(draft);
     $("#sendConfirmedOrder").disabled = false;
     $("#confirmDialog").showModal();
-    if (window.lucide) window.lucide.createIcons();
+    scheduleIconRefresh();
   }
 
   function closeConfirm() {
     persistConfirmSelections();
-    if ($("#confirmDialog").open) $("#confirmDialog").close();
-    state.pendingConfirmation = null;
+    if ($("#confirmDialog").open) {
+      $("#confirmDialog").close();
+    } else {
+      const shouldRefreshMenu = Boolean(state.pendingConfirmation);
+      state.pendingConfirmation = null;
+      if (shouldRefreshMenu) renderMenuPickers();
+    }
   }
 
   function renderConfirm(draft) {
@@ -856,7 +862,7 @@
       .join("");
     $("#confirmLocation").innerHTML = locationBlock;
     $("#confirmItems").innerHTML = itemBlocks;
-    if (window.lucide) window.lucide.createIcons();
+    scheduleIconRefresh();
   }
 
   function setConfirmPaymentDefaults(draft) {
@@ -996,7 +1002,6 @@
     item.locations = locationsForItem(item, nextQuantity, selections);
     syncLiveCartItem(pending.draft.source, cartId, { quantity: nextQuantity, locations: item.locations });
     updateConfirmButtonState(pending.form);
-    renderMenuPickers();
     renderConfirmContents(pending.draft, selections, true);
   }
 
@@ -1007,7 +1012,6 @@
     pending.draft.items = pending.draft.items.filter((item) => item.id !== cartId);
     state.carts[pending.draft.source] = (state.carts[pending.draft.source] || []).filter((item) => item.id !== cartId);
     updateConfirmButtonState(pending.form);
-    renderMenuPickers();
     if (!pending.draft.items.length) {
       closeConfirm();
       return;
@@ -1129,7 +1133,6 @@
         })));
       state.carts[draft.source] = [];
       resetForm(form);
-      renderMenuPickers();
       closeConfirm();
       await savePromise;
     } finally {
@@ -1246,7 +1249,7 @@
     const layer = $("#itemSheetLayer");
     layer.hidden = false;
     requestAnimationFrame(() => layer.classList.add("open"));
-    if (window.lucide) window.lucide.createIcons();
+    scheduleIconRefresh();
   }
 
   function closeItemSheet() {
@@ -1359,10 +1362,10 @@
     ).join("");
 
     const useCustomOrder = form.dataset.source === "reception" && state.receptionMenuMode === "custom";
-    const stats = useCustomOrder ? menuOrderStats(state.menu) : null;
+    const itemCounts = useCustomOrder ? menuItemOrderCounts() : null;
     const categoryGroups = state.menu.map((category) => ({
       category,
-      groups: useCustomOrder ? rankedMenuSubcategoryGroups(category, stats) : menuSubcategoryGroups(category),
+      groups: useCustomOrder ? rankedMenuCategoryGroups(category, itemCounts) : menuSubcategoryGroups(category),
     }));
     const availableSubcategories = categoryGroups.flatMap(({ category, groups }) =>
       groups.map((group) => ({ category, group, key: subcategoryKey(category.id, group.id) }))
@@ -1373,7 +1376,7 @@
       : availableSubcategories.find((item) => item.category.id === activeCategory)?.key || availableSubcategories[0]?.key || "";
     picker.dataset.activeSubcategory = activeSubcategory;
 
-    const globalSubcategoryNav = availableSubcategories.length
+    const globalSubcategoryNav = !useCustomOrder && availableSubcategories.length
       ? `
         <div class="menu-global-subcategory-row" aria-label="全サブカテゴリ">
           ${availableSubcategories.map(({ category, group, key }) => `
@@ -1389,7 +1392,9 @@
         menuCategorySectionBlock(category, currentCategoryId, currentItemId, form.dataset.source, groups)
       )
       .join("");
-    $("[data-drink-buttons]", picker).innerHTML = categorySections
+    const itemGrid = $("[data-drink-buttons]", picker);
+    itemGrid.classList.toggle("custom-ranking", useCustomOrder);
+    itemGrid.innerHTML = categorySections
       ? `${globalSubcategoryNav}${categorySections}`
       : `<div class="menu-empty">商品未設定</div>`;
 
@@ -1451,19 +1456,19 @@
       .filter((group) => group.items.length);
   }
 
-  function rankedMenuSubcategoryGroups(category, stats) {
-    return menuSubcategoryGroups(category)
-      .map((group, groupIndex) => ({
-        ...group,
-        groupIndex,
-        count: stats.subcategoryCounts.get(subcategoryKey(category.id, group.id)) || 0,
-        items: group.items
-          .map((item, itemIndex) => ({ item, itemIndex, count: stats.itemCount(item) }))
-          .sort((a, b) => b.count - a.count || a.itemIndex - b.itemIndex)
-          .map((entry) => entry.item),
+  function rankedMenuCategoryGroups(category, itemCounts) {
+    const items = (category.items || [])
+      .map((item, itemIndex) => ({
+        item,
+        itemIndex,
+        count: itemCounts.get(item.name) || 0,
       }))
-      .sort((a, b) => b.count - a.count || a.groupIndex - b.groupIndex)
-      .map(({ groupIndex, count, ...group }) => group);
+      .sort((a, b) => b.count - a.count || a.itemIndex - b.itemIndex)
+      .map((entry) => entry.item);
+
+    return items.length
+      ? [{ id: DEFAULT_SUBCATEGORY_ID, label: DEFAULT_SUBCATEGORY_LABEL, items }]
+      : [];
   }
 
   function shouldShowSubcategoryUi(groups) {
@@ -1824,6 +1829,7 @@
   function handleRealtimePayload(payload) {
     if (payload.eventType === "DELETE") {
       state.orders = state.orders.filter((order) => order.id !== payload.old.id);
+      refreshCustomMenuRanking();
       render();
       return;
     }
@@ -1838,7 +1844,14 @@
       notifyNewOrder(order);
     }
 
+    if (isNew || order.status === "canceled") refreshCustomMenuRanking();
     render();
+  }
+
+  function refreshCustomMenuRanking() {
+    if (state.view === "reception" && state.receptionMenuMode === "custom") {
+      renderMenuPickers();
+    }
   }
 
   function detectNewOrders() {
@@ -1875,8 +1888,9 @@
 
   function render() {
     pruneCompletedHistory();
+    if (state.view !== "bar") return;
     renderBar();
-    if (window.lucide) window.lucide.createIcons();
+    scheduleIconRefresh();
   }
 
   function openOrderEdit(orderId) {
@@ -1901,7 +1915,7 @@
     }
     updateOrderEditTargetVisibility();
     $("#orderEditDialog").showModal();
-    if (window.lucide) window.lucide.createIcons();
+    scheduleIconRefresh();
   }
 
   function orderEditSummaryBlock(order) {
@@ -2078,7 +2092,7 @@
     });
   }
 
-  function menuOrderStats(categories) {
+  function menuItemOrderCounts() {
     const itemCounts = new Map();
     state.orders.forEach((order) => {
       if (order.status === "canceled") return;
@@ -2086,22 +2100,7 @@
       if (!name) return;
       itemCounts.set(name, (itemCounts.get(name) || 0) + Number(order.quantity || 1));
     });
-
-    const categoryCounts = new Map();
-    const subcategoryCounts = new Map();
-    const itemCount = (item) => itemCounts.get(item.name) || 0;
-
-    categories.forEach((category) => {
-      let categoryTotal = 0;
-      menuSubcategoryGroups(category).forEach((group) => {
-        const groupTotal = group.items.reduce((sum, item) => sum + itemCount(item), 0);
-        subcategoryCounts.set(subcategoryKey(category.id, group.id), groupTotal);
-        categoryTotal += groupTotal;
-      });
-      categoryCounts.set(category.id, categoryTotal);
-    });
-
-    return { categoryCounts, subcategoryCounts, itemCount };
+    return itemCounts;
   }
 
   function orderCard(order, options = {}) {

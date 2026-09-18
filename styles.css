@@ -725,6 +725,10 @@ button:focus-visible {
   gap: 0;
 }
 
+.menu-item-grid.custom-ranking {
+  --menu-global-subcategory-height: 0px;
+}
+
 .menu-category-section {
   background: #ffffff;
 }
