@@ -108,3 +108,16 @@ create index if not exists drink_orders_status_idx
 
 create index if not exists drink_app_settings_updated_at_idx
   on public.drink_app_settings (updated_at desc);
+
+-- Keep the shared order table small. This job runs hourly and removes orders
+-- whose original order time is more than 24 hours old.
+create extension if not exists pg_cron with schema extensions;
+
+select cron.schedule(
+  'drink-orders-retention-24h',
+  '7 * * * *',
+  $command$
+    delete from public.drink_orders
+    where created_at < now() - interval '24 hours';
+  $command$
+);

@@ -14,7 +14,8 @@
   const CAST_STORAGE_SEAT = "__cast__";
   const DEFAULT_SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
   const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
-  const MAX_HISTORY = 80;
+  const MAX_LOCAL_HISTORY = 200;
+  const COMPLETED_HISTORY_MS = 60 * 60 * 1000;
   const SOUND_OPTIONS = [
     { id: "news-title", label: "ニュースタイトル表示", url: "./sounds/news-title.mp3" },
     { id: "decision-button", label: "決定ボタン", url: "./sounds/decision-button.mp3" },
@@ -1684,11 +1685,21 @@
 
   async function loadOrders() {
     if (state.syncMode === "supabase" && state.supabase) {
-      const { data, error } = await state.supabase
-        .from("drink_orders")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const historyCutoff = new Date(Date.now() - COMPLETED_HISTORY_MS).toISOString();
+      const [openResult, historyResult] = await Promise.all([
+        state.supabase
+          .from("drink_orders")
+          .select("*")
+          .in("status", ["ordered", "making", "made"])
+          .order("created_at", { ascending: true }),
+        state.supabase
+          .from("drink_orders")
+          .select("*")
+          .in("status", ["served", "canceled"])
+          .gte("updated_at", historyCutoff)
+          .order("updated_at", { ascending: false }),
+      ]);
+      const error = openResult.error || historyResult.error;
 
       if (error) {
         console.error(error);
@@ -1698,7 +1709,13 @@
         return;
       }
 
-      state.orders = (data || []).map(normalizeOrder);
+      const ordersById = new Map(
+        [...(openResult.data || []), ...(historyResult.data || [])]
+          .map(normalizeOrder)
+          .map((order) => [order.id, order])
+      );
+      state.orders = [...ordersById.values()];
+      pruneCompletedHistory();
       sortOrders();
       return;
     }
@@ -1709,6 +1726,7 @@
   function loadLocalOrders() {
     try {
       state.orders = JSON.parse(localStorage.getItem(ORDER_KEY) || "[]").map(normalizeOrder);
+      pruneCompletedHistory();
       sortOrders();
     } catch {
       state.orders = [];
@@ -1716,7 +1734,8 @@
   }
 
   function saveLocalOrders() {
-    localStorage.setItem(ORDER_KEY, JSON.stringify(state.orders.slice(0, MAX_HISTORY)));
+    pruneCompletedHistory();
+    localStorage.setItem(ORDER_KEY, JSON.stringify(state.orders.slice(0, MAX_LOCAL_HISTORY)));
     state.broadcast?.postMessage({ type: "orders-changed" });
   }
 
@@ -1805,6 +1824,7 @@
     const order = normalizeOrder(payload.new);
     const isNew = !state.knownIds.has(order.id);
     upsertOrder(order);
+    pruneCompletedHistory();
 
     if (state.booted && isNew) {
       state.knownIds.add(order.id);
@@ -1847,6 +1867,7 @@
   }
 
   function render() {
+    pruneCompletedHistory();
     renderBar();
     if (window.lucide) window.lucide.createIcons();
   }
@@ -2218,10 +2239,27 @@
     sortOrders();
   }
 
+  function pruneCompletedHistory(now = Date.now()) {
+    state.orders = state.orders.filter((order) => {
+      if (!isCompletedOrder(order)) return true;
+      return now - completedOrderTime(order) < COMPLETED_HISTORY_MS;
+    });
+  }
+
+  function isCompletedOrder(order) {
+    return ["served", "canceled"].includes(order.status);
+  }
+
+  function completedOrderTime(order) {
+    const value = order.served_at || order.updated_at || order.created_at;
+    const timestamp = new Date(value).getTime();
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  }
+
   function sortOrders() {
     state.orders.sort((a, b) => {
-      const aDone = ["served", "canceled"].includes(a.status);
-      const bDone = ["served", "canceled"].includes(b.status);
+      const aDone = isCompletedOrder(a);
+      const bDone = isCompletedOrder(b);
       if (aDone !== bDone) return aDone ? 1 : -1;
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
