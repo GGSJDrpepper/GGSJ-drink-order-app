@@ -557,7 +557,9 @@
       state.pendingConfirmation = null;
     });
     $$("input[name='confirmPaymentStatus']").forEach((input) => {
-      input.addEventListener("change", updateConfirmPaymentMethodVisibility);
+      input.addEventListener("change", () => {
+        if (input.checked) clearPaymentMethodValue("confirmPaymentMethod");
+      });
     });
     $("#orderEditClose").addEventListener("click", closeOrderEdit);
     $("#orderEditCancel").addEventListener("click", closeOrderEdit);
@@ -568,7 +570,9 @@
       input.addEventListener("change", updateOrderEditTargetVisibility);
     });
     $$("input[name='editPaymentStatus']").forEach((input) => {
-      input.addEventListener("change", updateOrderEditPaymentVisibility);
+      input.addEventListener("change", () => {
+        if (input.checked) clearPaymentMethodValue("orderEditPaymentMethod");
+      });
     });
     $("#orderEditDialog").addEventListener("close", () => {
       state.editingOrderId = "";
@@ -837,8 +841,7 @@
     $("#confirmSummary").innerHTML = "";
     $("#confirmSummary").hidden = true;
 
-    if (preservePayment) updateConfirmPaymentMethodVisibility();
-    else setConfirmPaymentDefaults(draft);
+    if (!preservePayment) setConfirmPaymentDefaults(draft);
     const hasDelivery = draft.items.some((item) => targetNeedsLocation(item.target));
     const hasSeatSelection = draft.items.some((item) => targetAllowsSeat(item.target));
     const location = confirmOrderLocation(draft, preservedSelections);
@@ -852,19 +855,14 @@
 
   function setConfirmPaymentDefaults(draft) {
     const defaultStatus = draft.source === "reception" ? "paid" : "uncollected";
-    const input = $(`input[name='confirmPaymentStatus'][value='${defaultStatus}']`);
-    if (input) input.checked = true;
-    setPaymentMethodValue("confirmPaymentMethod", "cash");
-    updateConfirmPaymentMethodVisibility();
-  }
-
-  function updateConfirmPaymentMethodVisibility() {
-    const status = confirmPaymentStatus();
-    $("#confirmPaymentMethodWrap").hidden = status !== "uncollected";
+    const paidInput = $("input[name='confirmPaymentStatus'][value='paid']");
+    if (paidInput) paidInput.checked = defaultStatus === "paid";
+    if (defaultStatus === "uncollected") setPaymentMethodValue("confirmPaymentMethod", "cash");
+    else clearPaymentMethodValue("confirmPaymentMethod");
   }
 
   function confirmPaymentStatus() {
-    return $("input[name='confirmPaymentStatus']:checked")?.value || "uncollected";
+    return $("input[name='confirmPaymentStatus'][value='paid']")?.checked ? "paid" : "uncollected";
   }
 
   function expandCartItems(items) {
@@ -1888,11 +1886,14 @@
     if (targetInput) targetInput.checked = true;
     renderOrderEditLocation(order.table_no, order.seat_no, order.target);
     const paymentStatus = order.payment_status || "uncollected";
-    const paymentStatusInput = $(`input[name='editPaymentStatus'][value='${paymentStatus}']`);
-    if (paymentStatusInput) paymentStatusInput.checked = true;
-    setPaymentMethodValue("orderEditPaymentMethod", normalizePaymentMethod(order.payment_method));
+    const paymentStatusInput = $("input[name='editPaymentStatus'][value='paid']");
+    if (paymentStatusInput) paymentStatusInput.checked = paymentStatus === "paid";
+    if (paymentStatus === "uncollected") {
+      setPaymentMethodValue("orderEditPaymentMethod", normalizePaymentMethod(order.payment_method));
+    } else {
+      clearPaymentMethodValue("orderEditPaymentMethod");
+    }
     updateOrderEditTargetVisibility();
-    updateOrderEditPaymentVisibility();
     $("#orderEditDialog").showModal();
     if (window.lucide) window.lucide.createIcons();
   }
@@ -1965,10 +1966,6 @@
     }
   }
 
-  function updateOrderEditPaymentVisibility() {
-    $("#orderEditPaymentMethodWrap").hidden = orderEditPaymentStatus() !== "uncollected";
-  }
-
   function closeOrderEdit() {
     const dialog = $("#orderEditDialog");
     if (dialog.open) dialog.close();
@@ -2034,7 +2031,7 @@
   }
 
   function orderEditPaymentStatus() {
-    return $("input[name='editPaymentStatus']:checked")?.value || "uncollected";
+    return $("input[name='editPaymentStatus'][value='paid']")?.checked ? "paid" : "uncollected";
   }
 
   function activeOrderEditValue(type) {
@@ -2160,9 +2157,14 @@
       picker.innerHTML = Object.keys(paymentMethodLabels)
         .map((method) => paymentMethodChoiceBlock(groupName, method))
         .join("");
+      $$(`input[name='${groupName}']`, picker).forEach((input) => {
+        input.addEventListener("change", () => {
+          const statusName = groupName === "confirmPaymentMethod" ? "confirmPaymentStatus" : "editPaymentStatus";
+          const paidInput = $(`input[name='${statusName}'][value='paid']`);
+          if (paidInput && input.checked) paidInput.checked = false;
+        });
+      });
     });
-    setPaymentMethodValue("confirmPaymentMethod", "cash");
-    setPaymentMethodValue("orderEditPaymentMethod", "cash");
   }
 
   function paymentMethodChoiceBlock(groupName, method) {
@@ -2191,6 +2193,12 @@
     const input = $(`input[name='${groupName}'][value='${normalized}']`)
       || $(`input[name='${groupName}'][value='cash']`);
     if (input) input.checked = true;
+  }
+
+  function clearPaymentMethodValue(groupName) {
+    $$(`input[name='${groupName}']`).forEach((input) => {
+      input.checked = false;
+    });
   }
 
   function compactActions(order) {

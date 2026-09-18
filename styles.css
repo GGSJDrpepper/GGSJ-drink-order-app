@@ -1721,17 +1721,15 @@ dialog::backdrop {
   margin-bottom: 0;
 }
 
+.payment-paid-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .confirm-payment-method {
   min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
-}
-
-.confirm-payment-method[hidden] {
-  display: block;
-  visibility: hidden;
-  pointer-events: none;
 }
 
 .confirm-payment-method legend {
