@@ -2784,6 +2784,17 @@ dialog::backdrop {
     flex: 1 1 auto;
   }
 
+  #confirmDialog .confirm-actions {
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+    display: grid;
+    gap: 8px;
+  }
+
+  #confirmDialog .confirm-actions > * {
+    width: 100%;
+    min-width: 0;
+  }
+
   .button,
   .filter {
     width: 100%;
