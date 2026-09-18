@@ -10,6 +10,8 @@
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
   const CHANNEL_NAME = "drink-relay-local";
   const SETTINGS_ROW_ID = "main";
+  const CAST_STORAGE_TARGET = "tournament";
+  const CAST_STORAGE_SEAT = "__cast__";
   const DEFAULT_SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
   const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
   const MAX_HISTORY = 80;
@@ -123,6 +125,7 @@
   const targetLabels = {
     tournament: "トーナメント",
     ring: "リング",
+    cast: "キャスドリ",
     bar: "バーカウンター",
   };
 
@@ -826,9 +829,10 @@
 
     if (preservePayment) updateConfirmPaymentMethodVisibility();
     else setConfirmPaymentDefaults(draft);
-    const hasDelivery = draft.items.some((item) => (item.target || "ring") !== "bar");
+    const hasDelivery = draft.items.some((item) => targetNeedsLocation(item.target));
+    const hasSeatSelection = draft.items.some((item) => targetAllowsSeat(item.target));
     const location = confirmOrderLocation(draft, preservedSelections);
-    const locationBlock = hasDelivery ? confirmOrderLocationBlock(location) : "";
+    const locationBlock = hasDelivery ? confirmOrderLocationBlock(location, hasSeatSelection) : "";
     const itemBlocks = draft.items
       .map((item, index) => confirmItemBlock(item, index, draft.items.length))
       .join("");
@@ -865,17 +869,17 @@
 
   function confirmOrderLocation(draft, preservedSelections = {}) {
     if (preservedSelections.order) return normalizeLocation(preservedSelections.order);
-    const deliveryItem = draft.items.find((item) => (item.target || "ring") !== "bar");
+    const deliveryItem = draft.items.find((item) => targetNeedsLocation(item.target));
     return normalizeLocation(deliveryItem?.locations?.[0]);
   }
 
-  function confirmOrderLocationBlock(location) {
+  function confirmOrderLocationBlock(location, hasSeatSelection) {
     return `
       <section class="confirm-order-location" data-confirm-order-location>
         <h3>お届け先</h3>
         <div class="confirm-location-grid">
           ${confirmChoiceGroup("order", "tableNo", "テーブル", TABLES, location.tableNo)}
-          ${confirmChoiceGroup("order", "seatNo", "席番号", SEATS, location.seatNo, !location.tableNo)}
+          ${hasSeatSelection ? confirmChoiceGroup("order", "seatNo", "席番号", SEATS, location.seatNo, !location.tableNo) : ""}
         </div>
       </section>
     `;
@@ -1012,12 +1016,28 @@
 
   function locationsForItem(item, quantity, selections = {}) {
     if (selections.order) {
-      const location = normalizeLocation(selections.order);
+      const location = locationForTarget(item.target, selections.order);
       return Array.from({ length: quantity }, () => ({ ...location }));
     }
     return Array.from({ length: quantity }, (_, index) =>
-      normalizeLocation(selections[`${item.id}-${index}`] || item.locations?.[index])
+      locationForTarget(item.target, selections[`${item.id}-${index}`] || item.locations?.[index])
     );
+  }
+
+  function targetNeedsLocation(target) {
+    return (target || "ring") !== "bar";
+  }
+
+  function targetAllowsSeat(target) {
+    return !["bar", "cast"].includes(target || "ring");
+  }
+
+  function locationForTarget(target, location = {}) {
+    const normalized = normalizeLocation(location);
+    return {
+      tableNo: targetNeedsLocation(target) ? normalized.tableNo : "",
+      seatNo: targetAllowsSeat(target) ? normalized.seatNo : "",
+    };
   }
 
   function captureConfirmSelections() {
@@ -1039,9 +1059,10 @@
       seatNo: activeConfirmValue(block, "seatNo"),
     };
     pending.draft.items.forEach((item) => {
-      if ((item.target || "ring") === "bar") return;
+      if (!targetNeedsLocation(item.target)) return;
       const quantity = Math.max(1, Math.min(20, Number(item.quantity || 1)));
-      const locations = Array.from({ length: quantity }, () => ({ ...location }));
+      const itemLocation = locationForTarget(item.target, location);
+      const locations = Array.from({ length: quantity }, () => ({ ...itemLocation }));
       item.locations = locations;
       syncLiveCartItem(pending.draft.source, item.id, { locations });
     });
@@ -1053,7 +1074,7 @@
     if (!pending) return selections;
 
     pending.draft.items.forEach((item) => {
-      if ((item.target || "ring") === "bar") {
+      if (!targetNeedsLocation(item.target)) {
         item.locations = [];
         syncLiveCartItem(pending.draft.source, item.id, { locations: [] });
         return;
@@ -1084,8 +1105,8 @@
           drink_name: item.drink_name,
           quantity: 1,
           target: item.target,
-          table_no: item.target === "bar" ? "" : item.tableNo,
-          seat_no: item.target === "bar" ? "" : item.seatNo,
+          table_no: targetNeedsLocation(item.target) ? item.tableNo : "",
+          seat_no: targetAllowsSeat(item.target) ? item.seatNo : "",
           payment_status: paymentStatus,
           payment_method: paymentMethod,
           notes: combinedOrderNote(item.selected_options),
@@ -1114,8 +1135,8 @@
         drink_name: item.drink_name || "",
         selected_options: [...(item.selected_options || [])],
         target,
-        tableNo: target === "bar" ? "" : tableNo,
-        seatNo: target === "bar" ? "" : seatNo,
+        tableNo: targetNeedsLocation(target) ? tableNo : "",
+        seatNo: targetAllowsSeat(target) ? seatNo : "",
       };
     });
   }
@@ -1820,7 +1841,7 @@
     $("#orderEditSummary").innerHTML = orderEditSummaryBlock(order);
     const targetInput = $(`input[name='editTarget'][value='${order.target || "ring"}']`);
     if (targetInput) targetInput.checked = true;
-    renderOrderEditLocation(order.table_no, order.seat_no);
+    renderOrderEditLocation(order.table_no, order.seat_no, order.target);
     const paymentStatus = order.payment_status || "uncollected";
     const paymentStatusInput = $(`input[name='editPaymentStatus'][value='${paymentStatus}']`);
     if (paymentStatusInput) paymentStatusInput.checked = true;
@@ -1848,10 +1869,10 @@
     `;
   }
 
-  function renderOrderEditLocation(tableNo = "", seatNo = "") {
+  function renderOrderEditLocation(tableNo = "", seatNo = "", target = "ring") {
     $("#orderEditLocation").innerHTML = `
       ${orderEditChoiceGroup("tableNo", "テーブル", TABLES, tableNo)}
-      ${orderEditChoiceGroup("seatNo", "席番号", SEATS, tableNo ? seatNo : "", !tableNo)}
+      ${orderEditChoiceGroup("seatNo", "席番号", SEATS, tableNo ? seatNo : "", !tableNo || !targetAllowsSeat(target))}
     `;
   }
 
@@ -1883,17 +1904,18 @@
 
   function updateOrderEditTargetVisibility() {
     const target = orderEditTarget();
-    $("#orderEditLocation").hidden = target === "bar";
-    if (target !== "bar") updateOrderEditSeatVisibility();
+    $("#orderEditLocation").hidden = !targetNeedsLocation(target);
+    if (targetNeedsLocation(target)) updateOrderEditSeatVisibility();
   }
 
   function updateOrderEditSeatVisibility() {
     const location = $("#orderEditLocation");
     const seatGroup = $("[data-order-edit-choice-group='seatNo']", location);
     if (!seatGroup) return;
-    const hasTable = Boolean($("[data-order-edit-choice='tableNo'].active", location));
-    seatGroup.hidden = !hasTable;
-    if (!hasTable) {
+    const showSeat = targetAllowsSeat(orderEditTarget())
+      && Boolean($("[data-order-edit-choice='tableNo'].active", location));
+    seatGroup.hidden = !showSeat;
+    if (!showSeat) {
       $$("[data-order-edit-choice='seatNo']", seatGroup).forEach((button) => button.classList.remove("active"));
     }
   }
@@ -1918,8 +1940,8 @@
 
     try {
       const target = orderEditTarget();
-      const tableNo = target === "bar" ? "" : activeOrderEditValue("tableNo");
-      const seatNo = target === "bar" || !tableNo ? "" : activeOrderEditValue("seatNo");
+      const tableNo = targetNeedsLocation(target) ? activeOrderEditValue("tableNo") : "";
+      const seatNo = targetAllowsSeat(target) && tableNo ? activeOrderEditValue("seatNo") : "";
       const paymentStatus = orderEditPaymentStatus();
       const patch = {
         target,
@@ -1963,7 +1985,7 @@
 
   function orderEditTarget() {
     const value = $("input[name='editTarget']:checked")?.value || "ring";
-    return ["tournament", "ring", "bar"].includes(value) ? value : "ring";
+    return ["tournament", "ring", "cast", "bar"].includes(value) ? value : "ring";
   }
 
   function orderEditPaymentStatus() {
@@ -2121,6 +2143,7 @@
   function barTargetLabel(order) {
     if (order.target === "tournament") return "トナメ";
     if (order.target === "ring") return "リング";
+    if (order.target === "cast") return "キャスドリ";
     return targetLabels[order.target] || order.target;
   }
 
@@ -2142,6 +2165,7 @@
   function locationLabel(order) {
     if (order.target === "bar") return "バーカウンター";
     const table = order.table_no ? `T${order.table_no}` : "テーブル未指定";
+    if (order.target === "cast") return table;
     const seat = order.seat_no ? `席${order.seat_no}` : "席未指定";
     return `${table} / ${seat}`;
   }
@@ -2183,6 +2207,7 @@
   }
 
   function normalizeOrder(order) {
+    const isStoredCast = order.target === CAST_STORAGE_TARGET && order.seat_no === CAST_STORAGE_SEAT;
     return {
       id: order.id,
       created_at: order.created_at,
@@ -2190,9 +2215,9 @@
       source: order.source || "reception",
       drink_name: order.drink_name || "",
       quantity: Number(order.quantity || 1),
-      target: order.target || "ring",
+      target: isStoredCast ? "cast" : order.target || "ring",
       table_no: order.table_no || "",
-      seat_no: order.seat_no || "",
+      seat_no: isStoredCast ? "" : order.seat_no || "",
       payment_status: order.payment_status || "uncollected",
       payment_method: normalizePaymentMethod(order.payment_method || "cash"),
       notes: order.notes || "",
@@ -2205,6 +2230,7 @@
   }
 
   function toDatabaseRow(order) {
+    const isCast = order.target === "cast";
     return {
       id: order.id,
       created_at: order.created_at,
@@ -2212,9 +2238,9 @@
       source: order.source,
       drink_name: order.drink_name,
       quantity: order.quantity,
-      target: order.target,
+      target: isCast ? CAST_STORAGE_TARGET : order.target,
       table_no: order.table_no,
-      seat_no: order.seat_no,
+      seat_no: isCast ? CAST_STORAGE_SEAT : order.seat_no,
       payment_status: order.payment_status,
       payment_method: order.payment_method,
       notes: order.notes,

@@ -511,7 +511,7 @@ button:focus-visible {
 }
 
 .destination-row {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .segmented.small {
@@ -2537,7 +2537,7 @@ dialog::backdrop {
   }
 
   .destination-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .destination-row label {
