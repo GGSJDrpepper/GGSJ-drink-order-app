@@ -1607,6 +1607,7 @@ dialog {
 
 #confirmDialog {
   width: min(960px, calc(100vw - 28px));
+  transform: translateY(-12px);
 }
 
 #orderEditDialog {
