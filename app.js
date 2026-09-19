@@ -1441,6 +1441,8 @@
     itemGrid.innerHTML = categorySections
       ? `${globalSubcategoryNav}${categorySections}`
       : `<div class="menu-empty">商品未設定</div>`;
+    setupMenuScrollTracking(picker);
+    requestAnimationFrame(() => syncMenuCategoryToScroll(picker));
 
     if (currentItem && state.activeSheet?.form === form) renderItemSheet(form, currentItem);
     updateConfirmButtonState(form);
@@ -1527,6 +1529,40 @@
     $$("[data-menu-category]", picker).forEach((button) => {
       button.classList.toggle("active", button.dataset.menuCategory === categoryId);
     });
+  }
+
+  function setupMenuScrollTracking(picker) {
+    const scroller = $("[data-drink-buttons]", picker);
+    if (!scroller || scroller.dataset.categoryScrollTracking === "true") return;
+    scroller.dataset.categoryScrollTracking = "true";
+    scroller.addEventListener("scroll", () => {
+      if (scroller._categoryScrollFrame) return;
+      scroller._categoryScrollFrame = requestAnimationFrame(() => {
+        scroller._categoryScrollFrame = null;
+        syncMenuCategoryToScroll(picker);
+      });
+    }, { passive: true });
+  }
+
+  function syncMenuCategoryToScroll(picker) {
+    const scroller = $("[data-drink-buttons]", picker);
+    const sections = $$("[data-menu-section]", picker);
+    if (!scroller || !sections.length) return;
+    const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
+    const stickyOffset = $(".menu-global-subcategory-row", picker)?.offsetHeight || 0;
+    const threshold = scroller.scrollTop + stickyOffset + 4;
+    let activeSection = sections[0];
+    if (atBottom) {
+      activeSection = sections[sections.length - 1];
+    } else {
+      sections.forEach((section) => {
+        if (section.offsetTop <= threshold) activeSection = section;
+      });
+    }
+    const categoryId = activeSection.dataset.menuSection;
+    if (!categoryId || picker.dataset.activeCategory === categoryId) return;
+    picker.dataset.activeCategory = categoryId;
+    updateMenuCategoryActive(picker, categoryId);
   }
 
   function scrollToMenuSection(picker, categoryId) {
