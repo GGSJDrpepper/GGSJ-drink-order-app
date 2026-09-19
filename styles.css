@@ -607,6 +607,18 @@ button:focus-visible {
   font-size: 0.9rem;
 }
 
+.destination-row label::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  left: -2px;
+  height: 4px;
+  border-radius: 0 0 3px 3px;
+  background: #e53935;
+  pointer-events: none;
+}
+
 .destination-row label:has(input:checked) {
   border-color: var(--teal);
   background: var(--teal);
