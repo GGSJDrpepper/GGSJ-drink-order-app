@@ -641,7 +641,6 @@
 
     $("#barOrders").addEventListener("click", handleOrderAction);
     $("#alcoholManualClose").addEventListener("click", closeAlcoholManual);
-    $("#alcoholManualDialog").addEventListener("close", clearAlcoholManualSelection);
   }
 
   async function previewNotificationSound(choiceId = state.soundChoices[state.soundCategory]) {
@@ -2246,8 +2245,6 @@
     $("#alcoholManualContent").innerHTML = steps.length
       ? `<ol>${steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>`
       : `<p class="manual-empty">作成メモはまだ登録されていません</p>`;
-    clearAlcoholManualSelection();
-    trigger?.classList.add("is-active");
     const dialog = $("#alcoholManualDialog");
     dialog.showModal();
     positionAlcoholManual(dialog, trigger);
@@ -2273,10 +2270,6 @@
   function closeAlcoholManual() {
     const dialog = $("#alcoholManualDialog");
     if (dialog.open) dialog.close();
-  }
-
-  function clearAlcoholManualSelection() {
-    $$("[data-order-manual].is-active").forEach((button) => button.classList.remove("is-active"));
   }
 
   function paymentMethodIndicator(paymentMethod) {

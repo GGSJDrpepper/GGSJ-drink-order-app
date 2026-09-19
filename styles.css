@@ -2834,7 +2834,7 @@ dialog::backdrop {
 
 .alcohol-manual-modal {
   padding: 16px;
-  background: #ffffff;
+  background: #fff0dc;
   border-radius: 8px;
 }
 
@@ -2878,12 +2878,6 @@ dialog::backdrop {
 .order-manual-button svg {
   width: 21px;
   height: 21px;
-}
-
-.order-manual-button.is-active {
-  border-color: #f3bd82;
-  background: #fff0dc;
-  color: #c85d00;
 }
 
 @media (max-width: 940px) {
