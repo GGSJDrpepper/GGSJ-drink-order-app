@@ -656,9 +656,21 @@
   }
 
   async function previewNotificationSound(choiceId = state.soundChoices[state.soundCategory]) {
-    await unlockAudio();
-    await warmNotificationBuffer(choiceId);
-    playChime(choiceId);
+    const normalizedChoice = normalizeSoundChoice(choiceId);
+    const playback = playNotificationAudioFromGesture(normalizedChoice);
+    const audioUnlock = unlockAudio(normalizedChoice);
+    const played = await playback;
+    if (played) {
+      audioUnlock.then(() => warmNotificationBuffer(normalizedChoice));
+      scheduleNotificationWarmup(1400);
+      return true;
+    }
+    await audioUnlock;
+    if (state.audioContext?.state === "running") {
+      playFallbackBell();
+      return true;
+    }
+    return false;
   }
 
   async function enableNotificationSoundAndPreview() {
@@ -667,7 +679,7 @@
       saveSoundSetting();
       updateSoundButton();
     }
-    await previewNotificationSound();
+    return previewNotificationSound();
   }
 
   async function handleHeaderSoundPreview(event) {
@@ -676,11 +688,15 @@
     button.classList.add("is-previewing");
     button.setAttribute("aria-busy", "true");
 
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     try {
-      await enableNotificationSoundAndPreview();
-      state.soundPreviewed = true;
-      localStorage.setItem(SOUND_PREVIEWED_KEY, "true");
+      const played = await enableNotificationSoundAndPreview();
+      state.soundPreviewed = played;
+      if (played) {
+        localStorage.setItem(SOUND_PREVIEWED_KEY, "true");
+      } else {
+        localStorage.removeItem(SOUND_PREVIEWED_KEY);
+        toast("通知音を再生できませんでした。もう一度押してください");
+      }
     } finally {
       button.classList.remove("is-previewing");
       button.removeAttribute("aria-busy");
@@ -1941,7 +1957,9 @@
     state.soundChoices = nextChoices;
     saveSoundChoices();
     updateSoundButton();
-    if (state.soundEnabled) unlockAudio().then(() => warmNotificationBuffers());
+    if (state.soundEnabled && state.soundPreviewed) {
+      configuredSoundChoiceIds().forEach((choiceId) => primeNotificationAudio(choiceId));
+    }
     if (options.fromRealtime && changed) toast("共有通知音を更新しました");
   }
 
@@ -3763,7 +3781,7 @@
     return detail ? `${prefix}: ${detail}` : prefix;
   }
 
-  async function unlockAudio() {
+  async function unlockAudio(choiceId) {
     if (state.audioUnlockPromise) return state.audioUnlockPromise;
     state.audioUnlockPromise = (async () => {
       if (!state.audioContext) {
@@ -3775,8 +3793,7 @@
         await state.audioContext.resume();
       }
 
-      primeNotificationAudio();
-      scheduleNotificationWarmup();
+      if (choiceId) primeNotificationAudio(choiceId);
     })().finally(() => {
       state.audioUnlockPromise = null;
     });
@@ -3810,6 +3827,7 @@
       if (!option.url || state.notificationAudios.has(option.id)) return;
       const audio = new Audio(option.url);
       audio.preload = "auto";
+      audio.playsInline = true;
       audio.volume = 1;
       audio.addEventListener("error", () => {
         state.notificationAudioUnavailable.add(option.id);
@@ -3817,6 +3835,31 @@
       state.notificationAudios.set(option.id, audio);
       audio.load();
     });
+  }
+
+  function playNotificationAudioFromGesture(choiceId) {
+    const option = selectedSoundOption(choiceId);
+    if (!option.url) return Promise.resolve(false);
+    state.notificationAudioUnavailable.delete(option.id);
+    primeNotificationAudio(option.id);
+    const audio = state.notificationAudios.get(option.id);
+    if (!audio) return Promise.resolve(false);
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 1;
+      const playback = audio.play();
+      if (!playback?.then) return Promise.resolve(true);
+      return Promise.race([
+        playback.then(() => true).catch(() => false),
+        new Promise((resolve) => window.setTimeout(() => resolve(false), 3000)),
+      ]).then((played) => {
+        if (!played) audio.pause();
+        return played;
+      });
+    } catch {
+      return Promise.resolve(false);
+    }
   }
 
   async function warmNotificationBuffers() {
