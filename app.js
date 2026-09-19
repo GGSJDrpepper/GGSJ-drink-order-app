@@ -1575,9 +1575,12 @@
       });
     }
     const categoryId = activeSection.dataset.menuSection;
-    if (!categoryId || picker.dataset.activeCategory === categoryId) return;
-    picker.dataset.activeCategory = categoryId;
-    updateMenuCategoryActive(picker, categoryId);
+    if (!categoryId) return;
+    if (picker.dataset.activeCategory !== categoryId) {
+      picker.dataset.activeCategory = categoryId;
+      updateMenuCategoryActive(picker, categoryId);
+    }
+    syncMenuSubcategoryToScroll(picker, scroller, activeSection, stickyOffset, atBottom);
   }
 
   function scrollToMenuSection(picker, categoryId) {
@@ -1590,6 +1593,54 @@
     $$("[data-menu-subcategory]", picker).forEach((button) => {
       button.classList.toggle("active", button.dataset.menuSubcategory === subcategoryId);
     });
+    scrollMenuSubcategoryNavToActive(picker, subcategoryId);
+  }
+
+  function syncMenuSubcategoryToScroll(picker, scroller, categorySection, stickyOffset, atBottom) {
+    const subsections = $$("[data-menu-subsection]", categorySection);
+    if (!subsections.length) return;
+    const categoryHeadingHeight = $(".menu-category-heading", categorySection)?.offsetHeight || 0;
+    const threshold = scroller.scrollTop + stickyOffset + categoryHeadingHeight + 4;
+    let activeSubsection = subsections[0];
+    if (atBottom) {
+      activeSubsection = subsections[subsections.length - 1];
+    } else {
+      subsections.forEach((subsection) => {
+        if (subsection.offsetTop <= threshold) activeSubsection = subsection;
+      });
+    }
+    const subcategoryId = activeSubsection.dataset.menuSubsection;
+    if (subcategoryId && picker.dataset.activeSubcategory !== subcategoryId) {
+      updateMenuSubcategoryActive(picker, subcategoryId);
+    }
+  }
+
+  function scrollMenuSubcategoryNavToActive(picker, subcategoryId) {
+    const nav = $(".menu-global-subcategory-row", picker);
+    const button = $$("[data-menu-subcategory]", picker)
+      .find((item) => item.dataset.menuSubcategory === subcategoryId);
+    if (!nav || !button) return;
+    const maxLeft = Math.max(0, nav.scrollWidth - nav.clientWidth);
+    const targetLeft = Math.min(maxLeft, Math.max(0, button.offsetLeft - ((nav.clientWidth - button.offsetWidth) / 2)));
+    animateMenuNavScroll(nav, targetLeft, 180);
+  }
+
+  function animateMenuNavScroll(nav, targetLeft, duration = 180) {
+    if (nav._menuNavScrollFrame) cancelAnimationFrame(nav._menuNavScrollFrame);
+    const startLeft = nav.scrollLeft;
+    const distance = targetLeft - startLeft;
+    if (Math.abs(distance) < 2) {
+      nav.scrollLeft = targetLeft;
+      return;
+    }
+    const startTime = performance.now();
+    const easeOut = (progress) => 1 - Math.pow(1 - progress, 3);
+    const tick = (now) => {
+      const progress = Math.min(1, (now - startTime) / duration);
+      nav.scrollLeft = startLeft + distance * easeOut(progress);
+      if (progress < 1) nav._menuNavScrollFrame = requestAnimationFrame(tick);
+    };
+    nav._menuNavScrollFrame = requestAnimationFrame(tick);
   }
 
   function scrollToMenuSubcategory(picker, subcategoryId) {
