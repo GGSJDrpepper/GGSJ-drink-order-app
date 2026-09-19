@@ -12,6 +12,7 @@
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
   const CHANNEL_NAME = "drink-relay-local";
   const SETTINGS_ROW_ID = "main";
+  const SOUND_SETTINGS_ROW_ID = "notification-sounds";
   const CAST_STORAGE_TARGET = "tournament";
   const CAST_STORAGE_SEAT = "__cast__";
   const DEFAULT_SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
@@ -194,6 +195,7 @@
     notificationBufferPromises: new Map(),
     notificationWarmTimer: null,
     audioUnlockPromise: null,
+    soundSavePromise: Promise.resolve(false),
     iconRefreshTimer: null,
     configSnapshot: "",
     configSection: "drinks",
@@ -360,7 +362,7 @@
         toast("通知音を無効にしました");
       }
     });
-    $(".sound-category-list").addEventListener("change", (event) => {
+    $(".sound-category-list").addEventListener("change", async (event) => {
       const choice = event.target.closest("[data-sound-choice]");
       if (!choice) return;
       const categoryId = choice.dataset.soundChoice;
@@ -369,7 +371,12 @@
       if (state.soundEnabled) {
         unlockAudio().then(() => warmNotificationBuffer(state.soundChoices[categoryId]));
       }
-      toast("効果音を変更しました");
+      if (state.syncMode === "supabase" && state.supabase) {
+        const saved = await queueSharedSoundSettingsSave();
+        if (saved) toast("通知音を全端末に反映しました");
+      } else {
+        toast("効果音を変更しました");
+      }
     });
     $(".sound-category-list").addEventListener("click", (event) => {
       const button = event.target.closest("[data-sound-preview]");
@@ -1722,12 +1729,21 @@
     const row = await fetchSharedSettings();
     if (row) {
       applySharedSettings(row);
-      state.sharedSettingsLoaded = true;
-      return;
+    } else {
+      await saveSharedSettings(state.menu, { silent: true });
     }
 
-    await saveSharedSettings(state.menu, { silent: true });
+    await loadSharedSoundSettings();
     state.sharedSettingsLoaded = true;
+  }
+
+  async function loadSharedSoundSettings() {
+    const row = await fetchSharedSoundSettings();
+    if (row) {
+      applySharedSoundSettings(row);
+      return;
+    }
+    await saveSharedSoundSettings({ silent: true });
   }
 
   async function fetchSharedSettings() {
@@ -1741,6 +1757,23 @@
     if (error) {
       console.error(error);
       toast(supabaseErrorMessage("共有設定テーブルを読み込めません", error), { long: true });
+      return null;
+    }
+
+    return data || null;
+  }
+
+  async function fetchSharedSoundSettings() {
+    if (state.syncMode !== "supabase" || !state.supabase) return null;
+    const { data, error } = await state.supabase
+      .from("drink_app_settings")
+      .select("*")
+      .eq("id", SOUND_SETTINGS_ROW_ID)
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      toast(supabaseErrorMessage("共有通知音を読み込めません", error), { long: true });
       return null;
     }
 
@@ -1770,8 +1803,42 @@
     return true;
   }
 
+  async function saveSharedSoundSettings(options = {}) {
+    if (state.syncMode !== "supabase" || !state.supabase) return false;
+    const { error } = await state.supabase
+      .from("drink_app_settings")
+      .upsert(
+        {
+          id: SOUND_SETTINGS_ROW_ID,
+          updated_at: new Date().toISOString(),
+          menu: state.soundChoices,
+        },
+        { onConflict: "id" }
+      );
+
+    if (error) {
+      console.error(error);
+      if (!options.silent) toast(supabaseErrorMessage("共有通知音の保存に失敗しました", error), { long: true });
+      return false;
+    }
+
+    return true;
+  }
+
+  function queueSharedSoundSettingsSave() {
+    state.soundSavePromise = state.soundSavePromise
+      .catch(() => false)
+      .then(() => saveSharedSoundSettings());
+    return state.soundSavePromise;
+  }
+
   function handleSharedSettingsPayload(payload) {
-    if (payload.eventType === "DELETE" || !payload.new || payload.new.id !== SETTINGS_ROW_ID) return;
+    if (payload.eventType === "DELETE" || !payload.new) return;
+    if (payload.new.id === SOUND_SETTINGS_ROW_ID) {
+      applySharedSoundSettings(payload.new, { fromRealtime: true });
+      return;
+    }
+    if (payload.new.id !== SETTINGS_ROW_ID) return;
     if (configHasUnsavedChanges()) {
       toast("共有設定が更新されました。保存中の編集があるため反映していません");
       return;
@@ -1796,6 +1863,19 @@
     if (options.fromRealtime) {
       toast("共有メニューを更新しました");
     }
+  }
+
+  function applySharedSoundSettings(row, options = {}) {
+    if (!row?.menu || Array.isArray(row.menu) || typeof row.menu !== "object") return;
+    const nextChoices = Object.fromEntries(
+      SOUND_CATEGORIES.map(({ id }) => [id, normalizeSoundChoice(row.menu[id] || state.soundChoices[id])])
+    );
+    const changed = JSON.stringify(nextChoices) !== JSON.stringify(state.soundChoices);
+    state.soundChoices = nextChoices;
+    saveSoundChoices();
+    updateSoundButton();
+    if (state.soundEnabled) unlockAudio().then(() => warmNotificationBuffers());
+    if (options.fromRealtime && changed) toast("共有通知音を更新しました");
   }
 
   function sharedSettingsHasMenu(row) {
