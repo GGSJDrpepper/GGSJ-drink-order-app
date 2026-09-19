@@ -648,6 +648,11 @@
 
     $("#barOrders").addEventListener("click", handleOrderAction);
     $("#alcoholManualClose").addEventListener("click", closeAlcoholManual);
+    document.addEventListener("pointerdown", (event) => {
+      const dialog = $("#alcoholManualDialog");
+      if (!dialog.open || dialog.contains(event.target) || event.target.closest?.("[data-order-manual]")) return;
+      closeAlcoholManual();
+    }, true);
   }
 
   async function previewNotificationSound(choiceId = state.soundChoices[state.soundCategory]) {
@@ -2424,7 +2429,8 @@
       ? `<ol>${steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>`
       : `<p class="manual-empty">作成メモはまだ登録されていません</p>`;
     const dialog = $("#alcoholManualDialog");
-    dialog.showModal();
+    if (dialog.open) dialog.close();
+    dialog.show();
     positionAlcoholManual(dialog, trigger);
     scheduleIconRefresh();
   }
