@@ -651,6 +651,12 @@ button:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.choice-button-wide {
+  grid-column: span 2;
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
 .choice-button.active {
   border-color: var(--teal);
   background: var(--teal-soft);

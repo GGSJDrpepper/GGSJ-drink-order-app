@@ -985,7 +985,7 @@
         <legend>${escapeHtml(label)}</legend>
         <div class="choice-grid ${type === "tableNo" ? "table-choice-grid" : "seat-choice-grid"}">
           ${values.map((value) => `
-            <button class="choice-button ${value === selectedValue ? "active" : ""}" type="button" data-confirm-row-id="${escapeHtml(rowId)}" data-confirm-choice="${type}" data-choice-value="${escapeHtml(value)}">
+            <button class="choice-button ${value === CAST_BAR_TABLE ? "choice-button-wide" : ""} ${value === selectedValue ? "active" : ""}" type="button" data-confirm-row-id="${escapeHtml(rowId)}" data-confirm-choice="${type}" data-choice-value="${escapeHtml(value)}">
               ${escapeHtml(value)}
             </button>
           `).join("")}
@@ -2025,7 +2025,7 @@
         <legend>${escapeHtml(label)}</legend>
         <div class="choice-grid ${type === "tableNo" ? "table-choice-grid" : "seat-choice-grid"}">
           ${values.map((value) => `
-            <button class="choice-button ${value === selectedValue ? "active" : ""}" type="button" data-order-edit-choice="${type}" data-choice-value="${escapeHtml(value)}">
+            <button class="choice-button ${value === CAST_BAR_TABLE ? "choice-button-wide" : ""} ${value === selectedValue ? "active" : ""}" type="button" data-order-edit-choice="${type}" data-choice-value="${escapeHtml(value)}">
               ${escapeHtml(value)}
             </button>
           `).join("")}
