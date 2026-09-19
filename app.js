@@ -5,6 +5,7 @@
   const CONFIG_KEY = "drink-relay-supabase-v1";
   const SOUND_KEY = "drink-relay-sound-enabled-v1";
   const SOUND_CHOICE_KEY = "drink-relay-sound-choice-v1";
+  const SOUND_CHOICES_KEY = "drink-relay-sound-choices-v2";
   const MENU_KEY = "drink-relay-menu-v1";
   const RECEPTION_MENU_MODE_KEY = "drink-relay-reception-menu-mode-v1";
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
@@ -22,7 +23,14 @@
     { id: "level-up", label: "レベルアップ", url: "./sounds/level-up.mp3" },
     { id: "bell", label: "ベル（高音）", url: "./sounds/bell-accent16-high.mp3", gain: 1.8 },
   ];
+  const SOUND_CATEGORIES = [
+    { id: "soft", label: "ソフドリ" },
+    { id: "alcohol", label: "アルコール" },
+    { id: "food", label: "フード" },
+    { id: "cast", label: "キャスドリ" },
+  ];
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  const CAST_BAR_TABLE = "バーカウンター";
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
   const DEFAULT_PRICE_SUGGESTIONS = [600, 700, 800, 1000];
   const DEFAULT_SUBCATEGORY_ID = "default";
@@ -166,7 +174,8 @@
     syncMode: "local",
     sharedSettingsLoaded: false,
     soundEnabled: readSoundSetting(),
-    soundChoice: readSoundChoice(),
+    soundChoices: readSoundChoices(),
+    soundCategory: SOUND_CATEGORIES[0].id,
     menu: readMenuSettings(),
     receptionMenuMode: readReceptionMenuMode(),
     carts: {
@@ -177,16 +186,15 @@
     editingOrderId: "",
     activeSheet: null,
     audioContext: null,
-    notificationAudio: null,
-    notificationAudioUnavailable: false,
-    notificationAudioId: "",
-    notificationBuffer: null,
-    notificationBufferId: "",
-    notificationBufferPromise: null,
+    notificationAudios: new Map(),
+    notificationAudioUnavailable: new Set(),
+    notificationBuffers: new Map(),
+    notificationBufferPromises: new Map(),
     notificationWarmTimer: null,
     audioUnlockPromise: null,
     iconRefreshTimer: null,
     configSnapshot: "",
+    configSection: "drinks",
     configActiveCategoryId: "",
     configDraftMenu: null,
     booted: false,
@@ -351,13 +359,18 @@
       }
     });
     $("#soundChoice").addEventListener("change", (event) => {
-      state.soundChoice = normalizeSoundChoice(event.target.value);
-      resetNotificationAudio();
-      saveSoundChoice();
-      if (state.soundEnabled) unlockAudio();
+      state.soundChoices[state.soundCategory] = normalizeSoundChoice(event.target.value);
+      saveSoundChoices();
+      if (state.soundEnabled) {
+        unlockAudio().then(() => warmNotificationBuffer(state.soundChoices[state.soundCategory]));
+      }
       toast("効果音を変更しました");
     });
     $("#soundPreview").addEventListener("click", previewNotificationSound);
+    $(".sound-category-tabs").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-sound-category]");
+      if (button) selectSoundCategory(button.dataset.soundCategory);
+    });
     $("#headerSoundPreviewButton").addEventListener("click", handleHeaderSoundPreview);
 
     $("#configButton")?.addEventListener("click", () => {
@@ -367,6 +380,10 @@
       openConfig();
     });
     $("#configDialog form").addEventListener("submit", (event) => event.preventDefault());
+    $(".config-section-tabs").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-config-section]");
+      if (button) selectConfigSection(button.dataset.configSection);
+    });
     $("#configDialog").addEventListener("keydown", handleConfigKeydown);
     $("#configCloseButton").addEventListener("click", requestCloseConfig);
     $("#configPromptCancel").addEventListener("click", hideConfigUnsavedPrompt);
@@ -552,6 +569,7 @@
     $("#menuEditor").addEventListener("pointerdown", handleMenuEditorPointerDown);
     $("#menuEditor").addEventListener("keydown", handleMenuEditorKeydown);
     $("#menuEditor").addEventListener("wheel", handleMenuEditorWheel, { passive: false });
+    $("#alcoholManualEditor").addEventListener("input", handleAlcoholManualInput);
     $("#backToOrder").addEventListener("click", closeConfirm);
     $("#sendConfirmedOrder").addEventListener("click", sendConfirmedOrders);
     $("#confirmLocation").addEventListener("click", handleConfirmChoice);
@@ -617,6 +635,7 @@
     });
 
     $("#barOrders").addEventListener("click", handleOrderAction);
+    $("#alcoholManualClose").addEventListener("click", closeAlcoholManual);
   }
 
   async function previewNotificationSound() {
@@ -853,10 +872,13 @@
     $("#confirmSummary").hidden = true;
 
     if (!preservePayment) setConfirmPaymentDefaults(draft);
-    const hasDelivery = draft.items.some((item) => targetNeedsLocation(item.target));
+    const deliveryItem = draft.items.find((item) => targetNeedsLocation(item.target));
+    const hasDelivery = Boolean(deliveryItem);
     const hasSeatSelection = draft.items.some((item) => targetAllowsSeat(item.target));
     const location = confirmOrderLocation(draft, preservedSelections);
-    const locationBlock = hasDelivery ? confirmOrderLocationBlock(location, hasSeatSelection) : "";
+    const locationBlock = hasDelivery
+      ? confirmOrderLocationBlock(location, hasSeatSelection, deliveryItem.target)
+      : "";
     const itemBlocks = draft.items
       .map((item, index) => confirmItemBlock(item, index, draft.items.length))
       .join("");
@@ -893,12 +915,12 @@
     return normalizeLocation(deliveryItem?.locations?.[0]);
   }
 
-  function confirmOrderLocationBlock(location, hasSeatSelection) {
+  function confirmOrderLocationBlock(location, hasSeatSelection, target = "ring") {
     return `
       <section class="confirm-order-location" data-confirm-order-location>
         <h3>お届け先</h3>
         <div class="confirm-location-grid">
-          ${confirmChoiceGroup("order", "tableNo", "テーブル", TABLES, location.tableNo)}
+          ${confirmChoiceGroup("order", "tableNo", "テーブル", tablesForTarget(target), location.tableNo)}
           ${hasSeatSelection ? confirmChoiceGroup("order", "seatNo", "席番号", SEATS, location.seatNo, !location.tableNo) : ""}
         </div>
       </section>
@@ -1048,6 +1070,10 @@
 
   function targetAllowsSeat(target) {
     return !["bar", "cast"].includes(target || "ring");
+  }
+
+  function tablesForTarget(target) {
+    return target === "cast" ? [...TABLES, CAST_BAR_TABLE] : TABLES;
   }
 
   function locationForTarget(target, location = {}) {
@@ -1548,6 +1574,32 @@
     return category?.items.find((item) => item.id === itemId) || null;
   }
 
+  function menuCategoryKind(category) {
+    const value = `${category?.id || ""} ${category?.label || ""}`.toLowerCase();
+    if (value.includes("alcohol") || value.includes("アルコール") || value.includes("お酒")) return "alcohol";
+    if (value.includes("food") || value.includes("フード")) return "food";
+    return "soft";
+  }
+
+  function alcoholMenuCategory(menu = state.menu) {
+    return (menu || []).find((category) => menuCategoryKind(category) === "alcohol") || null;
+  }
+
+  function menuCategoryForDrinkName(name) {
+    return state.menu.find((category) =>
+      (category.items || []).some((item) => item.name === name)
+    ) || null;
+  }
+
+  function alcoholMenuItem(name) {
+    return alcoholMenuCategory()?.items.find((item) => item.name === name) || null;
+  }
+
+  function soundCategoryForOrder(order) {
+    if (order.target === "cast") return "cast";
+    return menuCategoryKind(menuCategoryForDrinkName(order.drink_name));
+  }
+
   async function configureSupabaseFromStorage() {
     const config = readConfig();
     if (!config.url || !config.anonKey) {
@@ -1683,6 +1735,7 @@
     if ($("#configDialog")?.open) {
       state.configDraftMenu = normalizeMenu(state.menu, { allowEmpty: true });
       renderMenuEditor();
+      if (state.configSection === "manual") renderAlcoholManualEditor();
       state.configSnapshot = configDraftSnapshot();
     }
 
@@ -1865,11 +1918,16 @@
 
   function notifyNewOrder(order) {
     if (state.view === "bar") {
-      if (state.soundEnabled) playChime();
+      if (state.soundEnabled) playChime(state.soundChoices[soundCategoryForOrder(order)]);
     }
   }
 
   function handleOrderAction(event) {
+    const manualButton = event.target.closest("[data-order-manual]");
+    if (manualButton) {
+      openAlcoholManual(manualButton.closest("[data-order-id]")?.dataset.orderId);
+      return;
+    }
     const button = event.target.closest("[data-order-action]");
     if (!button) return;
     const id = button.closest("[data-order-id]")?.dataset.orderId;
@@ -1937,7 +1995,7 @@
 
   function renderOrderEditLocation(tableNo = "", seatNo = "", target = "ring") {
     $("#orderEditLocation").innerHTML = `
-      ${orderEditChoiceGroup("tableNo", "テーブル", TABLES, tableNo)}
+      ${orderEditChoiceGroup("tableNo", "テーブル", tablesForTarget(target), tableNo)}
       ${orderEditChoiceGroup("seatNo", "席番号", SEATS, tableNo ? seatNo : "", !tableNo || !targetAllowsSeat(target))}
     `;
   }
@@ -1970,6 +2028,9 @@
 
   function updateOrderEditTargetVisibility() {
     const target = orderEditTarget();
+    const tableNo = activeOrderEditValue("tableNo");
+    const seatNo = activeOrderEditValue("seatNo");
+    renderOrderEditLocation(tableNo, seatNo, target);
     $("#orderEditLocation").hidden = !targetNeedsLocation(target);
     if (targetNeedsLocation(target)) updateOrderEditSeatVisibility();
   }
@@ -2122,6 +2183,12 @@
     const quantity = Math.max(1, Number(order.quantity || 1));
     const quantityPill = quantity >= 2 ? `<span class="qty-pill">x${escapeHtml(String(quantity))}</span>` : "";
     const locationCode = barLocationCode(order);
+    const alcoholItem = alcoholMenuItem(order.drink_name);
+    const manualButton = alcoholItem
+      ? `<button class="order-manual-button" type="button" data-order-manual aria-label="${escapeHtml(order.drink_name)}の作り方" title="作り方">
+          <i data-lucide="notebook-tabs" aria-hidden="true"></i>
+        </button>`
+      : "";
 
     return `
       <article class="order-card ${statusClass}${paymentClass}${waitingClass}" data-order-id="${escapeHtml(order.id)}">
@@ -2136,6 +2203,7 @@
           </div>
           <div class="order-product-row">
             <span class="order-title">${escapeHtml(order.drink_name)}</span>
+            ${manualButton}
             ${quantityPill}
           </div>
           ${order.notes ? `<p class="order-note">${escapeHtml(order.notes)}</p>` : ""}
@@ -2145,6 +2213,27 @@
         </div>
       </article>
     `;
+  }
+
+  function openAlcoholManual(orderId) {
+    const order = state.orders.find((item) => item.id === orderId);
+    const item = order ? alcoholMenuItem(order.drink_name) : null;
+    if (!order || !item) return;
+    $("#alcoholManualTitle").textContent = `${order.drink_name}の作り方`;
+    const steps = String(item.recipe || "")
+      .split(/\r?\n/)
+      .map((step) => step.trim().replace(/^[・●\-\s]+/, ""))
+      .filter(Boolean);
+    $("#alcoholManualContent").innerHTML = steps.length
+      ? `<ol>${steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>`
+      : `<p class="manual-empty">作成メモはまだ登録されていません</p>`;
+    $("#alcoholManualDialog").showModal();
+    scheduleIconRefresh();
+  }
+
+  function closeAlcoholManual() {
+    const dialog = $("#alcoholManualDialog");
+    if (dialog.open) dialog.close();
   }
 
   function paymentMethodIndicator(paymentMethod) {
@@ -2375,11 +2464,60 @@
     $("#supabaseUrl").value = config.url || "";
     $("#supabaseAnonKey").value = config.anonKey || "";
     state.configDraftMenu = normalizeMenu(state.menu, { allowEmpty: true });
+    state.configSection = "drinks";
     renderMenuEditor();
+    updateConfigSectionUi();
     updateSoundButton();
     hideConfigUnsavedPrompt();
     state.configSnapshot = configDraftSnapshot();
     $("#configDialog").showModal();
+  }
+
+  function selectConfigSection(sectionId) {
+    if (!["drinks", "bell", "manual"].includes(sectionId)) return;
+    if (state.configSection === "drinks") syncActiveMenuEditorCategory();
+    state.configSection = sectionId;
+    if (sectionId === "drinks") renderMenuEditor();
+    if (sectionId === "manual") renderAlcoholManualEditor();
+    updateConfigSectionUi();
+  }
+
+  function updateConfigSectionUi() {
+    $$("[data-config-section]").forEach((button) => {
+      const active = button.dataset.configSection === state.configSection;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    $$("[data-config-section-panel]").forEach((panel) => {
+      const active = panel.dataset.configSectionPanel === state.configSection;
+      panel.hidden = !active;
+      panel.classList.toggle("active", active);
+    });
+    scheduleIconRefresh();
+  }
+
+  function renderAlcoholManualEditor() {
+    const container = $("#alcoholManualEditor");
+    if (!container) return;
+    const category = alcoholMenuCategory(configEditorMenu());
+    if (!category?.items.length) {
+      container.innerHTML = `<div class="menu-editor-empty">アルコール商品がありません</div>`;
+      return;
+    }
+    container.innerHTML = category.items.map((item) => `
+      <label class="alcohol-manual-editor-item">
+        <strong>${escapeHtml(item.name)}</strong>
+        <textarea data-alcohol-recipe-item="${escapeHtml(item.id)}" placeholder="例:\nグラスに氷を入れる\n材料を注いで混ぜる">${escapeHtml(item.recipe || "")}</textarea>
+      </label>
+    `).join("");
+  }
+
+  function handleAlcoholManualInput(event) {
+    const input = event.target.closest("[data-alcohol-recipe-item]");
+    if (!input) return;
+    const category = alcoholMenuCategory(configEditorMenu());
+    const item = category?.items.find((entry) => entry.id === input.dataset.alcoholRecipeItem);
+    if (item) item.recipe = input.value.trim();
   }
 
   async function saveConfig(event) {
@@ -2497,7 +2635,7 @@
   }
 
   function readMenuSettingsFromForm() {
-    syncActiveMenuEditorCategory();
+    if (state.configSection === "drinks") syncActiveMenuEditorCategory();
     return normalizeMenu(configEditorMenu(), { allowEmpty: true });
   }
 
@@ -2519,6 +2657,7 @@
             $("[data-menu-item-subcategory]", row)?.value ||
             subcategories[0]?.id ||
             DEFAULT_SUBCATEGORY_ID,
+          recipe: $("[data-menu-item-recipe]", row)?.value.trim() || "",
           optionGroups: readMenuEditorItemOptionGroups(row),
         };
       })
@@ -2605,6 +2744,7 @@
         name,
         price: 0,
         subcategory_id: "",
+        recipe: "",
         optionGroups: [],
       };
     }
@@ -2619,6 +2759,7 @@
       price: normalizePrice(item?.price || item?.amount || item?.yen || 0),
       subcategory_id: subcategoryId,
       subcategory_label: subcategoryLabel,
+      recipe: String(item?.recipe || item?.manual || item?.instructions || "").trim(),
       optionGroups: normalizeOptionGroups(item),
     };
   }
@@ -2985,6 +3126,7 @@
         <input data-menu-item-id type="hidden" value="${escapeHtml(item.id || "")}">
         <input data-menu-item-subcategory type="hidden" value="${escapeHtml(subcategoryId)}">
         <input data-menu-item-options type="hidden" value="${escapeHtml(JSON.stringify(optionGroups))}">
+        <textarea data-menu-item-recipe hidden>${escapeHtml(item.recipe || "")}</textarea>
         <div class="menu-editor-item-main">
           <div class="menu-editor-product-fields">
             <label>
@@ -3301,8 +3443,14 @@
     return saved === null ? true : saved === "true";
   }
 
-  function readSoundChoice() {
-    return normalizeSoundChoice(localStorage.getItem(SOUND_CHOICE_KEY) || SOUND_OPTIONS[0].id);
+  function readSoundChoices() {
+    const legacyChoice = normalizeSoundChoice(localStorage.getItem(SOUND_CHOICE_KEY) || SOUND_OPTIONS[0].id);
+    try {
+      const saved = JSON.parse(localStorage.getItem(SOUND_CHOICES_KEY) || "null");
+      return Object.fromEntries(SOUND_CATEGORIES.map(({ id }) => [id, normalizeSoundChoice(saved?.[id] || legacyChoice)]));
+    } catch {
+      return Object.fromEntries(SOUND_CATEGORIES.map(({ id }) => [id, legacyChoice]));
+    }
   }
 
   function readReceptionMenuMode() {
@@ -3313,16 +3461,16 @@
     return SOUND_OPTIONS.some((option) => option.id === value) ? value : SOUND_OPTIONS[0].id;
   }
 
-  function selectedSoundOption() {
-    return SOUND_OPTIONS.find((option) => option.id === state.soundChoice) || SOUND_OPTIONS[0];
+  function selectedSoundOption(choiceId = state.soundChoices[state.soundCategory]) {
+    return SOUND_OPTIONS.find((option) => option.id === normalizeSoundChoice(choiceId)) || SOUND_OPTIONS[0];
   }
 
   function saveSoundSetting() {
     localStorage.setItem(SOUND_KEY, String(state.soundEnabled));
   }
 
-  function saveSoundChoice() {
-    localStorage.setItem(SOUND_CHOICE_KEY, state.soundChoice);
+  function saveSoundChoices() {
+    localStorage.setItem(SOUND_CHOICES_KEY, JSON.stringify(state.soundChoices));
   }
 
   function updateSoundButton() {
@@ -3332,7 +3480,20 @@
     if (!button || !status) return;
     button.setAttribute("aria-pressed", String(state.soundEnabled));
     status.textContent = state.soundEnabled ? "オン" : "オフ";
-    if (choice) choice.value = state.soundChoice;
+    if (choice) choice.value = state.soundChoices[state.soundCategory];
+    const category = SOUND_CATEGORIES.find((item) => item.id === state.soundCategory) || SOUND_CATEGORIES[0];
+    $("#soundCategoryLabel").textContent = `${category.label}の通知音`;
+    $$("[data-sound-category]").forEach((categoryButton) => {
+      const active = categoryButton.dataset.soundCategory === state.soundCategory;
+      categoryButton.classList.toggle("active", active);
+      categoryButton.setAttribute("aria-pressed", String(active));
+    });
+  }
+
+  function selectSoundCategory(categoryId) {
+    if (!SOUND_CATEGORIES.some((category) => category.id === categoryId)) return;
+    state.soundCategory = categoryId;
+    updateSoundButton();
   }
 
   function setupAudioUnlock() {
@@ -3379,60 +3540,61 @@
     return state.audioUnlockPromise;
   }
 
-  function playChime() {
-    if (playBufferedNotificationAudio()) return;
-    scheduleNotificationWarmup();
-    if (playPrimedNotificationAudio()) return;
+  function playChime(choiceId = state.soundChoices[state.soundCategory]) {
+    const normalizedChoice = normalizeSoundChoice(choiceId);
+    if (playBufferedNotificationAudio(normalizedChoice)) return;
+    scheduleNotificationWarmup(0);
+    if (playPrimedNotificationAudio(normalizedChoice)) return;
     playFallbackBell();
   }
 
   function scheduleNotificationWarmup(delay = 220) {
-    if (state.notificationBuffer || state.notificationBufferPromise || state.notificationWarmTimer) return;
+    if (state.notificationWarmTimer) return;
     state.notificationWarmTimer = window.setTimeout(() => {
       state.notificationWarmTimer = null;
-      warmNotificationBuffer();
+      warmNotificationBuffers();
     }, delay);
   }
 
-  function primeNotificationAudio() {
-    const option = selectedSoundOption();
-    if (!option.url) return;
-    if (state.notificationAudio && state.notificationAudioId === option.id) return;
-    resetNotificationAudio();
-    const audio = new Audio(option.url);
-    audio.preload = "auto";
-    audio.volume = 1;
-    audio.addEventListener("error", () => {
-      state.notificationAudioUnavailable = true;
-    }, { once: true });
-    state.notificationAudio = audio;
-    state.notificationAudioId = option.id;
-    audio.load();
+  function configuredSoundChoiceIds() {
+    return uniqueList(Object.values(state.soundChoices).map(normalizeSoundChoice));
   }
 
-  async function warmNotificationBuffer() {
-    const option = selectedSoundOption();
-    if (!option.url || !state.audioContext) return null;
-    if (state.notificationBuffer && state.notificationBufferId === option.id) {
-      return state.notificationBuffer;
-    }
-    if (state.notificationBufferPromise && state.notificationBufferId === option.id) {
-      return state.notificationBufferPromise;
-    }
+  function primeNotificationAudio(choiceId) {
+    const choiceIds = choiceId ? [normalizeSoundChoice(choiceId)] : configuredSoundChoiceIds();
+    choiceIds.forEach((id) => {
+      const option = selectedSoundOption(id);
+      if (!option.url || state.notificationAudios.has(option.id)) return;
+      const audio = new Audio(option.url);
+      audio.preload = "auto";
+      audio.volume = 1;
+      audio.addEventListener("error", () => {
+        state.notificationAudioUnavailable.add(option.id);
+      }, { once: true });
+      state.notificationAudios.set(option.id, audio);
+      audio.load();
+    });
+  }
 
-    state.notificationAudioUnavailable = false;
-    state.notificationBufferId = option.id;
-    state.notificationBufferPromise = fetch(option.url)
+  async function warmNotificationBuffers() {
+    return Promise.all(configuredSoundChoiceIds().map((choiceId) => warmNotificationBuffer(choiceId)));
+  }
+
+  async function warmNotificationBuffer(choiceId = state.soundChoices[state.soundCategory]) {
+    const option = selectedSoundOption(choiceId);
+    if (!option.url || !state.audioContext) return null;
+    if (state.notificationBuffers.has(option.id)) return state.notificationBuffers.get(option.id);
+    if (state.notificationBufferPromises.has(option.id)) return state.notificationBufferPromises.get(option.id);
+
+    state.notificationAudioUnavailable.delete(option.id);
+    const promise = fetch(option.url)
       .then((response) => {
         if (!response.ok) throw new Error(`sound fetch failed: ${response.status}`);
         return response.arrayBuffer();
       })
       .then((arrayBuffer) => state.audioContext.decodeAudioData(arrayBuffer))
       .then((buffer) => {
-        if (state.soundChoice === option.id) {
-          state.notificationBuffer = buffer;
-          state.notificationBufferId = option.id;
-        }
+        state.notificationBuffers.set(option.id, buffer);
         return buffer;
       })
       .catch((error) => {
@@ -3440,18 +3602,17 @@
         return null;
       })
       .finally(() => {
-        if (state.notificationBufferId === option.id) {
-          state.notificationBufferPromise = null;
-        }
+        state.notificationBufferPromises.delete(option.id);
       });
-
-    return state.notificationBufferPromise;
+    state.notificationBufferPromises.set(option.id, promise);
+    return promise;
   }
 
-  function playBufferedNotificationAudio() {
-    const option = selectedSoundOption();
+  function playBufferedNotificationAudio(choiceId) {
+    const option = selectedSoundOption(choiceId);
     if (!option.url) return false;
-    if (!state.audioContext || !state.notificationBuffer || state.notificationBufferId !== option.id) return false;
+    const buffer = state.notificationBuffers.get(option.id);
+    if (!state.audioContext || !buffer) return false;
     if (state.audioContext.state === "suspended") {
       state.audioContext.resume();
       return false;
@@ -3460,7 +3621,7 @@
     const source = state.audioContext.createBufferSource();
     const gain = state.audioContext.createGain();
     const volumeGain = Math.max(0, Number(option.gain || 1));
-    source.buffer = state.notificationBuffer;
+    source.buffer = buffer;
     gain.gain.setValueAtTime(volumeGain, state.audioContext.currentTime);
     if (volumeGain > 1 && state.audioContext.createDynamicsCompressor) {
       const limiter = state.audioContext.createDynamicsCompressor();
@@ -3477,11 +3638,11 @@
     return true;
   }
 
-  function playPrimedNotificationAudio() {
-    if (!selectedSoundOption().url) return false;
-    if (state.notificationAudioUnavailable) return false;
-    primeNotificationAudio();
-    const audio = state.notificationAudio;
+  function playPrimedNotificationAudio(choiceId) {
+    const option = selectedSoundOption(choiceId);
+    if (!option.url || state.notificationAudioUnavailable.has(option.id)) return false;
+    primeNotificationAudio(option.id);
+    const audio = state.notificationAudios.get(option.id);
     if (!audio) return false;
     if (audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return false;
     try {
@@ -3493,22 +3654,6 @@
     } catch {
       return false;
     }
-  }
-
-  function resetNotificationAudio() {
-    if (state.notificationWarmTimer) {
-      window.clearTimeout(state.notificationWarmTimer);
-      state.notificationWarmTimer = null;
-    }
-    if (state.notificationAudio) {
-      state.notificationAudio.pause();
-    }
-    state.notificationAudio = null;
-    state.notificationAudioUnavailable = false;
-    state.notificationAudioId = "";
-    state.notificationBuffer = null;
-    state.notificationBufferId = "";
-    state.notificationBufferPromise = null;
   }
 
   function scheduleIconRefresh() {

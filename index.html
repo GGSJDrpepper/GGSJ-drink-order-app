@@ -8,10 +8,11 @@
     <link rel="preload" as="audio" href="./sounds/news-title.mp3">
     <link rel="preload" as="audio" href="./sounds/decision-button.mp3">
     <link rel="preload" as="audio" href="./sounds/level-up.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026091834">
+    <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
+    <link rel="stylesheet" href="./styles.css?v=2026091901">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026091834"></script>
+    <script defer src="./app.js?v=2026091901"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -228,73 +229,114 @@
       </form>
     </dialog>
 
+    <dialog id="alcoholManualDialog">
+      <section class="alcohol-manual-modal" aria-labelledby="alcoholManualTitle">
+        <div class="section-head compact">
+          <h2 id="alcoholManualTitle">お酒作成マニュアル</h2>
+          <button id="alcoholManualClose" class="icon-button" type="button" aria-label="閉じる" title="閉じる">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="alcoholManualContent" class="alcohol-manual-content"></div>
+      </section>
+    </dialog>
+
     <dialog id="configDialog">
       <form class="config-modal" method="dialog">
-        <div class="section-head compact">
+        <div class="config-sticky-head">
           <h2>設定</h2>
+          <button id="saveConfig" class="button button-primary config-save-button" value="default" type="submit">
+            <i data-lucide="save" aria-hidden="true"></i>
+            <span>保存</span>
+          </button>
           <button id="configCloseButton" class="icon-button" type="button" aria-label="閉じる" title="閉じる">
             <i data-lucide="x" aria-hidden="true"></i>
           </button>
         </div>
-        <div class="setting-row">
-          <div>
-            <span class="setting-label">バー受信通知音</span>
-            <span id="soundStatus" class="setting-status">オン</span>
+        <nav class="config-section-tabs" aria-label="設定項目">
+          <button class="active" type="button" data-config-section="drinks" aria-pressed="true">ドリンク</button>
+          <button type="button" data-config-section="bell" aria-pressed="false">ベル</button>
+          <button type="button" data-config-section="manual" aria-pressed="false">お酒作成M</button>
+        </nav>
+
+        <div class="config-content">
+          <section class="config-section active" data-config-section-panel="drinks">
+            <div class="menu-editor" id="menuEditor" aria-label="メニュー編集"></div>
+            <div class="setting-inline-actions">
+              <button id="addMenuCategory" class="button button-quiet" type="button">
+                <i data-lucide="plus" aria-hidden="true"></i>
+                <span>カテゴリ追加</span>
+              </button>
+            </div>
+            <div class="sync-settings">
+              <label>
+                <span>Supabase URL</span>
+                <input id="supabaseUrl" type="url" placeholder="https://xxxx.supabase.co">
+              </label>
+              <label>
+                <span>Supabase anon key</span>
+                <input id="supabaseAnonKey" type="password" placeholder="public anon key">
+              </label>
+              <button id="clearConfig" class="button button-quiet" type="button">
+                <i data-lucide="refresh-cw" aria-hidden="true"></i>
+                <span>共有同期に戻す</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="config-section" data-config-section-panel="bell" hidden>
+            <div class="setting-row sound-setting-row">
+              <div>
+                <span class="setting-label">バー受信通知音</span>
+                <span id="soundStatus" class="setting-status">オン</span>
+              </div>
+              <button id="soundToggle" class="button button-quiet" type="button" aria-pressed="true">
+                <i data-lucide="bell-ring" aria-hidden="true"></i>
+                <span>通知音</span>
+              </button>
+            </div>
+            <div class="sound-category-tabs" aria-label="通知音を設定する種類">
+              <button class="active" type="button" data-sound-category="soft" aria-pressed="true">ソフドリ</button>
+              <button type="button" data-sound-category="alcohol" aria-pressed="false">アルコール</button>
+              <button type="button" data-sound-category="food" aria-pressed="false">フード</button>
+              <button type="button" data-sound-category="cast" aria-pressed="false">キャスドリ</button>
+            </div>
+            <div class="sound-category-setting">
+              <strong id="soundCategoryLabel">ソフドリの通知音</strong>
+              <label class="sound-choice-field">
+                <span>効果音</span>
+                <select id="soundChoice">
+                  <option value="news-title">ニュースタイトル表示</option>
+                  <option value="decision-button">決定ボタン</option>
+                  <option value="level-up">レベルアップ</option>
+                  <option value="bell">ベル（高音）</option>
+                </select>
+              </label>
+              <button id="soundPreview" class="button button-quiet" type="button">
+                <i data-lucide="volume-2" aria-hidden="true"></i>
+                <span>試聴</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="config-section" data-config-section-panel="manual" hidden>
+            <div class="manual-setting-intro">
+              <strong>アルコール作成メモ</strong>
+              <span>1行ごとに手順を入力できます</span>
+            </div>
+            <div id="alcoholManualEditor" class="alcohol-manual-editor"></div>
+          </section>
+
+          <div id="configUnsavedPrompt" class="unsaved-prompt" hidden>
+            <p>保存していない変更があります。保存しますか？</p>
+            <div class="unsaved-actions">
+              <button id="configPromptCancel" class="button button-quiet" type="button">キャンセル</button>
+              <button id="configPromptSave" class="button button-primary" type="button">
+                <i data-lucide="save" aria-hidden="true"></i>
+                <span>保存</span>
+              </button>
+            </div>
           </div>
-          <label class="sound-choice-field">
-            <span>効果音</span>
-            <select id="soundChoice">
-              <option value="news-title">ニュースタイトル表示</option>
-              <option value="decision-button">決定ボタン</option>
-              <option value="level-up">レベルアップ</option>
-              <option value="bell">ベル（高音）</option>
-            </select>
-          </label>
-          <button id="soundPreview" class="button button-quiet" type="button">
-            <i data-lucide="volume-2" aria-hidden="true"></i>
-            <span>試聴</span>
-          </button>
-          <button id="soundToggle" class="button button-quiet" type="button" aria-pressed="true">
-            <i data-lucide="bell-ring" aria-hidden="true"></i>
-            <span>通知音</span>
-          </button>
-        </div>
-        <div class="menu-editor" id="menuEditor" aria-label="メニュー編集"></div>
-        <div class="setting-inline-actions">
-          <button id="addMenuCategory" class="button button-quiet" type="button">
-            <i data-lucide="plus" aria-hidden="true"></i>
-            <span>カテゴリ追加</span>
-          </button>
-        </div>
-        <div id="configUnsavedPrompt" class="unsaved-prompt" hidden>
-          <p>保存していない変更があります。保存しますか？</p>
-          <div class="unsaved-actions">
-            <button id="configPromptCancel" class="button button-quiet" type="button">キャンセル</button>
-            <button id="configPromptSave" class="button button-primary" type="button">
-              <i data-lucide="save" aria-hidden="true"></i>
-              <span>保存</span>
-            </button>
-          </div>
-        </div>
-        <div class="sync-settings">
-          <label>
-            <span>Supabase URL</span>
-            <input id="supabaseUrl" type="url" placeholder="https://xxxx.supabase.co">
-          </label>
-          <label>
-            <span>Supabase anon key</span>
-            <input id="supabaseAnonKey" type="password" placeholder="public anon key">
-          </label>
-        </div>
-        <div class="modal-actions">
-          <button id="clearConfig" class="button button-quiet" type="button">
-            <i data-lucide="refresh-cw" aria-hidden="true"></i>
-            <span>共有同期に戻す</span>
-          </button>
-          <button id="saveConfig" class="button button-primary" value="default" type="submit">
-            <i data-lucide="save" aria-hidden="true"></i>
-            <span>保存</span>
-          </button>
         </div>
       </form>
     </dialog>
