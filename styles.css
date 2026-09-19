@@ -762,7 +762,7 @@ button:focus-visible {
 }
 
 .menu-item-grid {
-  --menu-global-subcategory-height: 55px;
+  --menu-global-subcategory-height: 62px;
   min-height: 0;
   max-height: 100%;
   display: block;
@@ -826,13 +826,13 @@ button:focus-visible {
 
 .menu-subcategory-chip {
   flex: 0 0 auto;
-  min-height: 34px;
-  padding: 0 16px;
+  min-height: 40px;
+  padding: 0 18px;
   border: 1px solid #bdb7b1;
   border-radius: 999px;
   background: #ffffff;
   color: #4f4b46;
-  font-size: 0.96rem;
+  font-size: 1.08rem;
   font-weight: 850;
   white-space: nowrap;
 }
