@@ -20,6 +20,14 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 html {
@@ -791,8 +799,13 @@ button:focus-visible {
   height: var(--menu-global-subcategory-height);
   box-sizing: border-box;
   display: flex;
+  align-items: center;
   gap: 8px;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
   padding: 10px 16px;
   border-bottom: 1px solid #eeeeee;
   background: #ffffff;
@@ -807,7 +820,7 @@ button:focus-visible {
   border-radius: 999px;
   background: #ffffff;
   color: #4f4b46;
-  font-size: 0.9rem;
+  font-size: 0.96rem;
   font-weight: 850;
   white-space: nowrap;
 }
