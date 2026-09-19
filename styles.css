@@ -104,7 +104,19 @@ button {
   height: 20px;
 }
 
-.header-config-button.is-previewing {
+#headerSoundPreviewButton.is-unpreviewed {
+  border-color: #d94b4b;
+  background: #fff0f0;
+  color: #b42323;
+}
+
+#headerSoundPreviewButton.is-previewed {
+  border-color: #43a875;
+  background: #e9f8f0;
+  color: #137a48;
+}
+
+#headerSoundPreviewButton.is-previewing {
   border-color: #f3bd82;
   background: #fff0dc;
   color: #c85d00;

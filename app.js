@@ -6,6 +6,7 @@
   const SOUND_KEY = "drink-relay-sound-enabled-v1";
   const SOUND_CHOICE_KEY = "drink-relay-sound-choice-v1";
   const SOUND_CHOICES_KEY = "drink-relay-sound-choices-v2";
+  const SOUND_PREVIEWED_KEY = "drink-relay-sound-previewed-v1";
   const MENU_KEY = "drink-relay-menu-v1";
   const RECEPTION_MENU_MODE_KEY = "drink-relay-reception-menu-mode-v1";
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
@@ -175,6 +176,7 @@
     sharedSettingsLoaded: false,
     soundEnabled: readSoundSetting(),
     soundChoices: readSoundChoices(),
+    soundPreviewed: readSoundPreviewed(),
     soundCategory: SOUND_CATEGORIES[0].id,
     menu: readMenuSettings(),
     receptionMenuMode: readReceptionMenuMode(),
@@ -374,6 +376,7 @@
       if (button) previewNotificationSound(state.soundChoices[button.dataset.soundPreview]);
     });
     $("#headerSoundPreviewButton").addEventListener("click", handleHeaderSoundPreview);
+    updateHeaderSoundPreviewButton();
 
     $("#configButton")?.addEventListener("click", () => {
       openConfig();
@@ -664,10 +667,23 @@
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     try {
       await enableNotificationSoundAndPreview();
+      state.soundPreviewed = true;
+      localStorage.setItem(SOUND_PREVIEWED_KEY, "true");
     } finally {
       button.classList.remove("is-previewing");
       button.removeAttribute("aria-busy");
+      updateHeaderSoundPreviewButton();
     }
+  }
+
+  function updateHeaderSoundPreviewButton() {
+    const button = $("#headerSoundPreviewButton");
+    if (!button) return;
+    button.classList.toggle("is-previewed", state.soundPreviewed);
+    button.classList.toggle("is-unpreviewed", !state.soundPreviewed);
+    const label = state.soundPreviewed ? "通知音を試聴済み" : "通知音が未試聴です。一度押してください";
+    button.setAttribute("aria-label", label);
+    button.title = label;
   }
 
   function setupReceptionModeMenu() {
@@ -3443,6 +3459,10 @@
   function readSoundSetting() {
     const saved = localStorage.getItem(SOUND_KEY);
     return saved === null ? true : saved === "true";
+  }
+
+  function readSoundPreviewed() {
+    return localStorage.getItem(SOUND_PREVIEWED_KEY) === "true";
   }
 
   function readSoundChoices() {
