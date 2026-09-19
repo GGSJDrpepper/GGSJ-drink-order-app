@@ -2865,6 +2865,7 @@ dialog::backdrop {
 
 #alcoholManualDialog {
   width: min(560px, calc(100vw - 28px));
+  min-width: 0;
   max-height: calc(100vh - 24px);
   margin: 0;
   overflow: auto;

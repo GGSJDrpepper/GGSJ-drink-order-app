@@ -2433,16 +2433,47 @@
     if (!dialog || !trigger) return;
     const gap = 12;
     const edge = 12;
-    const triggerRect = trigger.getBoundingClientRect();
-    const dialogRect = dialog.getBoundingClientRect();
-    let left = triggerRect.right + gap;
-    if (left + dialogRect.width > window.innerWidth - edge) {
-      left = triggerRect.left - dialogRect.width - gap;
+    const cardRect = trigger.closest("[data-order-id]")?.getBoundingClientRect() || trigger.getBoundingClientRect();
+    const preferredWidth = Math.min(560, window.innerWidth - (edge * 2));
+    const rightSpace = window.innerWidth - edge - cardRect.right - gap;
+    const leftSpace = cardRect.left - edge - gap;
+    const minimumSideWidth = 280;
+    let width = preferredWidth;
+    let left = edge;
+    let placement = "below";
+
+    dialog.style.width = "";
+    dialog.style.maxHeight = "";
+
+    if (rightSpace >= minimumSideWidth) {
+      width = Math.min(preferredWidth, rightSpace);
+      left = cardRect.right + gap;
+      placement = "side";
+    } else if (leftSpace >= minimumSideWidth) {
+      width = Math.min(preferredWidth, leftSpace);
+      left = cardRect.left - gap - width;
+      placement = "side";
+    } else {
+      left = Math.min(window.innerWidth - edge - width, Math.max(edge, cardRect.left));
+      const belowSpace = window.innerHeight - edge - cardRect.bottom - gap;
+      const aboveSpace = cardRect.top - edge - gap;
+      placement = belowSpace >= aboveSpace ? "below" : "above";
+      dialog.style.maxHeight = `${Math.max(120, placement === "below" ? belowSpace : aboveSpace)}px`;
     }
-    const maxTop = Math.max(edge, window.innerHeight - dialogRect.height - edge);
-    const top = Math.min(maxTop, Math.max(edge, triggerRect.top - edge));
+
+    const minimumWidth = Math.min(240, window.innerWidth - (edge * 2));
+    dialog.style.width = `${Math.max(minimumWidth, width)}px`;
     dialog.style.left = `${Math.max(edge, left)}px`;
-    dialog.style.top = `${top}px`;
+    const dialogRect = dialog.getBoundingClientRect();
+    let top;
+    if (placement === "below") {
+      top = cardRect.bottom + gap;
+    } else if (placement === "above") {
+      top = cardRect.top - gap - dialogRect.height;
+    } else {
+      top = Math.min(window.innerHeight - edge - dialogRect.height, Math.max(edge, cardRect.top));
+    }
+    dialog.style.top = `${Math.max(edge, top)}px`;
   }
 
   function closeAlcoholManual() {
