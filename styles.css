@@ -846,9 +846,10 @@ button:focus-visible {
 .menu-item-name {
   flex: 1 1 auto;
   min-width: 0;
-  font-size: 1.12rem;
-  font-weight: 850;
+  font-size: 1.36rem;
+  font-weight: 900;
   line-height: 1.25;
+  letter-spacing: 0;
   overflow-wrap: anywhere;
 }
 
