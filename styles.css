@@ -728,12 +728,10 @@ button:focus-visible {
   max-height: 100%;
   display: grid;
   align-content: start;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: var(--sticky-confirm-space);
-  scroll-padding-bottom: var(--sticky-confirm-space);
+  overflow: hidden;
+  overscroll-behavior: none;
+  padding-bottom: 0;
+  scroll-padding-bottom: 0;
   border-right: 0;
   background: #f5f5f5;
 }
