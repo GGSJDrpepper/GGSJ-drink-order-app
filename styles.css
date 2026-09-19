@@ -1647,11 +1647,20 @@ dialog {
 
 #configDialog {
   width: min(960px, calc(100vw - 28px));
+  margin: 18px auto;
 }
 
 #configDialog .config-modal {
+  height: calc(100vh - 36px);
   max-height: calc(100vh - 36px);
   overflow: auto;
+}
+
+@supports (height: 100dvh) {
+  #configDialog .config-modal {
+    height: calc(100dvh - 36px);
+    max-height: calc(100dvh - 36px);
+  }
 }
 
 dialog::backdrop {
