@@ -1555,6 +1555,14 @@
     const scroller = $("[data-drink-buttons]", picker);
     const sections = $$("[data-menu-section]", picker);
     if (!scroller || !sections.length) return;
+    if (scroller._menuScrollTargetCategory && performance.now() < scroller._menuScrollLockUntil) {
+      const categoryId = scroller._menuScrollTargetCategory;
+      picker.dataset.activeCategory = categoryId;
+      updateMenuCategoryActive(picker, categoryId);
+      return;
+    }
+    scroller._menuScrollTargetCategory = "";
+    scroller._menuScrollLockUntil = 0;
     const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
     const stickyOffset = $(".menu-global-subcategory-row", picker)?.offsetHeight || 0;
     const threshold = scroller.scrollTop + stickyOffset + 4;
@@ -1601,6 +1609,9 @@
       : 0;
     const maxTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
     const top = Math.min(maxTop, Math.max(0, sectionRect.top - scrollerRect.top + scroller.scrollTop - stickyOffset));
+    const targetCategoryId = categorySection?.dataset.menuSection || section.dataset.menuSection || "";
+    scroller._menuScrollTargetCategory = targetCategoryId;
+    scroller._menuScrollLockUntil = performance.now() + 280;
     animateMenuScroll(scroller, top, 160);
   }
 
