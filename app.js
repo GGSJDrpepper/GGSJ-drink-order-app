@@ -358,18 +358,20 @@
         toast("通知音を無効にしました");
       }
     });
-    $("#soundChoice").addEventListener("change", (event) => {
-      state.soundChoices[state.soundCategory] = normalizeSoundChoice(event.target.value);
+    $(".sound-category-list").addEventListener("change", (event) => {
+      const choice = event.target.closest("[data-sound-choice]");
+      if (!choice) return;
+      const categoryId = choice.dataset.soundChoice;
+      state.soundChoices[categoryId] = normalizeSoundChoice(choice.value);
       saveSoundChoices();
       if (state.soundEnabled) {
-        unlockAudio().then(() => warmNotificationBuffer(state.soundChoices[state.soundCategory]));
+        unlockAudio().then(() => warmNotificationBuffer(state.soundChoices[categoryId]));
       }
       toast("効果音を変更しました");
     });
-    $("#soundPreview").addEventListener("click", previewNotificationSound);
-    $(".sound-category-tabs").addEventListener("click", (event) => {
-      const button = event.target.closest("[data-sound-category]");
-      if (button) selectSoundCategory(button.dataset.soundCategory);
+    $(".sound-category-list").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-sound-preview]");
+      if (button) previewNotificationSound(state.soundChoices[button.dataset.soundPreview]);
     });
     $("#headerSoundPreviewButton").addEventListener("click", handleHeaderSoundPreview);
 
@@ -638,10 +640,10 @@
     $("#alcoholManualClose").addEventListener("click", closeAlcoholManual);
   }
 
-  async function previewNotificationSound() {
+  async function previewNotificationSound(choiceId = state.soundChoices[state.soundCategory]) {
     await unlockAudio();
-    await warmNotificationBuffer();
-    playChime();
+    await warmNotificationBuffer(choiceId);
+    playChime(choiceId);
   }
 
   async function enableNotificationSoundAndPreview() {
@@ -3476,24 +3478,12 @@
   function updateSoundButton() {
     const button = $("#soundToggle");
     const status = $("#soundStatus");
-    const choice = $("#soundChoice");
     if (!button || !status) return;
     button.setAttribute("aria-pressed", String(state.soundEnabled));
     status.textContent = state.soundEnabled ? "オン" : "オフ";
-    if (choice) choice.value = state.soundChoices[state.soundCategory];
-    const category = SOUND_CATEGORIES.find((item) => item.id === state.soundCategory) || SOUND_CATEGORIES[0];
-    $("#soundCategoryLabel").textContent = `${category.label}の通知音`;
-    $$("[data-sound-category]").forEach((categoryButton) => {
-      const active = categoryButton.dataset.soundCategory === state.soundCategory;
-      categoryButton.classList.toggle("active", active);
-      categoryButton.setAttribute("aria-pressed", String(active));
+    $$("[data-sound-choice]").forEach((choice) => {
+      choice.value = state.soundChoices[choice.dataset.soundChoice];
     });
-  }
-
-  function selectSoundCategory(categoryId) {
-    if (!SOUND_CATEGORIES.some((category) => category.id === categoryId)) return;
-    state.soundCategory = categoryId;
-    updateSoundButton();
   }
 
   function setupAudioUnlock() {

@@ -9,10 +9,10 @@
     <link rel="preload" as="audio" href="./sounds/decision-button.mp3">
     <link rel="preload" as="audio" href="./sounds/level-up.mp3">
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026091901">
+    <link rel="stylesheet" href="./styles.css?v=2026091902">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026091901"></script>
+    <script defer src="./app.js?v=2026091902"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -295,27 +295,71 @@
                 <span>通知音</span>
               </button>
             </div>
-            <div class="sound-category-tabs" aria-label="通知音を設定する種類">
-              <button class="active" type="button" data-sound-category="soft" aria-pressed="true">ソフドリ</button>
-              <button type="button" data-sound-category="alcohol" aria-pressed="false">アルコール</button>
-              <button type="button" data-sound-category="food" aria-pressed="false">フード</button>
-              <button type="button" data-sound-category="cast" aria-pressed="false">キャスドリ</button>
-            </div>
-            <div class="sound-category-setting">
-              <strong id="soundCategoryLabel">ソフドリの通知音</strong>
-              <label class="sound-choice-field">
-                <span>効果音</span>
-                <select id="soundChoice">
-                  <option value="news-title">ニュースタイトル表示</option>
-                  <option value="decision-button">決定ボタン</option>
-                  <option value="level-up">レベルアップ</option>
-                  <option value="bell">ベル（高音）</option>
-                </select>
-              </label>
-              <button id="soundPreview" class="button button-quiet" type="button">
-                <i data-lucide="volume-2" aria-hidden="true"></i>
-                <span>試聴</span>
-              </button>
+            <div class="sound-category-list" aria-label="種類別の通知音設定">
+              <div class="sound-category-setting">
+                <strong>ソフドリ</strong>
+                <label class="sound-choice-field">
+                  <span>効果音</span>
+                  <select data-sound-choice="soft">
+                    <option value="news-title">ニュースタイトル表示</option>
+                    <option value="decision-button">決定ボタン</option>
+                    <option value="level-up">レベルアップ</option>
+                    <option value="bell">ベル（高音）</option>
+                  </select>
+                </label>
+                <button class="button button-quiet" type="button" data-sound-preview="soft">
+                  <i data-lucide="volume-2" aria-hidden="true"></i>
+                  <span>試聴</span>
+                </button>
+              </div>
+              <div class="sound-category-setting">
+                <strong>アルコール</strong>
+                <label class="sound-choice-field">
+                  <span>効果音</span>
+                  <select data-sound-choice="alcohol">
+                    <option value="news-title">ニュースタイトル表示</option>
+                    <option value="decision-button">決定ボタン</option>
+                    <option value="level-up">レベルアップ</option>
+                    <option value="bell">ベル（高音）</option>
+                  </select>
+                </label>
+                <button class="button button-quiet" type="button" data-sound-preview="alcohol">
+                  <i data-lucide="volume-2" aria-hidden="true"></i>
+                  <span>試聴</span>
+                </button>
+              </div>
+              <div class="sound-category-setting">
+                <strong>フード</strong>
+                <label class="sound-choice-field">
+                  <span>効果音</span>
+                  <select data-sound-choice="food">
+                    <option value="news-title">ニュースタイトル表示</option>
+                    <option value="decision-button">決定ボタン</option>
+                    <option value="level-up">レベルアップ</option>
+                    <option value="bell">ベル（高音）</option>
+                  </select>
+                </label>
+                <button class="button button-quiet" type="button" data-sound-preview="food">
+                  <i data-lucide="volume-2" aria-hidden="true"></i>
+                  <span>試聴</span>
+                </button>
+              </div>
+              <div class="sound-category-setting">
+                <strong>キャスドリ</strong>
+                <label class="sound-choice-field">
+                  <span>効果音</span>
+                  <select data-sound-choice="cast">
+                    <option value="news-title">ニュースタイトル表示</option>
+                    <option value="decision-button">決定ボタン</option>
+                    <option value="level-up">レベルアップ</option>
+                    <option value="bell">ベル（高音）</option>
+                  </select>
+                </label>
+                <button class="button button-quiet" type="button" data-sound-preview="cast">
+                  <i data-lucide="volume-2" aria-hidden="true"></i>
+                  <span>試聴</span>
+                </button>
+              </div>
             </div>
           </section>
 

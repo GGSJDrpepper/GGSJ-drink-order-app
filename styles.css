@@ -2736,28 +2736,9 @@ dialog::backdrop {
   margin-bottom: 10px;
 }
 
-.sound-category-tabs {
+.sound-category-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.sound-category-tabs button {
-  min-height: 44px;
-  padding: 0 6px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #ffffff;
-  color: var(--muted);
-  font-size: 0.84rem;
-  font-weight: 900;
-}
-
-.sound-category-tabs button.active {
-  border-color: var(--teal);
-  background: var(--amber-soft);
-  color: #8a4b00;
+  gap: 8px;
 }
 
 .sound-category-setting {
