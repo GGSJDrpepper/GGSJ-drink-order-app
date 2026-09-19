@@ -2821,6 +2821,15 @@ dialog::backdrop {
 
 #alcoholManualDialog {
   width: min(560px, calc(100vw - 28px));
+  max-height: calc(100vh - 24px);
+  margin: 0;
+  overflow: auto;
+  position: fixed;
+  inset: auto;
+}
+
+#alcoholManualDialog::backdrop {
+  background: transparent;
 }
 
 .alcohol-manual-modal {
@@ -2869,6 +2878,12 @@ dialog::backdrop {
 .order-manual-button svg {
   width: 21px;
   height: 21px;
+}
+
+.order-manual-button.is-active {
+  border-color: #f3bd82;
+  background: #fff0dc;
+  color: #c85d00;
 }
 
 @media (max-width: 940px) {

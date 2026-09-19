@@ -641,6 +641,7 @@
 
     $("#barOrders").addEventListener("click", handleOrderAction);
     $("#alcoholManualClose").addEventListener("click", closeAlcoholManual);
+    $("#alcoholManualDialog").addEventListener("close", clearAlcoholManualSelection);
   }
 
   async function previewNotificationSound(choiceId = state.soundChoices[state.soundCategory]) {
@@ -1943,7 +1944,7 @@
   function handleOrderAction(event) {
     const manualButton = event.target.closest("[data-order-manual]");
     if (manualButton) {
-      openAlcoholManual(manualButton.closest("[data-order-id]")?.dataset.orderId);
+      openAlcoholManual(manualButton.closest("[data-order-id]")?.dataset.orderId, manualButton);
       return;
     }
     const button = event.target.closest("[data-order-action]");
@@ -2233,7 +2234,7 @@
     `;
   }
 
-  function openAlcoholManual(orderId) {
+  function openAlcoholManual(orderId, trigger) {
     const order = state.orders.find((item) => item.id === orderId);
     const item = order ? alcoholMenuItem(order.drink_name) : null;
     if (!order || !item) return;
@@ -2245,13 +2246,37 @@
     $("#alcoholManualContent").innerHTML = steps.length
       ? `<ol>${steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>`
       : `<p class="manual-empty">作成メモはまだ登録されていません</p>`;
-    $("#alcoholManualDialog").showModal();
+    clearAlcoholManualSelection();
+    trigger?.classList.add("is-active");
+    const dialog = $("#alcoholManualDialog");
+    dialog.showModal();
+    positionAlcoholManual(dialog, trigger);
     scheduleIconRefresh();
+  }
+
+  function positionAlcoholManual(dialog, trigger) {
+    if (!dialog || !trigger) return;
+    const gap = 12;
+    const edge = 12;
+    const triggerRect = trigger.getBoundingClientRect();
+    const dialogRect = dialog.getBoundingClientRect();
+    let left = triggerRect.right + gap;
+    if (left + dialogRect.width > window.innerWidth - edge) {
+      left = triggerRect.left - dialogRect.width - gap;
+    }
+    const maxTop = Math.max(edge, window.innerHeight - dialogRect.height - edge);
+    const top = Math.min(maxTop, Math.max(edge, triggerRect.top - edge));
+    dialog.style.left = `${Math.max(edge, left)}px`;
+    dialog.style.top = `${top}px`;
   }
 
   function closeAlcoholManual() {
     const dialog = $("#alcoholManualDialog");
     if (dialog.open) dialog.close();
+  }
+
+  function clearAlcoholManualSelection() {
+    $$("[data-order-manual].is-active").forEach((button) => button.classList.remove("is-active"));
   }
 
   function paymentMethodIndicator(paymentMethod) {
