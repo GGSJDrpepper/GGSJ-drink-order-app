@@ -1161,7 +1161,7 @@ button:focus-visible {
 .sheet-option-grid {
   padding: 14px 0 0;
   border: 0;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid #c8c1ba;
   gap: 12px;
 }
 
