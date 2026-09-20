@@ -1086,23 +1086,23 @@ button:focus-visible {
 }
 
 .sheet-head {
-  min-height: 82px;
+  min-height: 92px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 22px 24px 14px;
+  padding: 24px 26px 16px;
 }
 
 .sheet-head h2 {
-  font-size: clamp(1.45rem, 4vw, 1.9rem);
+  font-size: clamp(1.8rem, 5vw, 2.15rem);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
 .sheet-close {
-  width: 48px;
-  min-height: 48px;
+  width: 54px;
+  min-height: 54px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -1114,8 +1114,8 @@ button:focus-visible {
 }
 
 .sheet-close svg {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
 }
 
 .sheet-field {
@@ -1125,13 +1125,13 @@ button:focus-visible {
 
 .sheet-options {
   display: grid;
-  gap: 16px;
-  padding: 0 24px 18px;
+  gap: 20px;
+  padding: 0 26px 22px;
 }
 
 .sheet-option-group {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -1142,61 +1142,61 @@ button:focus-visible {
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 1.08rem;
+  font-size: 1.3rem;
   font-weight: 900;
 }
 
 .required-badge {
-  min-height: 24px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
-  padding: 0 8px;
+  padding: 0 10px;
   border-radius: 999px;
   background: var(--rose-soft);
   color: var(--rose);
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   font-weight: 900;
 }
 
 .sheet-option-grid {
   padding: 0;
   border: 0;
-  gap: 10px;
+  gap: 12px;
 }
 
 .sheet-option-grid .option-pill span {
-  min-height: 46px;
-  padding: 0 16px;
-  font-size: 1.06rem;
+  min-height: 54px;
+  padding: 0 18px;
+  font-size: 1.25rem;
 }
 
 .sheet-footer {
-  min-height: 96px;
+  min-height: 108px;
   display: grid;
   grid-template-columns: auto minmax(180px, 1fr);
   gap: 14px;
   align-items: center;
-  padding: 18px 24px;
+  padding: 20px 26px;
   border-top: 1px solid #ececec;
   background: #ffffff;
 }
 
 .quantity-stepper {
   display: inline-grid;
-  grid-template-columns: 50px 46px 50px;
+  grid-template-columns: 56px 48px 56px;
   align-items: center;
   gap: 6px;
 }
 
 .quantity-stepper span {
   text-align: center;
-  font-size: 1.35rem;
+  font-size: 1.55rem;
   font-weight: 850;
 }
 
 .quantity-button {
-  width: 50px;
-  min-height: 50px;
+  width: 56px;
+  min-height: 56px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -1212,15 +1212,15 @@ button:focus-visible {
 }
 
 .quantity-button svg {
-  width: 27px;
-  height: 27px;
+  width: 30px;
+  height: 30px;
 }
 
 .sheet-confirm-button {
-  min-height: 58px;
+  min-height: 64px;
   border-radius: 999px;
   background: #ffad32;
-  font-size: 1.08rem;
+  font-size: 1.24rem;
 }
 
 .sheet-confirm-button:disabled {
@@ -3201,8 +3201,8 @@ dialog::backdrop {
   .sheet-field,
   .sheet-options,
   .sheet-footer {
-    padding-left: 22px;
-    padding-right: 22px;
+    padding-left: 24px;
+    padding-right: 24px;
   }
 
   .sheet-footer {
