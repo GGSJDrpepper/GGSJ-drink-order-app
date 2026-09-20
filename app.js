@@ -26,6 +26,7 @@
     { id: "decision-button", label: "決定ボタン", url: "./sounds/decision-button.mp3" },
     { id: "level-up", label: "レベルアップ", url: "./sounds/level-up.mp3" },
     { id: "bell", label: "ベル（高音）", url: "./sounds/bell-accent16-high.mp3", gain: 1.8 },
+    { id: "ramen-stall", label: "ラーメン屋台登場", url: "./sounds/ramen-stall-entrance.mp3" },
   ];
   const SOUND_CATEGORIES = [
     { id: "soft", label: "ソフドリ" },
