@@ -8,11 +8,13 @@
   const SOUND_CHOICES_KEY = "drink-relay-sound-choices-v2";
   const SOUND_PREVIEWED_KEY = "drink-relay-sound-previewed-v1";
   const MENU_KEY = "drink-relay-menu-v1";
+  const OPTION_TEMPLATES_KEY = "drink-relay-option-templates-v1";
   const RECEPTION_MENU_MODE_KEY = "drink-relay-reception-menu-mode-v1";
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
   const CHANNEL_NAME = "drink-relay-local";
   const SETTINGS_ROW_ID = "main";
   const SOUND_SETTINGS_ROW_ID = "notification-sounds";
+  const OPTION_TEMPLATE_SETTINGS_ROW_ID = "option-templates";
   const CAST_STORAGE_TARGET = "tournament";
   const CAST_STORAGE_SEAT = "__cast__";
   const DEFAULT_SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
@@ -37,7 +39,7 @@
   const DEFAULT_PRICE_SUGGESTIONS = [600, 700, 800, 1000];
   const DEFAULT_SUBCATEGORY_ID = "default";
   const DEFAULT_SUBCATEGORY_LABEL = "未分類";
-  const OPTION_TEMPLATES = [
+  const DEFAULT_OPTION_TEMPLATES = [
     { id: "hot", label: "hot", choices: ["hot"], required: false },
     { id: "ice", label: "氷", choices: ["氷少なめ", "氷なし"], required: false },
     { id: "bottle", label: "瓶", choices: ["瓶のまま"], required: false },
@@ -180,6 +182,7 @@
     soundPreviewed: readSoundPreviewed(),
     soundCategory: SOUND_CATEGORIES[0].id,
     menu: readMenuSettings(),
+    optionTemplates: readOptionTemplates(),
     receptionMenuMode: readReceptionMenuMode(),
     carts: {
       reception: [],
@@ -201,6 +204,7 @@
     configSection: "drinks",
     configActiveCategoryId: "",
     configDraftMenu: null,
+    configDraftOptionTemplates: null,
     booted: false,
   };
 
@@ -417,6 +421,14 @@
       const removeSubcategory = event.target.closest("[data-remove-menu-subcategory]");
       const addOptionGroup = event.target.closest("[data-add-menu-option-group]");
       const addOptionTemplate = event.target.closest("[data-add-option-template]");
+      const createOptionTemplate = event.target.closest("[data-create-option-template]");
+      const editOptionTemplate = event.target.closest("[data-edit-option-template]");
+      const saveOptionTemplate = event.target.closest("[data-save-option-template]");
+      const deleteOptionTemplate = event.target.closest("[data-delete-option-template]");
+      const cancelOptionTemplateEditor = event.target.closest("[data-cancel-option-template-editor]");
+      const addOptionTemplateChoice = event.target.closest("[data-add-option-template-choice]");
+      const removeOptionTemplateChoice = event.target.closest("[data-remove-option-template-choice]");
+      const editOptionGroup = event.target.closest("[data-edit-menu-option-group]");
       const applyOptionTemplate = event.target.closest("[data-apply-option-template]");
       const cancelOptionTemplate = event.target.closest("[data-cancel-option-template]");
       const selectAllTemplateChoices = event.target.closest("[data-template-select-all]");
@@ -483,17 +495,55 @@
 
       if (addOptionGroup) {
         const item = addOptionGroup.closest("[data-menu-editor-item]");
-        $("[data-menu-editor-option-groups]", item).insertAdjacentHTML(
-          "beforeend",
-          menuEditorOptionGroupBlock({ id: `option-${Date.now()}`, label: "オプション", required: false, choices: [] })
-        );
+        showOptionTemplateEditor(item);
       }
 
       if (addOptionTemplate) {
         const item = addOptionTemplate.closest("[data-menu-editor-item]");
         closeOtherMenuEditorItems(item);
         setMenuEditorItemOpen(item, true);
-        showOptionTemplatePicker(item, addOptionTemplate.dataset.addOptionTemplate);
+        const template = configEditorOptionTemplates().find(
+          (option) => option.id === addOptionTemplate.dataset.addOptionTemplate
+        );
+        addOptionTemplateToEditorItem(item, template?.id, template?.choices || []);
+      }
+
+      if (createOptionTemplate) {
+        showOptionTemplateEditor(createOptionTemplate.closest("[data-menu-editor-item]"));
+      }
+
+      if (editOptionTemplate) {
+        showOptionTemplateEditor(
+          editOptionTemplate.closest("[data-menu-editor-item]"),
+          editOptionTemplate.dataset.editOptionTemplate
+        );
+      }
+
+      if (addOptionTemplateChoice) {
+        const editor = addOptionTemplateChoice.closest("[data-option-template-editor]");
+        $("[data-option-template-editor-choices]", editor).insertAdjacentHTML(
+          "beforeend",
+          optionTemplateEditorChoiceBlock("")
+        );
+      }
+
+      if (removeOptionTemplateChoice) {
+        removeOptionTemplateChoice.closest("[data-option-template-editor-choice]")?.remove();
+      }
+
+      if (saveOptionTemplate) {
+        saveOptionTemplateEditor(saveOptionTemplate.closest("[data-menu-editor-item]"));
+      }
+
+      if (deleteOptionTemplate) {
+        deleteOptionTemplateFromEditor(
+          deleteOptionTemplate.closest("[data-menu-editor-item]"),
+          deleteOptionTemplate.dataset.deleteOptionTemplate
+        );
+      }
+
+      if (cancelOptionTemplateEditor) {
+        closeOptionTemplateEditor(cancelOptionTemplateEditor.closest("[data-menu-editor-item]"));
       }
 
       if (selectAllTemplateChoices) {
@@ -528,6 +578,15 @@
 
       if (removeOptionGroup) {
         removeOptionGroup.closest("[data-menu-editor-option-group]")?.remove();
+      }
+
+      if (editOptionGroup) {
+        const group = editOptionGroup.closest("[data-menu-editor-option-group]");
+        const open = !group.classList.contains("open");
+        $$('[data-menu-editor-option-group].open', group.parentElement).forEach((row) => {
+          if (row !== group) setMenuEditorOptionGroupOpen(row, false);
+        });
+        setMenuEditorOptionGroupOpen(group, open);
       }
 
       if (addOptionChoice) {
@@ -1817,7 +1876,17 @@
     }
 
     await loadSharedSoundSettings();
+    await loadSharedOptionTemplates();
     state.sharedSettingsLoaded = true;
+  }
+
+  async function loadSharedOptionTemplates() {
+    const row = await fetchSharedOptionTemplates();
+    if (row) {
+      applySharedOptionTemplates(row);
+      return;
+    }
+    await saveSharedOptionTemplates(state.optionTemplates, { silent: true });
   }
 
   async function loadSharedSoundSettings() {
@@ -1857,6 +1926,23 @@
     if (error) {
       console.error(error);
       toast(supabaseErrorMessage("共有通知音を読み込めません", error), { long: true });
+      return null;
+    }
+
+    return data || null;
+  }
+
+  async function fetchSharedOptionTemplates() {
+    if (state.syncMode !== "supabase" || !state.supabase) return null;
+    const { data, error } = await state.supabase
+      .from("drink_app_settings")
+      .select("*")
+      .eq("id", OPTION_TEMPLATE_SETTINGS_ROW_ID)
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      toast(supabaseErrorMessage("共有オプションを読み込めません", error), { long: true });
       return null;
     }
 
@@ -1908,6 +1994,28 @@
     return true;
   }
 
+  async function saveSharedOptionTemplates(templates = state.optionTemplates, options = {}) {
+    if (state.syncMode !== "supabase" || !state.supabase) return false;
+    const { error } = await state.supabase
+      .from("drink_app_settings")
+      .upsert(
+        {
+          id: OPTION_TEMPLATE_SETTINGS_ROW_ID,
+          updated_at: new Date().toISOString(),
+          menu: normalizeOptionTemplates(templates),
+        },
+        { onConflict: "id" }
+      );
+
+    if (error) {
+      console.error(error);
+      if (!options.silent) toast(supabaseErrorMessage("共有オプションの保存に失敗しました", error), { long: true });
+      return false;
+    }
+
+    return true;
+  }
+
   function queueSharedSoundSettingsSave() {
     state.soundSavePromise = state.soundSavePromise
       .catch(() => false)
@@ -1917,6 +2025,10 @@
 
   function handleSharedSettingsPayload(payload) {
     if (payload.eventType === "DELETE" || !payload.new) return;
+    if (payload.new.id === OPTION_TEMPLATE_SETTINGS_ROW_ID) {
+      applySharedOptionTemplates(payload.new, { fromRealtime: true });
+      return;
+    }
     if (payload.new.id === SOUND_SETTINGS_ROW_ID) {
       applySharedSoundSettings(payload.new, { fromRealtime: true });
       return;
@@ -1961,6 +2073,20 @@
       configuredSoundChoiceIds().forEach((choiceId) => primeNotificationAudio(choiceId));
     }
     if (options.fromRealtime && changed) toast("共有通知音を更新しました");
+  }
+
+  function applySharedOptionTemplates(row, options = {}) {
+    if (!Array.isArray(row?.menu)) return;
+    state.optionTemplates = normalizeOptionTemplates(row.menu);
+    localStorage.setItem(OPTION_TEMPLATES_KEY, JSON.stringify(state.optionTemplates));
+
+    if ($("#configDialog")?.open && !configHasUnsavedChanges()) {
+      state.configDraftOptionTemplates = cloneOptionGroups(state.optionTemplates);
+      refreshOptionTemplateControls();
+      state.configSnapshot = configDraftSnapshot();
+    }
+
+    if (options.fromRealtime) toast("共有オプションを更新しました");
   }
 
   function sharedSettingsHasMenu(row) {
@@ -2733,6 +2859,7 @@
     $("#supabaseUrl").value = config.url || "";
     $("#supabaseAnonKey").value = config.anonKey || "";
     state.configDraftMenu = normalizeMenu(state.menu, { allowEmpty: true });
+    state.configDraftOptionTemplates = cloneOptionGroups(state.optionTemplates);
     state.configSection = "drinks";
     renderMenuEditor();
     updateConfigSectionUi();
@@ -2794,9 +2921,12 @@
     const url = $("#supabaseUrl").value.trim();
     const anonKey = $("#supabaseAnonKey").value.trim();
     const nextMenu = readMenuSettingsFromForm();
+    const nextOptionTemplates = cloneOptionGroups(configEditorOptionTemplates());
     state.menu = nextMenu;
+    state.optionTemplates = nextOptionTemplates;
     localStorage.setItem(CONFIG_KEY, JSON.stringify({ url, anonKey }));
     localStorage.setItem(MENU_KEY, JSON.stringify(nextMenu));
+    localStorage.setItem(OPTION_TEMPLATES_KEY, JSON.stringify(nextOptionTemplates));
     state.configSnapshot = configDraftSnapshot();
     renderMenuPickers();
     hideConfigUnsavedPrompt();
@@ -2810,6 +2940,7 @@
       } else {
         await saveSharedSettings(nextMenu);
       }
+      await saveSharedOptionTemplates(nextOptionTemplates);
     }
     await loadOrders();
     state.orders.forEach((order) => state.knownIds.add(order.id));
@@ -2833,6 +2964,7 @@
         anonKey: $("#supabaseAnonKey").value.trim(),
       },
       menu: readMenuSettingsFromForm(),
+      optionTemplates: configEditorOptionTemplates(),
     });
   }
 
@@ -2903,6 +3035,19 @@
     return normalizeMenu(DEFAULT_MENU);
   }
 
+  function readOptionTemplates() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(OPTION_TEMPLATES_KEY) || "null");
+      if (Array.isArray(saved)) return normalizeOptionTemplates(saved);
+    } catch {
+    }
+    return normalizeOptionTemplates(DEFAULT_OPTION_TEMPLATES);
+  }
+
+  function normalizeOptionTemplates(templates) {
+    return cloneOptionGroups(normalizeOptionGroups({ optionGroups: Array.isArray(templates) ? templates : [] }));
+  }
+
   function readMenuSettingsFromForm() {
     if (state.configSection === "drinks") syncActiveMenuEditorCategory();
     return normalizeMenu(configEditorMenu(), { allowEmpty: true });
@@ -2941,6 +3086,12 @@
 
   function configEditorMenu() {
     return Array.isArray(state.configDraftMenu) ? state.configDraftMenu : state.menu;
+  }
+
+  function configEditorOptionTemplates() {
+    return Array.isArray(state.configDraftOptionTemplates)
+      ? state.configDraftOptionTemplates
+      : state.optionTemplates;
   }
 
   function syncActiveMenuEditorCategory() {
@@ -3433,7 +3584,10 @@
     editButton.setAttribute("aria-expanded", String(isOpen));
     editButton.setAttribute("aria-label", isOpen ? "閉じる" : "編集");
     editButton.setAttribute("title", isOpen ? "閉じる" : "編集");
-    if (!isOpen) closeOptionTemplatePicker(item);
+    if (!isOpen) {
+      closeOptionTemplatePicker(item);
+      closeOptionTemplateEditor(item);
+    }
   }
 
   function menuEditorItemDetailBlock(optionGroups = []) {
@@ -3442,12 +3596,13 @@
         <span class="menu-editor-subtitle">オプションカテゴリ</span>
         ${menuEditorOptionTemplateButtons()}
         <div class="menu-editor-template-picker" data-option-template-picker hidden></div>
+        <div class="menu-editor-template-editor" data-option-template-editor hidden></div>
         <div class="menu-editor-option-groups" data-menu-editor-option-groups>
           ${optionGroups.map((group) => menuEditorOptionGroupBlock(group)).join("")}
         </div>
         <button class="button button-quiet menu-add-option" type="button" data-add-menu-option-group>
           <i data-lucide="plus" aria-hidden="true"></i>
-          <span>オプションカテゴリ追加</span>
+          <span>オプションカテゴリ作成</span>
         </button>
       </div>
     `;
@@ -3534,7 +3689,7 @@
 
   function showOptionTemplatePicker(item, templateId) {
     if (!item) return;
-    const template = OPTION_TEMPLATES.find((option) => option.id === templateId);
+    const template = configEditorOptionTemplates().find((option) => option.id === templateId);
     const picker = $("[data-option-template-picker]", item);
     if (!template || !picker) return;
 
@@ -3592,15 +3747,136 @@
     window.setTimeout(finishClose, 170);
   }
 
+  function showOptionTemplateEditor(item, templateId = "") {
+    if (!item) return;
+    const template = configEditorOptionTemplates().find((option) => option.id === templateId) || {
+      id: "",
+      label: "",
+      required: false,
+      choices: [""],
+    };
+    const editor = $("[data-option-template-editor]", item);
+    if (!editor) return;
+    closeOptionTemplatePicker(item);
+    editor.hidden = false;
+    editor.innerHTML = `
+      <section class="menu-editor-template-panel">
+        <input data-option-template-editor-id type="hidden" value="${escapeHtml(template.id)}">
+        <div class="menu-editor-template-panel-head">
+          <strong>${template.id ? "オプションカテゴリ編集" : "オプションカテゴリ作成"}</strong>
+          <button class="icon-button" type="button" data-cancel-option-template-editor aria-label="閉じる" title="閉じる">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <label>
+          <span>カテゴリ名</span>
+          <input data-option-template-editor-label type="text" value="${escapeHtml(template.label)}" placeholder="例: 氷">
+        </label>
+        <label class="menu-editor-check">
+          <input data-option-template-editor-required type="checkbox" ${template.required ? "checked" : ""}>
+          <span>選択必須</span>
+        </label>
+        <div class="menu-editor-option-choices" data-option-template-editor-choices>
+          ${(template.choices.length ? template.choices : [""]).map(optionTemplateEditorChoiceBlock).join("")}
+        </div>
+        <button class="button button-quiet menu-add-choice" type="button" data-add-option-template-choice>
+          <i data-lucide="plus" aria-hidden="true"></i>
+          <span>選択肢追加</span>
+        </button>
+        <div class="menu-editor-template-actions">
+          ${template.id ? `
+            <button class="button button-quiet danger-button" type="button" data-delete-option-template="${escapeHtml(template.id)}">削除</button>
+          ` : ""}
+          <button class="button button-primary" type="button" data-save-option-template>保存</button>
+        </div>
+      </section>
+    `;
+    scheduleIconRefresh();
+  }
+
+  function optionTemplateEditorChoiceBlock(choice) {
+    return `
+      <div class="menu-editor-option-choice" data-option-template-editor-choice>
+        <input data-option-template-editor-choice-input type="text" value="${escapeHtml(choice)}" placeholder="例: 氷なし">
+        <button class="icon-button danger-button" type="button" data-remove-option-template-choice aria-label="選択肢削除" title="選択肢削除">
+          <i data-lucide="trash-2" aria-hidden="true"></i>
+        </button>
+      </div>
+    `;
+  }
+
+  function closeOptionTemplateEditor(item) {
+    const editor = item ? $("[data-option-template-editor]", item) : null;
+    if (!editor) return;
+    editor.hidden = true;
+    editor.innerHTML = "";
+  }
+
+  function saveOptionTemplateEditor(item) {
+    const editor = item ? $("[data-option-template-editor]", item) : null;
+    if (!editor) return;
+    const label = $("[data-option-template-editor-label]", editor)?.value.trim() || "";
+    const choices = uniqueList(
+      $$('[data-option-template-editor-choice-input]', editor).map((input) => input.value.trim()).filter(Boolean)
+    );
+    if (!label) {
+      toast("カテゴリ名を入力してください");
+      return;
+    }
+    if (!choices.length) {
+      toast("選択肢を1つ以上入力してください");
+      return;
+    }
+
+    const currentId = $("[data-option-template-editor-id]", editor)?.value || "";
+    const templates = cloneOptionGroups(configEditorOptionTemplates());
+    const currentIndex = templates.findIndex((template) => template.id === currentId);
+    const usedIds = new Set(templates.filter((template) => template.id !== currentId).map((template) => template.id));
+    const template = {
+      id: currentId || uniqueMenuId(makeMenuId(label, templates.length), usedIds),
+      label,
+      required: Boolean($("[data-option-template-editor-required]", editor)?.checked),
+      choices,
+    };
+    if (currentIndex >= 0) templates[currentIndex] = template;
+    else templates.push(template);
+    state.configDraftOptionTemplates = normalizeOptionTemplates(templates);
+    closeOptionTemplateEditor(item);
+    refreshOptionTemplateControls();
+    toast(currentIndex >= 0 ? `${label}を更新しました` : `${label}を作成しました`);
+  }
+
+  function deleteOptionTemplateFromEditor(item, templateId) {
+    const template = configEditorOptionTemplates().find((option) => option.id === templateId);
+    if (!template) return;
+    state.configDraftOptionTemplates = configEditorOptionTemplates().filter((option) => option.id !== templateId);
+    closeOptionTemplateEditor(item);
+    refreshOptionTemplateControls();
+    toast(`${template.label}を削除しました`);
+  }
+
+  function refreshOptionTemplateControls() {
+    $$("#menuEditor [data-menu-editor-item-detail][data-hydrated='true']").forEach((detail) => {
+      const row = $(".menu-editor-template-row", detail);
+      if (row) row.outerHTML = menuEditorOptionTemplateButtons();
+    });
+    scheduleIconRefresh();
+  }
+
   function menuEditorOptionTemplateButtons() {
     return `
       <div class="menu-editor-template-row" aria-label="よく使うオプション">
         <span>よく使う</span>
         <div class="menu-editor-template-buttons">
-          ${OPTION_TEMPLATES.map((template) => `
-            <button class="menu-editor-template-button" type="button" data-add-option-template="${escapeHtml(template.id)}">
-              + ${escapeHtml(template.label)}
-            </button>
+          ${configEditorOptionTemplates().map((template) => `
+            <span class="menu-editor-template-entry">
+              <button class="menu-editor-template-button" type="button" data-add-option-template="${escapeHtml(template.id)}">
+                + ${escapeHtml(template.label)}
+              </button>
+              <button class="menu-editor-template-edit" type="button" data-edit-option-template="${escapeHtml(template.id)}" aria-label="${escapeHtml(template.label)}を編集" title="${escapeHtml(template.label)}を編集">
+                <i data-lucide="pencil" aria-hidden="true"></i>
+              </button>
+            </span>
           `).join("")}
         </div>
       </div>
@@ -3609,7 +3885,7 @@
 
   function addOptionTemplateToEditorItem(item, templateId, selectedChoices = []) {
     if (!item) return;
-    const template = OPTION_TEMPLATES.find((option) => option.id === templateId);
+    const template = configEditorOptionTemplates().find((option) => option.id === templateId);
     if (!template) return;
     const templateChoices = uniqueList(selectedChoices).filter(Boolean);
     if (!templateChoices.length) {
@@ -3636,6 +3912,7 @@
         const requiredInput = $("[data-menu-option-group-required]", existingGroup);
         if (requiredInput) requiredInput.checked = true;
       }
+      setMenuEditorOptionGroupOpen(existingGroup, false);
       toast(addedCount ? `${template.label}の不足分を追加しました` : `${template.label}は追加済みです`);
     } else {
       const groupsWrap = $("[data-menu-editor-option-groups]", item);
@@ -3659,28 +3936,48 @@
     return `
       <section class="menu-editor-option-group" data-menu-editor-option-group>
         <input data-menu-option-group-id type="hidden" value="${escapeHtml(group.id || "")}">
-        <div class="menu-editor-option-group-head">
-          <label>
-            <span>カテゴリ名</span>
-            <input data-menu-option-group-label type="text" value="${escapeHtml(group.label || "")}" placeholder="例: 氷">
-          </label>
+        <div class="menu-editor-option-group-summary">
+          <strong>${escapeHtml(group.label || "オプション")}</strong>
+          <span>${escapeHtml(`${(group.choices || []).length}件${group.required ? "・必須" : ""}`)}</span>
+          <button class="icon-button" type="button" data-edit-menu-option-group aria-expanded="false" aria-label="${escapeHtml(group.label || "オプション")}を編集" title="編集">
+            <i data-lucide="pencil" aria-hidden="true"></i>
+          </button>
           <button class="icon-button danger-button" type="button" data-remove-menu-option-group aria-label="オプションカテゴリ削除" title="オプションカテゴリ削除">
             <i data-lucide="trash-2" aria-hidden="true"></i>
           </button>
         </div>
-        <label class="menu-editor-check">
-          <input data-menu-option-group-required type="checkbox" ${group.required ? "checked" : ""}>
-          <span>選択必須</span>
-        </label>
-        <div class="menu-editor-option-choices" data-menu-editor-option-choices>
-          ${(group.choices || []).map((choice) => menuEditorOptionChoiceBlock(choice)).join("")}
+        <div class="menu-editor-option-group-editor" data-menu-option-group-editor>
+          <div class="menu-editor-option-group-head">
+            <label>
+              <span>カテゴリ名</span>
+              <input data-menu-option-group-label type="text" value="${escapeHtml(group.label || "")}" placeholder="例: 氷">
+            </label>
+          </div>
+          <label class="menu-editor-check">
+            <input data-menu-option-group-required type="checkbox" ${group.required ? "checked" : ""}>
+            <span>選択必須</span>
+          </label>
+          <div class="menu-editor-option-choices" data-menu-editor-option-choices>
+            ${(group.choices || []).map((choice) => menuEditorOptionChoiceBlock(choice)).join("")}
+          </div>
+          <button class="button button-quiet menu-add-choice" type="button" data-add-menu-option-choice>
+            <i data-lucide="plus" aria-hidden="true"></i>
+            <span>選択肢追加</span>
+          </button>
         </div>
-        <button class="button button-quiet menu-add-choice" type="button" data-add-menu-option-choice>
-          <i data-lucide="plus" aria-hidden="true"></i>
-          <span>選択肢追加</span>
-        </button>
       </section>
     `;
+  }
+
+  function setMenuEditorOptionGroupOpen(group, isOpen) {
+    if (!group) return;
+    group.classList.toggle("open", isOpen);
+    $("[data-edit-menu-option-group]", group)?.setAttribute("aria-expanded", String(isOpen));
+    if (isOpen) return;
+    const label = $("[data-menu-option-group-label]", group)?.value.trim() || "オプション";
+    const choices = $$('[data-menu-option-choice-input]', group).filter((input) => input.value.trim()).length;
+    $(".menu-editor-option-group-summary strong", group).textContent = label;
+    $(".menu-editor-option-group-summary span", group).textContent = `${choices}件${$("[data-menu-option-group-required]", group)?.checked ? "・必須" : ""}`;
   }
 
   function menuEditorOptionChoiceBlock(choice) {

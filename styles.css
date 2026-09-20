@@ -2425,6 +2425,11 @@ dialog::backdrop {
   gap: 6px;
 }
 
+.menu-editor-template-entry {
+  display: inline-flex;
+  align-items: stretch;
+}
+
 .menu-editor-template-button {
   min-height: 32px;
   padding: 0 10px;
@@ -2436,12 +2441,42 @@ dialog::backdrop {
   font-weight: 900;
 }
 
+.menu-editor-template-entry .menu-editor-template-button {
+  border-radius: 999px 0 0 999px;
+}
+
+.menu-editor-template-edit {
+  width: 34px;
+  min-height: 32px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #f0b56a;
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  background: #fff7ed;
+  color: #9a4b00;
+}
+
+.menu-editor-template-edit svg {
+  width: 14px;
+  height: 14px;
+}
+
 .menu-editor-template-button:active {
   transform: translateY(1px);
 }
 
 .menu-editor-template-picker[hidden] {
   display: none;
+}
+
+.menu-editor-template-editor[hidden] {
+  display: none;
+}
+
+.menu-editor-template-editor {
+  overflow: hidden;
 }
 
 .menu-editor-template-picker {
@@ -2554,13 +2589,54 @@ dialog::backdrop {
 }
 
 .menu-editor-option-group {
-  display: grid;
-  gap: 8px;
-  padding: 10px 0;
-  border: 0;
-  border-top: 1px solid #eeeeee;
-  border-radius: 0;
+  display: block;
+  padding: 0;
+  border: 1px solid #e5e2dd;
+  border-radius: 6px;
   background: #ffffff;
+}
+
+.menu-editor-option-group-summary {
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 38px 38px;
+  gap: 6px;
+  align-items: center;
+  padding: 5px 7px 5px 12px;
+}
+
+.menu-editor-option-group-summary strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+
+.menu-editor-option-group-summary > span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.menu-editor-option-group-summary .icon-button {
+  min-height: 36px;
+  width: 36px;
+}
+
+.menu-editor-option-group-editor {
+  display: none;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid #eeeeee;
+}
+
+.menu-editor-option-group.open .menu-editor-option-group-editor {
+  display: grid;
+}
+
+.menu-editor-option-group-editor .menu-editor-option-group-head {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .menu-editor-option-group-head,
@@ -2580,6 +2656,11 @@ dialog::backdrop {
   color: var(--muted);
   font-size: 0.84rem;
   font-weight: 800;
+}
+
+.config-modal label.menu-editor-check {
+  display: inline-flex;
+  margin-bottom: 0;
 }
 
 .unsaved-prompt {
