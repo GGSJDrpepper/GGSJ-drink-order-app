@@ -179,7 +179,7 @@
     sharedSettingsLoaded: false,
     soundEnabled: readSoundSetting(),
     soundChoices: readSoundChoices(),
-    soundPreviewed: readSoundPreviewed(),
+    soundPreviewed: false,
     soundCategory: SOUND_CATEGORIES[0].id,
     menu: readMenuSettings(),
     optionTemplates: readOptionTemplates(),
@@ -214,6 +214,7 @@
   document.addEventListener("DOMContentLoaded", init);
 
   async function init() {
+    localStorage.removeItem(SOUND_PREVIEWED_KEY);
     setupTabs();
     setupChoiceButtons();
     renderMenuPickers();
@@ -750,10 +751,8 @@
     try {
       const played = await enableNotificationSoundAndPreview();
       state.soundPreviewed = played;
-      if (played) {
-        localStorage.setItem(SOUND_PREVIEWED_KEY, "true");
-      } else {
-        localStorage.removeItem(SOUND_PREVIEWED_KEY);
+      localStorage.removeItem(SOUND_PREVIEWED_KEY);
+      if (!played) {
         toast("通知音を再生できませんでした。もう一度押してください");
       }
     } finally {
@@ -4009,10 +4008,6 @@
     return saved === null ? true : saved === "true";
   }
 
-  function readSoundPreviewed() {
-    return localStorage.getItem(SOUND_PREVIEWED_KEY) === "true";
-  }
-
   function readSoundChoices() {
     const legacyChoice = normalizeSoundChoice(localStorage.getItem(SOUND_CHOICE_KEY) || SOUND_OPTIONS[0].id);
     try {
@@ -4097,12 +4092,25 @@
     return state.audioUnlockPromise;
   }
 
-  function playChime(choiceId = state.soundChoices[state.soundCategory]) {
+  async function playChime(choiceId = state.soundChoices[state.soundCategory]) {
     const normalizedChoice = normalizeSoundChoice(choiceId);
-    if (playBufferedNotificationAudio(normalizedChoice)) return;
+    if (playBufferedNotificationAudio(normalizedChoice)) return true;
     scheduleNotificationWarmup(0);
-    if (playPrimedNotificationAudio(normalizedChoice)) return;
-    playFallbackBell();
+    if (await playPrimedNotificationAudio(normalizedChoice)) return true;
+
+    try {
+      await unlockAudio(normalizedChoice);
+      await warmNotificationBuffer(normalizedChoice);
+      if (playBufferedNotificationAudio(normalizedChoice)) return true;
+    } catch (error) {
+      console.warn(error);
+    }
+
+    if (state.audioContext?.state === "running") {
+      playFallbackBell();
+      return true;
+    }
+    return false;
   }
 
   function scheduleNotificationWarmup(delay = 220) {
@@ -4221,7 +4229,7 @@
     return true;
   }
 
-  function playPrimedNotificationAudio(choiceId) {
+  async function playPrimedNotificationAudio(choiceId) {
     const option = selectedSoundOption(choiceId);
     if (!option.url || state.notificationAudioUnavailable.has(option.id)) return false;
     primeNotificationAudio(option.id);
@@ -4232,7 +4240,8 @@
       audio.pause();
       audio.currentTime = 0;
       audio.volume = 1;
-      audio.play().catch(() => {});
+      const playback = audio.play();
+      if (playback?.then) await playback;
       return true;
     } catch {
       return false;
