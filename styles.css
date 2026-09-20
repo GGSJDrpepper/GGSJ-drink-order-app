@@ -1159,8 +1159,9 @@ button:focus-visible {
 }
 
 .sheet-option-grid {
-  padding: 0;
+  padding: 14px 0 0;
   border: 0;
+  border-top: 1px solid var(--line);
   gap: 12px;
 }
 
