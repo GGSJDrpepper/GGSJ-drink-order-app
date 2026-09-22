@@ -1302,9 +1302,10 @@
 
   function resetForm(form) {
     const source = form.dataset.source;
+    const selectedTarget = form.elements.target?.value || "";
     form.reset();
-    if (source === "reception") {
-      form.elements.target.value = "tournament";
+    if (source === "reception" && selectedTarget) {
+      form.elements.target.value = selectedTarget;
     }
     if (source === "table") {
       form.elements.target.value = "ring";
