@@ -42,6 +42,21 @@
   const DEFAULT_PRICE_SUGGESTIONS = [600, 700, 800, 1000];
   const DEFAULT_SUBCATEGORY_ID = "default";
   const DEFAULT_SUBCATEGORY_LABEL = "未分類";
+  const ALCOHOL_SUBCATEGORY_ORDER = [
+    "ビール",
+    "ウィスキー",
+    "サワー",
+    "ジン",
+    "カクテル",
+    "ディタ",
+    "ショット",
+    "レッドブル割",
+    "ラム",
+    "焼酎",
+    "ウォッカ",
+    "サウザテキーラ",
+    "オリジナルカクテル",
+  ];
   const DEFAULT_OPTION_TEMPLATES = [
     { id: "hot", label: "hot", choices: ["hot"], required: false },
     { id: "ice", label: "氷", choices: ["氷少なめ", "氷なし"], required: false },
@@ -1639,12 +1654,25 @@
     const subcategories = category.subcategories?.length
       ? category.subcategories
       : [{ id: DEFAULT_SUBCATEGORY_ID, label: DEFAULT_SUBCATEGORY_LABEL }];
-    return subcategories
+    const groups = subcategories
       .map((subcategory) => ({
         ...subcategory,
         items: items.filter((item) => item.subcategory_id === subcategory.id),
       }))
       .filter((group) => group.items.length);
+    if (menuCategoryKind(category) !== "alcohol") return groups;
+    return groups
+      .map((group, originalIndex) => {
+        const normalizedLabel = group.label === "レッドブル割り" ? "レッドブル割" : group.label;
+        const requestedIndex = ALCOHOL_SUBCATEGORY_ORDER.indexOf(normalizedLabel);
+        return { group, originalIndex, requestedIndex };
+      })
+      .sort((a, b) => {
+        const aOrder = a.requestedIndex < 0 ? ALCOHOL_SUBCATEGORY_ORDER.length : a.requestedIndex;
+        const bOrder = b.requestedIndex < 0 ? ALCOHOL_SUBCATEGORY_ORDER.length : b.requestedIndex;
+        return aOrder - bOrder || a.originalIndex - b.originalIndex;
+      })
+      .map(({ group }) => group);
   }
 
   function rankedMenuCategoryGroups(category, itemCounts) {
