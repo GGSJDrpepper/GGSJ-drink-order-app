@@ -1579,20 +1579,32 @@ button:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 4px;
 }
 
 .payment-image-group img,
 .payment-image-group > span {
-  width: 30%;
-  max-width: 22px;
-  height: 18px;
+  width: 0;
+  min-width: 0;
+  max-width: none;
+  height: 22px;
+  flex: 1 1 0;
   display: flex;
   align-items: center;
   justify-content: center;
   object-fit: contain;
-  font-size: 1rem;
+  font-size: 1.25rem;
   line-height: 1;
+}
+
+.payment-choice-icon.payment-visual-group {
+  width: 92px;
+  max-width: 100%;
+  height: 24px;
+}
+
+.payment-method-icon.payment-visual-group {
+  width: 92px;
 }
 
 .payment-method-emoji {
@@ -2154,6 +2166,15 @@ dialog::backdrop {
   .payment-choice-icon {
     width: 24px;
     height: 18px;
+  }
+
+  .payment-choice-icon.payment-visual-group {
+    width: 76px;
+    height: 22px;
+  }
+
+  .payment-choice-icon.payment-visual-group .payment-image-group {
+    gap: 2px;
   }
 
   .payment-choice-emoji {
