@@ -10,10 +10,11 @@
     <link rel="preload" as="audio" href="./sounds/level-up.mp3">
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026092307">
+    <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
+    <link rel="stylesheet" href="./styles.css?v=2026092308">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026092307"></script>
+    <script defer src="./app.js?v=2026092308"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -308,6 +309,7 @@
                     <option value="level-up">レベルアップ</option>
                     <option value="bell">ベル（高音）</option>
                     <option value="ramen-stall">ラーメン屋台登場</option>
+                    <option value="nurse-call">ナースコール</option>
                   </select>
                 </label>
                 <button class="button button-quiet" type="button" data-sound-preview="soft">
@@ -325,6 +327,7 @@
                     <option value="level-up">レベルアップ</option>
                     <option value="bell">ベル（高音）</option>
                     <option value="ramen-stall">ラーメン屋台登場</option>
+                    <option value="nurse-call">ナースコール</option>
                   </select>
                 </label>
                 <button class="button button-quiet" type="button" data-sound-preview="alcohol">
@@ -342,6 +345,7 @@
                     <option value="level-up">レベルアップ</option>
                     <option value="bell">ベル（高音）</option>
                     <option value="ramen-stall">ラーメン屋台登場</option>
+                    <option value="nurse-call">ナースコール</option>
                   </select>
                 </label>
                 <button class="button button-quiet" type="button" data-sound-preview="food">
@@ -359,9 +363,28 @@
                     <option value="level-up">レベルアップ</option>
                     <option value="bell">ベル（高音）</option>
                     <option value="ramen-stall">ラーメン屋台登場</option>
+                    <option value="nurse-call">ナースコール</option>
                   </select>
                 </label>
                 <button class="button button-quiet" type="button" data-sound-preview="cast">
+                  <i data-lucide="volume-2" aria-hidden="true"></i>
+                  <span>試聴</span>
+                </button>
+              </div>
+              <div class="sound-category-setting">
+                <strong>未作成10分</strong>
+                <label class="sound-choice-field">
+                  <span>効果音</span>
+                  <select data-sound-choice="unmade10">
+                    <option value="news-title">ニュースタイトル表示</option>
+                    <option value="decision-button">決定ボタン</option>
+                    <option value="level-up">レベルアップ</option>
+                    <option value="bell">ベル（高音）</option>
+                    <option value="ramen-stall">ラーメン屋台登場</option>
+                    <option value="nurse-call">ナースコール</option>
+                  </select>
+                </label>
+                <button class="button button-quiet" type="button" data-sound-preview="unmade10">
                   <i data-lucide="volume-2" aria-hidden="true"></i>
                   <span>試聴</span>
                 </button>

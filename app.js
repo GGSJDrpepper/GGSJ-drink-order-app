@@ -27,12 +27,14 @@
     { id: "level-up", label: "レベルアップ", url: "./sounds/level-up.mp3" },
     { id: "bell", label: "ベル（高音）", url: "./sounds/bell-accent16-high.mp3", gain: 1.8 },
     { id: "ramen-stall", label: "ラーメン屋台登場", url: "./sounds/ramen-stall-entrance.mp3" },
+    { id: "nurse-call", label: "ナースコール", url: "./sounds/nurse-call.mp3" },
   ];
   const SOUND_CATEGORIES = [
     { id: "soft", label: "ソフドリ" },
     { id: "alcohol", label: "アルコール" },
     { id: "food", label: "フード" },
     { id: "cast", label: "キャスドリ" },
+    { id: "unmade10", label: "未作成10分", defaultChoice: "nurse-call" },
   ];
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const CAST_BAR_TABLE = "バーカウンター";
@@ -173,6 +175,7 @@
     filter: "open",
     orders: [],
     knownIds: new Set(),
+    overdueUnmadeNotifiedIds: new Set(),
     supabase: null,
     realtimeChannel: null,
     broadcast: null,
@@ -2362,6 +2365,19 @@
     if (state.view !== "bar") return;
     renderBar();
     scheduleIconRefresh();
+    detectOverdueUnmadeOrders();
+  }
+
+  function detectOverdueUnmadeOrders() {
+    if (!state.soundEnabled) return;
+    const overdueOrders = state.orders.filter((order) =>
+      ["ordered", "making"].includes(order.status)
+      && minutesSince(order.created_at) >= 10
+      && !state.overdueUnmadeNotifiedIds.has(order.id)
+    );
+    if (!overdueOrders.length) return;
+    overdueOrders.forEach((order) => state.overdueUnmadeNotifiedIds.add(order.id));
+    playChime(state.soundChoices.unmade10);
   }
 
   function openOrderEdit(orderId) {
@@ -4098,9 +4114,15 @@
     const legacyChoice = normalizeSoundChoice(localStorage.getItem(SOUND_CHOICE_KEY) || SOUND_OPTIONS[0].id);
     try {
       const saved = JSON.parse(localStorage.getItem(SOUND_CHOICES_KEY) || "null");
-      return Object.fromEntries(SOUND_CATEGORIES.map(({ id }) => [id, normalizeSoundChoice(saved?.[id] || legacyChoice)]));
+      return Object.fromEntries(SOUND_CATEGORIES.map(({ id, defaultChoice }) => [
+        id,
+        normalizeSoundChoice(saved?.[id] || defaultChoice || legacyChoice),
+      ]));
     } catch {
-      return Object.fromEntries(SOUND_CATEGORIES.map(({ id }) => [id, legacyChoice]));
+      return Object.fromEntries(SOUND_CATEGORIES.map(({ id, defaultChoice }) => [
+        id,
+        normalizeSoundChoice(defaultChoice || legacyChoice),
+      ]));
     }
   }
 
