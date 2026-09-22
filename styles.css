@@ -874,6 +874,10 @@ button:focus-visible {
   text-align: left;
 }
 
+.custom-menu-picker .menu-item-grid .choice-button:last-child {
+  border-bottom: 1px solid #dcd6d0;
+}
+
 .custom-menu-picker .menu-item-name {
   font-size: 1.14rem;
 }
