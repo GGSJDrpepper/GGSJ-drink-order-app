@@ -113,9 +113,46 @@ button {
 }
 
 #headerSoundPreviewButton.is-unpreviewed {
+  position: relative;
   border-color: #d94b4b;
   background: #fff0f0;
   color: #b42323;
+}
+
+#headerSoundPreviewButton.is-unpreviewed::before,
+#headerSoundPreviewButton.is-unpreviewed::after {
+  position: absolute;
+  left: 50%;
+  z-index: 12;
+  pointer-events: none;
+}
+
+#headerSoundPreviewButton.is-unpreviewed::before {
+  content: "";
+  top: calc(100% + 5px);
+  width: 10px;
+  height: 10px;
+  border-top: 1px solid #d94b4b;
+  border-left: 1px solid #d94b4b;
+  background: #ffffff;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+#headerSoundPreviewButton.is-unpreviewed::after {
+  content: "ベルを鳴らしてください";
+  top: calc(100% + 10px);
+  min-width: max-content;
+  padding: 7px 10px;
+  border: 1px solid #d94b4b;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #b42323;
+  font-size: 0.78rem;
+  font-weight: 850;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(99, 35, 35, 0.14);
+  transform: translateX(-50%);
 }
 
 #headerSoundPreviewButton.is-previewed {
