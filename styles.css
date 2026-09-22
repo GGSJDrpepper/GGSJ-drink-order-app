@@ -880,6 +880,7 @@ button:focus-visible {
 
 .custom-menu-picker .menu-item-name {
   min-width: 0;
+  overflow: hidden;
   font-size: 1.14rem;
   line-height: 1.15;
   white-space: nowrap;
@@ -1536,16 +1537,6 @@ button:focus-visible {
   --payment-soft: #f9ecee;
 }
 
-.order-card.payment-transit {
-  --payment-accent: #3f7f20;
-  --payment-soft: #eef7e9;
-}
-
-.order-card.payment-id {
-  --payment-accent: #c9a900;
-  --payment-soft: #fff9d8;
-}
-
 .order-card.payment-unknown {
   --payment-accent: #8b8b8b;
   --payment-soft: #f2f2f2;
@@ -1581,6 +1572,27 @@ button:focus-visible {
   height: 100%;
   display: block;
   object-fit: cover;
+}
+
+.payment-image-group {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.payment-image-group img,
+.payment-image-group > span {
+  width: 30%;
+  max-width: 22px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  object-fit: contain;
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .payment-method-emoji {
@@ -2049,7 +2061,7 @@ dialog::backdrop {
 
 .payment-method-choice-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 5px;
   padding: 1px 1px 3px;
 }

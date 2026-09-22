@@ -152,21 +152,24 @@
 
   const paymentMethodLabels = {
     cash: "現金",
-    card: "カード",
-    id: "iD",
+    card: "カード端末",
     paypay: "PayPay",
     coin: "コイン",
-    transit: "交通系",
     unknown: "不明",
   };
 
   const paymentMethodVisuals = {
     cash: { type: "emoji", value: "💴" },
-    card: { type: "emoji", value: "💳" },
-    id: { type: "image", value: "./assets/payment-id.png" },
+    card: {
+      type: "group",
+      values: [
+        { type: "emoji", value: "💳" },
+        { type: "image", value: "./assets/payment-id.png" },
+        { type: "image", value: "./assets/payment-transit.png" },
+      ],
+    },
     paypay: { type: "image", value: "./assets/payment-paypay.png" },
     coin: { type: "image", value: "./assets/payment-coin.png" },
-    transit: { type: "image", value: "./assets/payment-transit.png" },
     unknown: { type: "icon", value: "circle-help" },
   };
 
@@ -1562,12 +1565,28 @@
 
   function fitCustomMenuItemNames(picker) {
     if (!picker.classList.contains("custom-menu-picker")) return;
+    const measureContext = document.createElement("canvas").getContext("2d");
     $$(".menu-item-name", picker)
       .filter((name) => name.offsetParent !== null)
       .forEach((name) => {
         name.style.fontSize = "";
-        let fontSize = Number.parseFloat(getComputedStyle(name).fontSize) || 16;
-        while (name.scrollWidth > name.clientWidth && fontSize > 9) {
+        const button = name.closest(".choice-button");
+        const meta = $(".menu-item-meta", button);
+        const buttonStyle = getComputedStyle(button);
+        const nameStyle = getComputedStyle(name);
+        const availableWidth = Math.max(24,
+          button.clientWidth
+          - Number.parseFloat(buttonStyle.paddingLeft)
+          - Number.parseFloat(buttonStyle.paddingRight)
+          - (meta?.offsetWidth || 0)
+          - Number.parseFloat(buttonStyle.columnGap || buttonStyle.gap || 0)
+        );
+        let fontSize = Number.parseFloat(nameStyle.fontSize) || 16;
+        const textWidth = () => {
+          measureContext.font = `${nameStyle.fontStyle} ${nameStyle.fontWeight} ${fontSize}px ${nameStyle.fontFamily}`;
+          return measureContext.measureText(name.textContent.trim()).width;
+        };
+        while (textWidth() > availableWidth && fontSize > 8) {
           fontSize -= 0.5;
           name.style.fontSize = `${fontSize}px`;
         }
@@ -2738,7 +2757,15 @@
     let content = `<i data-lucide="${visual.value}" aria-hidden="true"></i>`;
     if (visual.type === "emoji") content = `<span class="payment-method-emoji" aria-hidden="true">${visual.value}</span>`;
     if (visual.type === "image") content = `<img src="${visual.value}" alt="" aria-hidden="true">`;
+    if (visual.type === "group") content = paymentVisualGroup(visual.values);
     return `<span class="payment-method-icon payment-visual-${visual.type}" aria-label="${label}" title="${label}">${content}</span>`;
+  }
+
+  function paymentVisualGroup(items) {
+    const images = items.map((item) => item.type === "image"
+      ? `<img src="${escapeHtml(item.value)}" alt="" aria-hidden="true">`
+      : `<span aria-hidden="true">${item.value}</span>`).join("");
+    return `<span class="payment-image-group">${images}</span>`;
   }
 
   function renderPaymentMethodPickers() {
@@ -2763,6 +2790,7 @@
     let icon = `<i data-lucide="${escapeHtml(visual.value)}" aria-hidden="true"></i>`;
     if (visual.type === "emoji") icon = `<span class="payment-choice-emoji" aria-hidden="true">${visual.value}</span>`;
     if (visual.type === "image") icon = `<img src="${escapeHtml(visual.value)}" alt="" aria-hidden="true">`;
+    if (visual.type === "group") icon = paymentVisualGroup(visual.values);
     return `
       <label class="payment-method-choice">
         <input type="radio" name="${escapeHtml(groupName)}" value="${escapeHtml(method)}">
@@ -2819,6 +2847,7 @@
   }
 
   function normalizePaymentMethod(value) {
+    if (value === "id" || value === "transit") return "card";
     return Object.prototype.hasOwnProperty.call(paymentMethodLabels, value) ? value : "cash";
   }
 
