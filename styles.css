@@ -619,6 +619,22 @@ button:focus-visible {
   pointer-events: none;
 }
 
+.destination-row label:has(input[value="ring"])::after {
+  background: #38aee8;
+}
+
+.destination-row label:has(input[value="tournament"])::after {
+  background: #e53935;
+}
+
+.destination-row label:has(input[value="bar"])::after {
+  background: #d8a63f;
+}
+
+.destination-row label:has(input[value="cast"])::after {
+  background: #49b96e;
+}
+
 .destination-row label:has(input:checked) {
   border-color: var(--teal);
   background: var(--teal);
