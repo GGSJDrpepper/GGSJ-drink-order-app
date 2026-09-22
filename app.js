@@ -2534,6 +2534,7 @@
           <i data-lucide="notebook-tabs" aria-hidden="true"></i>
         </button>`
       : "";
+    const note = displayOrderNote(order.notes);
 
     return `
       <article class="order-card ${statusClass}${paymentClass}${waitingClass}" data-order-id="${escapeHtml(order.id)}">
@@ -2551,13 +2552,29 @@
             ${manualButton}
             ${quantityPill}
           </div>
-          ${order.notes ? `<p class="order-note">${escapeHtml(order.notes)}</p>` : ""}
+          ${note.text ? `<p class="order-note${note.isOptions ? " order-option-note" : ""}">${escapeHtml(note.text)}</p>` : ""}
         </div>
         <div class="order-side">
           ${compact ? compactActions(order) : fullActions(order)}
         </div>
       </article>
     `;
+  }
+
+  function displayOrderNote(notes) {
+    const text = String(notes || "").trim();
+    if (!/^オプション\s*[:：]/.test(text)) return { text, isOptions: false };
+
+    const choices = text
+      .replace(/^オプション\s*[:：]\s*/, "")
+      .split(/\s*\/\s*/)
+      .map((part) => {
+        const separatorIndex = part.search(/[:：]/);
+        return (separatorIndex >= 0 ? part.slice(separatorIndex + 1) : part).trim();
+      })
+      .filter(Boolean);
+
+    return { text: choices.join(" / "), isOptions: true };
   }
 
   function openAlcoholManual(orderId, trigger) {
