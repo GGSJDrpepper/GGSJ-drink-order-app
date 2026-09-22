@@ -1521,16 +1521,17 @@
       groups.map((group) => ({ category, group, key: subcategoryKey(category.id, group.id) }))
     );
     const requestedSubcategory = picker.dataset.activeSubcategory || "";
-    const activeSubcategory = availableSubcategories.some((item) => item.key === requestedSubcategory)
+    const requestedSubcategoryEntry = availableSubcategories.find((item) => item.key === requestedSubcategory);
+    const activeSubcategory = requestedSubcategoryEntry && (!useCustomOrder || requestedSubcategoryEntry.category.id === activeCategory)
       ? requestedSubcategory
       : availableSubcategories.find((item) => item.category.id === activeCategory)?.key || availableSubcategories[0]?.key || "";
     picker.dataset.activeSubcategory = activeSubcategory;
 
-    const globalSubcategoryNav = !useCustomOrder && availableSubcategories.length
+    const globalSubcategoryNav = availableSubcategories.length
       ? `
-        <div class="menu-global-subcategory-row" aria-label="全サブカテゴリ">
+        <div class="menu-global-subcategory-row" aria-label="サブカテゴリ">
           ${availableSubcategories.map(({ category, group, key }) => `
-            <button class="menu-subcategory-chip ${key === activeSubcategory ? "active" : ""}" type="button" data-menu-subcategory="${escapeHtml(key)}" data-menu-subcategory-category="${escapeHtml(category.id)}">
+            <button class="menu-subcategory-chip ${key === activeSubcategory ? "active" : ""}" type="button" data-menu-subcategory="${escapeHtml(key)}" data-menu-subcategory-category="${escapeHtml(category.id)}" ${useCustomOrder && category.id !== activeCategory ? "hidden" : ""}>
               ${escapeHtml(group.label)}
             </button>
           `).join("")}
@@ -1676,6 +1677,11 @@
       section.hidden = picker.classList.contains("custom-menu-picker")
         && section.dataset.menuSection !== categoryId;
     });
+    if (picker.classList.contains("custom-menu-picker")) {
+      $$("[data-menu-subcategory]", picker).forEach((button) => {
+        button.hidden = button.dataset.menuSubcategoryCategory !== categoryId;
+      });
+    }
   }
 
   function setupMenuScrollTracking(picker) {
@@ -1692,10 +1698,17 @@
   }
 
   function syncMenuCategoryToScroll(picker) {
-    if (picker.classList.contains("custom-menu-picker")) return;
     const scroller = $("[data-drink-buttons]", picker);
     const sections = $$("[data-menu-section]", picker);
     if (!scroller || !sections.length) return;
+    if (picker.classList.contains("custom-menu-picker")) {
+      const activeSection = sections.find((section) => !section.hidden);
+      if (!activeSection) return;
+      const stickyOffset = $(".menu-global-subcategory-row", picker)?.offsetHeight || 0;
+      const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
+      syncMenuSubcategoryToScroll(picker, scroller, activeSection, stickyOffset, atBottom);
+      return;
+    }
     if (scroller._menuScrollTargetCategory && performance.now() < scroller._menuScrollLockUntil) {
       const categoryId = scroller._menuScrollTargetCategory;
       picker.dataset.activeCategory = categoryId;
@@ -1738,16 +1751,21 @@
   }
 
   function syncMenuSubcategoryToScroll(picker, scroller, categorySection, stickyOffset, atBottom) {
+    if (scroller._menuScrollTargetSubcategory && performance.now() < scroller._menuScrollLockUntil) {
+      updateMenuSubcategoryActive(picker, scroller._menuScrollTargetSubcategory);
+      return;
+    }
+    scroller._menuScrollTargetSubcategory = "";
     const subsections = $$("[data-menu-subsection]", categorySection);
     if (!subsections.length) return;
     const categoryHeadingHeight = $(".menu-category-heading", categorySection)?.offsetHeight || 0;
-    const threshold = scroller.scrollTop + stickyOffset + categoryHeadingHeight + 4;
+    const threshold = scroller.getBoundingClientRect().top + stickyOffset + categoryHeadingHeight + 4;
     let activeSubsection = subsections[0];
     if (atBottom) {
       activeSubsection = subsections[subsections.length - 1];
     } else {
       subsections.forEach((subsection) => {
-        if (subsection.offsetTop <= threshold) activeSubsection = subsection;
+        if (subsection.getBoundingClientRect().top <= threshold) activeSubsection = subsection;
       });
     }
     const subcategoryId = activeSubsection.dataset.menuSubsection;
@@ -1802,7 +1820,9 @@
     const maxTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
     const top = Math.min(maxTop, Math.max(0, sectionRect.top - scrollerRect.top + scroller.scrollTop - stickyOffset));
     const targetCategoryId = categorySection?.dataset.menuSection || section.dataset.menuSection || "";
+    const targetSubcategoryId = section.dataset.menuSubsection || "";
     scroller._menuScrollTargetCategory = targetCategoryId;
+    scroller._menuScrollTargetSubcategory = targetSubcategoryId;
     scroller._menuScrollLockUntil = performance.now() + 280;
     animateMenuScroll(scroller, top, 160);
   }

@@ -789,7 +789,7 @@ button:focus-visible {
 }
 
 .menu-item-grid.custom-ranking {
-  --menu-global-subcategory-height: 0px;
+  --menu-global-subcategory-height: 62px;
 }
 
 .custom-menu-picker .menu-picker {
@@ -814,6 +814,10 @@ button:focus-visible {
 
 .custom-menu-picker .menu-item-grid {
   grid-area: custom-items;
+}
+
+.custom-menu-picker .menu-global-subcategory-row {
+  padding-inline: 14px;
 }
 
 .custom-menu-picker .menu-category-button {
