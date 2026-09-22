@@ -224,6 +224,9 @@
     setupControls();
     setupReceptionModeMenu();
     updateHeaderViewLabel();
+    window.addEventListener("resize", () => {
+      $$('[data-drink-picker].custom-menu-picker').forEach(scheduleCustomMenuNameFit);
+    });
     setupLocalChannel();
     setupAudioUnlock();
     await configureSupabaseFromStorage();
@@ -319,6 +322,7 @@
           const categoryId = subcategoryButton.dataset.menuSubcategoryCategory;
           picker.dataset.activeCategory = categoryId;
           updateMenuCategoryActive(picker, categoryId);
+          scheduleCustomMenuNameFit(picker);
           updateMenuSubcategoryActive(picker, subcategoryButton.dataset.menuSubcategory);
           scrollToMenuSubcategory(picker, subcategoryButton.dataset.menuSubcategory);
           return;
@@ -1539,11 +1543,32 @@
       : `<div class="menu-empty">商品未設定</div>`;
     updateMenuCategoryActive(picker, activeCategory);
     setupMenuScrollTracking(picker);
-    requestAnimationFrame(() => syncMenuCategoryToScroll(picker));
+    requestAnimationFrame(() => {
+      syncMenuCategoryToScroll(picker);
+      fitCustomMenuItemNames(picker);
+    });
 
     if (currentItem && state.activeSheet?.form === form) renderItemSheet(form, currentItem);
     updateConfirmButtonState(form);
     updateCustomDrinkField(form);
+  }
+
+  function scheduleCustomMenuNameFit(picker) {
+    requestAnimationFrame(() => fitCustomMenuItemNames(picker));
+  }
+
+  function fitCustomMenuItemNames(picker) {
+    if (!picker.classList.contains("custom-menu-picker")) return;
+    $$(".menu-item-name", picker)
+      .filter((name) => name.offsetParent !== null)
+      .forEach((name) => {
+        name.style.fontSize = "";
+        let fontSize = Number.parseFloat(getComputedStyle(name).fontSize) || 16;
+        while (name.scrollWidth > name.clientWidth && fontSize > 9) {
+          fontSize -= 0.5;
+          name.style.fontSize = `${fontSize}px`;
+        }
+      });
   }
 
   function menuCategorySectionBlock(category, currentCategoryId, currentItemId, source, groups = menuSubcategoryGroups(category)) {
