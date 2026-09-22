@@ -2246,6 +2246,7 @@
       upsertOrder(order);
       state.knownIds.add(order.id);
     });
+    updateBarOrderBadge();
 
     if (state.view === "bar") {
       renderBar();
@@ -2401,6 +2402,7 @@
 
   function render() {
     pruneCompletedHistory();
+    updateBarOrderBadge();
     if (state.view !== "bar") return;
     renderBar();
     scheduleIconRefresh();
@@ -2589,6 +2591,7 @@
 
   function renderBar() {
     const openOrders = state.orders.filter((order) => !["served", "canceled"].includes(order.status));
+    updateBarOrderBadge(openOrders.length);
     const visibleOrders = state.filter === "open" ? openOrders : state.orders;
     const uncollectedCount = openOrders.filter((order) => order.payment_status === "uncollected").length;
     const oldest = openOrders.length
@@ -2610,6 +2613,14 @@
     container.innerHTML = barOrderColumns(visibleOrders)
       .map((orders) => `<div class="order-column">${orders.map((order) => orderCard(order)).join("")}</div>`)
       .join("");
+  }
+
+  function updateBarOrderBadge(count = state.orders.filter((order) => !["served", "canceled"].includes(order.status)).length) {
+    const badge = $("#barOrderBadge");
+    if (!badge) return;
+    badge.hidden = count === 0;
+    badge.textContent = count > 99 ? "99+" : String(count);
+    $("#headerBarButton")?.setAttribute("aria-label", count ? `バー、未提供${count}件` : "バー");
   }
 
   function barOrderColumns(orders) {

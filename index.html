@@ -11,10 +11,10 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026092312">
+    <link rel="stylesheet" href="./styles.css?v=2026092313">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026092312"></script>
+    <script defer src="./app.js?v=2026092313"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -34,6 +34,7 @@
           </div>
           <button id="headerBarButton" class="header-view-button" type="button">
             <span>バー</span>
+            <span id="barOrderBadge" class="bar-order-badge" aria-label="未提供オーダー数" hidden></span>
           </button>
         </div>
         <span id="syncBadge" class="sync-badge is-local">デモ同期</span>
