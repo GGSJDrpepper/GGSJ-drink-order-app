@@ -198,6 +198,7 @@
     notificationBuffers: new Map(),
     notificationBufferPromises: new Map(),
     notificationWarmTimer: null,
+    sendStatusTimer: null,
     audioUnlockPromise: null,
     soundSavePromise: Promise.resolve(false),
     iconRefreshTimer: null,
@@ -1244,6 +1245,7 @@
     const { form, draft } = pending;
     const button = $("#sendConfirmedOrder");
     button.disabled = true;
+    setOrderSendStatus("sending");
 
     try {
       const items = collectConfirmItems();
@@ -1265,7 +1267,12 @@
       state.carts[draft.source] = [];
       resetForm(form);
       closeConfirm();
-      await savePromise;
+      const saved = await savePromise;
+      setOrderSendStatus(saved ? "complete" : "failed");
+    } catch (error) {
+      console.error(error);
+      setOrderSendStatus("failed");
+      toast("送信に失敗しました。通信状態を確認してください", { long: true });
     } finally {
       button.disabled = false;
     }
@@ -1471,6 +1478,7 @@
 
   function renderMenuPicker(picker) {
     const form = picker.closest(".order-form");
+    const useCustomOrder = form.dataset.source === "reception" && state.receptionMenuMode === "custom";
     const fallbackCategory = firstCategoryId();
     const requestedCategory = picker.dataset.activeCategory || fallbackCategory;
     const activeCategory = state.menu.some((category) => category.id === requestedCategory) ? requestedCategory : fallbackCategory;
@@ -1485,6 +1493,7 @@
     }
 
     picker.dataset.activeCategory = activeCategory;
+    picker.classList.toggle("custom-menu-picker", useCustomOrder);
     $("[data-menu-categories]", picker).innerHTML = state.menu.map(
       (category) => `
         <button class="menu-category-button ${category.id === activeCategory ? "active" : ""}" type="button" data-menu-category="${category.id}">
@@ -1493,7 +1502,6 @@
       `
     ).join("");
 
-    const useCustomOrder = form.dataset.source === "reception" && state.receptionMenuMode === "custom";
     const itemCounts = useCustomOrder ? menuItemOrderCounts() : null;
     const categoryGroups = state.menu.map((category) => ({
       category,
@@ -1529,6 +1537,7 @@
     itemGrid.innerHTML = categorySections
       ? `${globalSubcategoryNav}${categorySections}`
       : `<div class="menu-empty">商品未設定</div>`;
+    updateMenuCategoryActive(picker, activeCategory);
     setupMenuScrollTracking(picker);
     requestAnimationFrame(() => syncMenuCategoryToScroll(picker));
 
@@ -1591,18 +1600,17 @@
   }
 
   function rankedMenuCategoryGroups(category, itemCounts) {
-    const items = (category.items || [])
-      .map((item, itemIndex) => ({
-        item,
-        itemIndex,
-        count: itemCounts.get(item.name) || 0,
-      }))
-      .sort((a, b) => b.count - a.count || a.itemIndex - b.itemIndex)
-      .map((entry) => entry.item);
-
-    return items.length
-      ? [{ id: DEFAULT_SUBCATEGORY_ID, label: DEFAULT_SUBCATEGORY_LABEL, items }]
-      : [];
+    return menuSubcategoryGroups(category).map((group) => ({
+      ...group,
+      items: group.items
+        .map((item, itemIndex) => ({
+          item,
+          itemIndex,
+          count: itemCounts.get(item.name) || 0,
+        }))
+        .sort((a, b) => b.count - a.count || a.itemIndex - b.itemIndex)
+        .map((entry) => entry.item),
+    }));
   }
 
   function shouldShowSubcategoryUi(groups) {
@@ -1616,6 +1624,10 @@
   function updateMenuCategoryActive(picker, categoryId) {
     $$("[data-menu-category]", picker).forEach((button) => {
       button.classList.toggle("active", button.dataset.menuCategory === categoryId);
+    });
+    $$("[data-menu-section]", picker).forEach((section) => {
+      section.hidden = picker.classList.contains("custom-menu-picker")
+        && section.dataset.menuSection !== categoryId;
     });
   }
 
@@ -1633,6 +1645,7 @@
   }
 
   function syncMenuCategoryToScroll(picker) {
+    if (picker.classList.contains("custom-menu-picker")) return;
     const scroller = $("[data-drink-buttons]", picker);
     const sections = $$("[data-menu-section]", picker);
     if (!scroller || !sections.length) return;
@@ -2183,11 +2196,40 @@
         setSyncMode("local", "送信失敗");
       } else {
         (data || []).map(normalizeOrder).forEach(upsertOrder);
-        return;
+        return true;
       }
     }
 
     saveLocalOrders();
+    return state.syncMode !== "local" || !state.supabase;
+  }
+
+  function setOrderSendStatus(status) {
+    const node = $("#orderSendStatus");
+    if (!node) return;
+    const labels = {
+      sending: "送信中...",
+      complete: "送信完了",
+      failed: "送信失敗",
+    };
+
+    if (state.sendStatusTimer) {
+      clearTimeout(state.sendStatusTimer);
+      state.sendStatusTimer = null;
+    }
+
+    node.dataset.state = status;
+    node.textContent = labels[status] || "";
+    node.hidden = !labels[status];
+
+    if (status !== "sending" && labels[status]) {
+      state.sendStatusTimer = window.setTimeout(() => {
+        node.hidden = true;
+        node.textContent = "";
+        delete node.dataset.state;
+        state.sendStatusTimer = null;
+      }, status === "failed" ? 5000 : 2600);
+    }
   }
 
   async function updateOrder(id, patch) {

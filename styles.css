@@ -792,6 +792,96 @@ button:focus-visible {
   --menu-global-subcategory-height: 0px;
 }
 
+.custom-menu-picker .menu-picker {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "custom-categories"
+    "custom-items";
+}
+
+.custom-menu-picker .menu-category-list {
+  grid-area: custom-categories;
+  position: relative;
+  height: auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #eeeeee;
+  background: #ffffff;
+}
+
+.custom-menu-picker .menu-item-grid {
+  grid-area: custom-items;
+}
+
+.custom-menu-picker .menu-category-button {
+  min-height: 48px;
+  justify-content: center;
+  padding: 0 8px;
+  border: 2px solid #e5e0da;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #68635e;
+  font-size: 0.96rem;
+  text-align: center;
+}
+
+.custom-menu-picker .menu-category-button.active {
+  border-color: var(--teal);
+  background: var(--teal);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.2);
+}
+
+.custom-menu-picker .menu-category-section + .menu-category-section {
+  border-top: 0;
+}
+
+.custom-menu-picker .menu-category-heading {
+  display: none;
+}
+
+.custom-menu-picker .menu-subcategory-section {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 14px 16px;
+}
+
+.custom-menu-picker .menu-subcategory-section + .menu-subcategory-section {
+  border-top: 8px solid #f5f5f5;
+}
+
+.custom-menu-picker .menu-subcategory-heading {
+  grid-column: 1 / -1;
+  min-height: 38px;
+  padding: 0 2px;
+  font-size: 1rem;
+}
+
+.custom-menu-picker .menu-item-grid .choice-button {
+  width: auto;
+  min-height: 82px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #dcd6d0;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.custom-menu-picker .menu-item-name {
+  font-size: 1.14rem;
+}
+
+.custom-menu-picker .menu-item-meta {
+  justify-content: space-between;
+}
+
 .menu-category-section {
   background: #ffffff;
 }
@@ -1024,6 +1114,65 @@ button:focus-visible {
   background: #ffc064;
   box-shadow: 0 -8px 24px rgba(47, 47, 47, 0.08);
   transform: translateX(-50%);
+}
+
+.order-send-status {
+  position: absolute;
+  right: 12px;
+  top: -42px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border: 1px solid #cfc9c2;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #5f5b57;
+  font-size: 0.82rem;
+  font-weight: 850;
+  box-shadow: 0 4px 14px rgba(47, 47, 47, 0.12);
+  pointer-events: none;
+}
+
+.order-send-status::before {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #f59e0b;
+  content: "";
+}
+
+.order-send-status[data-state="sending"]::before {
+  animation: send-status-pulse 0.8s ease-in-out infinite alternate;
+}
+
+.order-send-status[data-state="complete"] {
+  border-color: #9dd9b3;
+  color: #167342;
+}
+
+.order-send-status[data-state="complete"]::before {
+  background: #22a35a;
+}
+
+.order-send-status[data-state="failed"] {
+  border-color: #efaaa3;
+  color: #b42318;
+}
+
+.order-send-status[data-state="failed"]::before {
+  background: #dc3d32;
+}
+
+.order-send-status[hidden] {
+  display: none;
+}
+
+@keyframes send-status-pulse {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
 }
 
 .confirm-button {
@@ -3173,6 +3322,22 @@ dialog::backdrop {
   .menu-picker {
     --sticky-confirm-space: calc(86px + env(safe-area-inset-bottom, 0px));
     grid-template-columns: 108px minmax(0, 1fr);
+  }
+
+  .custom-menu-picker .menu-picker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .custom-menu-picker .menu-category-button {
+    min-height: 44px;
+    padding: 0 4px;
+    font-size: 0.78rem;
+  }
+
+  .custom-menu-picker .menu-subcategory-section {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px 8px 14px;
   }
 
   .menu-category-button {
