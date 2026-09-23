@@ -173,6 +173,14 @@
     unknown: "不明",
   };
 
+  const paymentMethodIndicatorLabels = {
+    cash: "現金払い",
+    card: "カード払い",
+    paypay: "PayPay",
+    coin: "コイン払い",
+    unknown: "不明",
+  };
+
   const paymentMethodVisuals = {
     cash: { type: "emoji", value: "💴" },
     card: {
@@ -2812,12 +2820,15 @@
 
   function paymentMethodIndicator(paymentMethod) {
     const visual = paymentMethodVisuals[paymentMethod] || paymentMethodVisuals.unknown;
-    const label = escapeHtml(paymentMethodLabels[paymentMethod] || paymentMethodLabels.unknown);
+    const label = escapeHtml(paymentMethodIndicatorLabels[paymentMethod] || paymentMethodIndicatorLabels.unknown);
     let content = `<i data-lucide="${visual.value}" aria-hidden="true"></i>`;
     if (visual.type === "emoji") content = `<span class="payment-method-emoji" aria-hidden="true">${visual.value}</span>`;
     if (visual.type === "image") content = `<img src="${visual.value}" alt="" aria-hidden="true">`;
     if (visual.type === "group") content = paymentVisualGroup(visual.values);
-    return `<span class="payment-method-icon payment-visual-${visual.type}" aria-label="${label}" title="${label}">${content}</span>`;
+    return `<span class="payment-method-indicator" aria-label="${label}" title="${label}">
+      <span class="payment-method-icon payment-visual-${visual.type}" aria-hidden="true">${content}</span>
+      <span class="payment-method-indicator-label">${label}</span>
+    </span>`;
   }
 
   function paymentVisualGroup(items) {

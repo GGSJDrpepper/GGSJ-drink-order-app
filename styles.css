@@ -1617,6 +1617,21 @@ button:focus-visible {
   margin-bottom: 10px;
 }
 
+.payment-method-indicator {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--payment-accent);
+}
+
+.payment-method-indicator-label {
+  font-size: 0.94rem;
+  font-weight: 900;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .payment-method-icon {
   width: 44px;
   height: 44px;
