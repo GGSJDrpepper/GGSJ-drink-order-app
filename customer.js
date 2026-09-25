@@ -197,6 +197,18 @@
     state.categoryId = button.dataset.category;
     state.subcategoryId = activeCategory()?.subcategories?.[0]?.id || "";
     renderMenu();
+    requestAnimationFrame(ensureMenuHeadingVisible);
+  }
+
+  function ensureMenuHeadingVisible() {
+    const heading = $(".section-heading");
+    const header = $(".customer-header");
+    if (!heading || !header) return;
+    const headingTop = heading.getBoundingClientRect().top;
+    const visibleTop = header.getBoundingClientRect().bottom + 8;
+    if (headingTop >= visibleTop) return;
+    const top = window.scrollY + headingTop - visibleTop;
+    window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
   }
 
   function handleSubcategoryChoice(event) {
