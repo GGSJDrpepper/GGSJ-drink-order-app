@@ -23,7 +23,6 @@
     activeItem: null,
     quantity: 1,
     submitting: false,
-    productAreaMinHeight: 0,
   };
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -151,10 +150,7 @@
       ...subcategory,
       items: category.items.filter((item) => item.subcategory_id === subcategory.id),
     })).filter((group) => group.items.length);
-    const productSections = $("#productSections");
-    state.productAreaMinHeight = Math.max(state.productAreaMinHeight, productSections.offsetHeight);
-    if (state.productAreaMinHeight) productSections.style.minHeight = `${state.productAreaMinHeight}px`;
-    productSections.innerHTML = groups.map((group) => `
+    $("#productSections").innerHTML = groups.map((group) => `
       <section class="product-group" data-product-group="${escapeHtml(group.id)}">
         <h3>${escapeHtml(group.label)}</h3>
         <div class="product-grid">
@@ -162,10 +158,6 @@
         </div>
       </section>
     `).join("");
-    requestAnimationFrame(() => {
-      state.productAreaMinHeight = Math.max(state.productAreaMinHeight, productSections.scrollHeight);
-      productSections.style.minHeight = `${state.productAreaMinHeight}px`;
-    });
   }
 
   function productButton(category, item) {
@@ -183,11 +175,18 @@
   function handleCategoryChoice(event) {
     const button = event.target.closest("[data-category]");
     if (!button) return;
-    const scrollTop = window.scrollY;
     state.categoryId = button.dataset.category;
     state.subcategoryId = activeCategory()?.subcategories?.[0]?.id || "";
     renderMenu();
-    requestAnimationFrame(() => window.scrollTo({ top: scrollTop, behavior: "auto" }));
+    requestAnimationFrame(scrollToGenreControls);
+  }
+
+  function scrollToGenreControls() {
+    const level = $(".menu-level-primary");
+    const header = $(".customer-header");
+    if (!level) return;
+    const top = window.scrollY + level.getBoundingClientRect().top - (header?.offsetHeight || 0) - 8;
+    window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
   }
 
   function handleSubcategoryChoice(event) {
