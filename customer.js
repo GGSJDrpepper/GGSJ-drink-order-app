@@ -4,6 +4,7 @@
   const SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
   const PAYMENT_METHODS = [
     { id: "cash", label: "現金", icon: "¥" },
     { id: "card", label: "カード端末", icon: "▣" },
@@ -16,6 +17,7 @@
     supabase: null,
     menu: [],
     tableNo: "",
+    seatNo: "",
     paymentMethod: "",
     categoryId: "",
     subcategoryId: "",
@@ -44,6 +46,7 @@
 
   function bindEvents() {
     $("#tableChoices").addEventListener("click", handleTableChoice);
+    $("#seatChoices").addEventListener("click", handleSeatChoice);
     $("#paymentChoices").addEventListener("click", handlePaymentChoice);
     $("#categoryTabs").addEventListener("click", handleCategoryChoice);
     $("#subcategoryTabs").addEventListener("click", handleSubcategoryChoice);
@@ -69,6 +72,10 @@
     $("#tableChoices").innerHTML = TABLES.map((table) => `
       <button class="selection-button${state.tableNo === table ? " active" : ""}" type="button" data-table="${table}">${table}</button>
     `).join("");
+    $("#seatChoices").innerHTML = SEATS.map((seat) => `
+      <button class="selection-button${state.seatNo === seat ? " active" : ""}" type="button" data-seat="${seat}">${seat}</button>
+    `).join("");
+    $("#seatChoiceFlow").hidden = !state.tableNo;
     $("#paymentChoices").innerHTML = PAYMENT_METHODS.map((method) => `
       <button class="selection-button${state.paymentMethod === method.id ? " active" : ""}" type="button" data-payment="${method.id}">
         <span class="payment-icon" aria-hidden="true">${method.icon}</span>${method.label}
@@ -79,7 +86,17 @@
   function handleTableChoice(event) {
     const button = event.target.closest("[data-table]");
     if (!button) return;
-    state.tableNo = button.dataset.table;
+    const nextTable = button.dataset.table;
+    if (state.tableNo !== nextTable) state.seatNo = "";
+    state.tableNo = nextTable;
+    renderSetupChoices();
+    updateCheckoutState();
+  }
+
+  function handleSeatChoice(event) {
+    const button = event.target.closest("[data-seat]");
+    if (!button || !state.tableNo) return;
+    state.seatNo = button.dataset.seat;
     renderSetupChoices();
     updateCheckoutState();
   }
@@ -121,12 +138,14 @@
   }
 
   function updateCheckoutState() {
-    const ready = Boolean(state.tableNo && state.paymentMethod);
+    const ready = Boolean(state.tableNo && state.seatNo && state.paymentMethod);
     const guide = $("#checkoutGuide");
     if (guide) {
       guide.textContent = ready
-        ? `${state.tableNo}テーブル・${paymentLabel(state.paymentMethod)}`
-        : "テーブルとお支払い方法を選択してください";
+        ? `${state.tableNo}テーブル・${state.seatNo}番シート・${paymentLabel(state.paymentMethod)}`
+        : state.tableNo && !state.seatNo
+          ? `${state.tableNo}テーブルを選択中・シート番号を選択してください`
+          : "テーブル、シート番号、お支払い方法を選択してください";
     }
     const button = $("#submitOrderButton");
     if (button) button.disabled = !ready || !state.cart.length || state.submitting;
@@ -298,7 +317,7 @@
       </article>
     `).join("");
     $("#dialogCartTotal").textContent = formatPrice(cartTotal());
-    $("#submitOrderButton").disabled = !state.tableNo || !state.paymentMethod || !state.cart.length || state.submitting;
+    $("#submitOrderButton").disabled = !state.tableNo || !state.seatNo || !state.paymentMethod || !state.cart.length || state.submitting;
     $("#submitOrderButton").textContent = state.submitting ? "送信中..." : "この内容で注文する";
     updateCheckoutState();
   }
@@ -319,8 +338,8 @@
   }
 
   async function submitOrder() {
-    if (!state.tableNo || !state.paymentMethod) {
-      toast("テーブルとお支払い方法を選択してください");
+    if (!state.tableNo || !state.seatNo || !state.paymentMethod) {
+      toast("テーブル、シート番号、お支払い方法を選択してください");
       return;
     }
     if (!state.cart.length || state.submitting) return;
@@ -338,7 +357,7 @@
         quantity: 1,
         target: "ring",
         table_no: state.tableNo,
-        seat_no: "",
+        seat_no: state.seatNo,
         payment_status: "uncollected",
         payment_method: state.paymentMethod,
         notes: item.options.length ? `オプション: ${item.options.join(" / ")}` : "",
@@ -360,9 +379,10 @@
     }
 
     const table = state.tableNo;
+    const seat = state.seatNo;
     state.cart = [];
     $("#cartDialog").close();
-    $("#successTable").textContent = `${table}テーブル`;
+    $("#successTable").textContent = `${table}テーブル ${seat}番シート`;
     $("#successDialog").showModal();
     renderMenu();
     renderCartDock();

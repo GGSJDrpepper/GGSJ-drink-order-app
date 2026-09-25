@@ -97,8 +97,21 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 
 .setup-fieldset { margin: 0; padding: 0; border: 0; }
 .setup-fieldset + .setup-fieldset { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+.seat-choice-flow + .setup-fieldset { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
 .setup-fieldset legend { margin-bottom: 11px; font-size: 17px; }
 .setup-fieldset legend span { margin-left: 5px; color: #c92a2a; font-size: 12px; }
+
+.seat-choice-flow { margin-top: 10px; }
+.selection-flow-arrow {
+  display: grid;
+  height: 34px;
+  place-items: center;
+  color: var(--orange);
+  font-size: 27px;
+  font-weight: 900;
+  line-height: 1;
+}
+.seat-setup-fieldset { padding-top: 2px; }
 
 .table-choice-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
 .payment-choice-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; }
