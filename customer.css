@@ -252,8 +252,14 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
 .sheet-price { margin: 7px 0 0; color: var(--muted); }
 .close-button { flex: 0 0 46px; height: 46px; border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 30px; font-weight: 400; }
 .item-options { padding: 6px 0 16px; }
-.option-group { padding: 16px 0; border-bottom: 1px solid var(--line); }
-.option-group legend { margin-bottom: 10px; }
+.option-group {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 18px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+.option-group legend { margin-bottom: 10px; padding: 0; }
 .required-label { margin-left: 6px; color: #c92a2a; font-size: 12px; }
 .option-choices { display: flex; flex-wrap: wrap; gap: 8px; }
 .option-choice input { position: absolute; opacity: 0; }
@@ -308,7 +314,21 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   .payment-choice-grid { grid-template-columns: repeat(3, 1fr); }
   .product-grid { gap: 7px; }
   .product-button { min-height: 76px; padding: 11px 8px; }
-  .sheet-card { padding: 18px 14px; }
+  .sheet-dialog { width: calc(100% - 12px); max-height: calc(100dvh - 12px); }
+  .sheet-card { max-height: calc(100dvh - 12px); padding: 20px 16px; }
+  .option-choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  .option-choice span {
+    display: grid;
+    width: 100%;
+    min-height: 52px;
+    padding: 10px 8px;
+    place-items: center;
+    text-align: center;
+  }
   .sheet-footer { grid-template-columns: 132px 1fr; }
   .cart-button { grid-template-columns: 60px 1fr 78px; padding: 0 12px; font-size: 15px; }
 }
