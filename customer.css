@@ -123,8 +123,12 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   background: #f3f1ee;
 }
 .menu-level-secondary {
+  position: sticky;
+  z-index: 12;
+  top: 84px;
   padding: 17px 0 11px;
   border-bottom: 1px solid #e4dfd9;
+  background: var(--surface);
 }
 .menu-level-label {
   margin: 0 0 9px;
@@ -289,6 +293,7 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   h1 { font-size: 21px; }
   .customer-main { padding-right: 10px; padding-left: 10px; }
   .order-setup, .menu-section { padding: 16px 12px; }
+  .menu-level-secondary { top: 72px; }
   .category-tabs {
     display: grid;
     grid-template-columns: 1.45fr 1.15fr .8fr .8fr;

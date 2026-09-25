@@ -195,8 +195,17 @@
     if (!button) return;
     state.subcategoryId = button.dataset.subcategory;
     renderMenu();
-    const group = $(`[data-product-group="${cssEscape(state.subcategoryId)}"]`);
-    group?.scrollIntoView({ behavior: "smooth", block: "start" });
+    requestAnimationFrame(() => scrollToProductGroup(state.subcategoryId));
+  }
+
+  function scrollToProductGroup(subcategoryId) {
+    const group = $(`[data-product-group="${cssEscape(subcategoryId)}"]`);
+    const header = $(".customer-header");
+    const subcategoryLevel = $(".menu-level-secondary");
+    if (!group || !subcategoryLevel) return;
+    const offset = (header?.offsetHeight || 0) + subcategoryLevel.offsetHeight + 10;
+    const top = window.scrollY + group.getBoundingClientRect().top - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }
 
   function handleProductChoice(event) {
