@@ -197,15 +197,6 @@
     state.categoryId = button.dataset.category;
     state.subcategoryId = activeCategory()?.subcategories?.[0]?.id || "";
     renderMenu();
-    requestAnimationFrame(scrollToGenreControls);
-  }
-
-  function scrollToGenreControls() {
-    const level = $(".menu-level-primary");
-    const header = $(".customer-header");
-    if (!level) return;
-    const top = window.scrollY + level.getBoundingClientRect().top - (header?.offsetHeight || 0) - 8;
-    window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
   }
 
   function handleSubcategoryChoice(event) {
