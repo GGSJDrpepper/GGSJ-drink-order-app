@@ -357,6 +357,7 @@
           picker.dataset.activeCategory = categoryId;
           updateMenuCategoryActive(picker, categoryId);
           scheduleCustomMenuNameFit(picker);
+          updateCustomMenuSubcategoryRange(picker, subcategoryButton.dataset.menuSubcategory);
           updateMenuSubcategoryActive(picker, subcategoryButton.dataset.menuSubcategory);
           scrollToMenuSubcategory(picker, subcategoryButton.dataset.menuSubcategory);
           return;
@@ -371,6 +372,7 @@
           const firstSubcategory = $$("[data-menu-subcategory]", picker)
             .find((button) => button.dataset.menuSubcategoryCategory === categoryId);
           if (firstSubcategory) {
+            updateCustomMenuSubcategoryRange(picker, firstSubcategory.dataset.menuSubcategory);
             updateMenuSubcategoryActive(picker, firstSubcategory.dataset.menuSubcategory);
             scrollToMenuSubcategory(picker, firstSubcategory.dataset.menuSubcategory);
           } else {
@@ -1789,6 +1791,19 @@
       button.classList.toggle("active", button.dataset.menuSubcategory === subcategoryId);
     });
     scrollMenuSubcategoryNavToActive(picker, subcategoryId);
+  }
+
+  function updateCustomMenuSubcategoryRange(picker, subcategoryId) {
+    if (!picker.classList.contains("custom-menu-picker")) return;
+    const selectedSection = $$("[data-menu-subsection]", picker)
+      .find((section) => section.dataset.menuSubsection === subcategoryId);
+    const categorySection = selectedSection?.closest("[data-menu-section]");
+    if (!selectedSection || !categorySection) return;
+    const subsections = $$("[data-menu-subsection]", categorySection);
+    const selectedIndex = subsections.indexOf(selectedSection);
+    subsections.forEach((section, index) => {
+      section.hidden = index < selectedIndex;
+    });
   }
 
   function syncMenuSubcategoryToScroll(picker, scroller, categorySection, stickyOffset, atBottom) {
