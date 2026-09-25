@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f97316">
+    <title>ドリンクオーダー</title>
+    <link rel="stylesheet" href="./customer.css?v=2026092601">
+    <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script defer src="./customer.js?v=2026092602"></script>
+  </head>
+  <body>
+    <header class="customer-header">
+      <div>
+        <p class="customer-eyebrow">TABLE ORDER</p>
+        <h1>ドリンクオーダー</h1>
+      </div>
+      <span id="connectionBadge" class="connection-badge">接続中</span>
+    </header>
+
+    <main class="customer-main">
+      <section id="menuSection" class="menu-section" aria-labelledby="menuTitle">
+        <div class="section-heading">
+          <span class="step-number">1</span>
+          <div>
+            <h2 id="menuTitle">商品を選ぶ</h2>
+            <p id="menuGuide">商品を選んでカートに追加してください</p>
+          </div>
+        </div>
+        <div id="menuContent">
+          <div class="menu-level menu-level-primary">
+            <p class="menu-level-label">ジャンル</p>
+            <nav id="categoryTabs" class="category-tabs" aria-label="ジャンル"></nav>
+          </div>
+          <div class="menu-level menu-level-secondary">
+            <p class="menu-level-label">サブジャンル</p>
+            <nav id="subcategoryTabs" class="subcategory-tabs" aria-label="サブジャンル"></nav>
+          </div>
+          <div id="productSections" class="product-sections"></div>
+        </div>
+      </section>
+    </main>
+
+    <div id="cartDock" class="cart-dock" hidden>
+      <button id="openCartButton" class="cart-button" type="button">
+        <span class="cart-count-wrap"><span id="cartCount" class="cart-count">0</span>点</span>
+        <strong>注文内容を確認</strong>
+        <span id="cartTotal" class="cart-total">¥0</span>
+      </button>
+    </div>
+
+    <dialog id="itemDialog" class="sheet-dialog">
+      <form id="itemForm" method="dialog" class="sheet-card">
+        <div class="sheet-head">
+          <div>
+            <p id="itemCategory" class="sheet-kicker"></p>
+            <h2 id="itemName"></h2>
+            <p id="itemPrice" class="sheet-price"></p>
+          </div>
+          <button class="close-button" type="button" data-close-dialog="itemDialog" aria-label="閉じる">×</button>
+        </div>
+        <div id="itemOptions" class="item-options"></div>
+        <div class="sheet-footer">
+          <div class="quantity-stepper" aria-label="数量">
+            <button id="decreaseQuantity" type="button" aria-label="数量を減らす">−</button>
+            <strong id="itemQuantity">1</strong>
+            <button id="increaseQuantity" type="button" aria-label="数量を増やす">＋</button>
+          </div>
+          <button id="addToCartButton" class="primary-button" type="submit">カートに入れる</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="cartDialog" class="sheet-dialog cart-dialog">
+      <div class="sheet-card">
+        <div class="sheet-head">
+          <div>
+            <p class="sheet-kicker">TABLE ORDER</p>
+            <h2>注文内容の確認</h2>
+          </div>
+          <button class="close-button" type="button" data-close-dialog="cartDialog" aria-label="閉じる">×</button>
+        </div>
+        <section class="checkout-setup" aria-labelledby="checkoutSetupTitle">
+          <div class="checkout-heading">
+            <span class="step-number">2</span>
+            <div>
+              <h3 id="checkoutSetupTitle">お届け先とお支払い方法</h3>
+              <p id="checkoutGuide">それぞれ選択してください</p>
+            </div>
+          </div>
+          <fieldset class="setup-fieldset">
+            <legend>テーブル <span>必須</span></legend>
+            <div id="tableChoices" class="table-choice-grid" aria-label="テーブル選択"></div>
+          </fieldset>
+          <fieldset class="setup-fieldset">
+            <legend>お支払い方法 <span>必須</span></legend>
+            <div id="paymentChoices" class="payment-choice-grid" aria-label="支払い方法選択"></div>
+          </fieldset>
+        </section>
+        <div id="cartItems" class="cart-items"></div>
+        <div class="cart-summary">
+          <span>合計</span>
+          <strong id="dialogCartTotal">¥0</strong>
+        </div>
+        <button id="submitOrderButton" class="primary-button submit-order-button" type="button">この内容で注文する</button>
+        <p class="submit-note">注文後の変更・取消はスタッフへお声がけください</p>
+      </div>
+    </dialog>
+
+    <dialog id="successDialog" class="success-dialog">
+      <div class="success-card">
+        <div class="success-mark">✓</div>
+        <h2>注文を送信しました</h2>
+        <p><strong id="successTable"></strong>へお持ちします</p>
+        <button id="continueOrderButton" class="primary-button" type="button">続けて注文する</button>
+      </div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

@@ -170,14 +170,18 @@
     card: "カード端末",
     paypay: "PayPay",
     coin: "コイン",
+    transit: "交通系",
     unknown: "不明",
   };
+
+  const paymentMethodChoices = ["cash", "card", "paypay", "coin", "transit"];
 
   const paymentMethodIndicatorLabels = {
     cash: "現金払い",
     card: "カード払い",
     paypay: "PayPay",
     coin: "コイン払い",
+    transit: "交通系",
     unknown: "不明",
   };
 
@@ -193,6 +197,7 @@
     },
     paypay: { type: "image", value: "./assets/payment-paypay.png" },
     coin: { type: "image", value: "./assets/payment-coin.png" },
+    transit: { type: "image", value: "./assets/payment-transit.png" },
     unknown: { type: "icon", value: "circle-help" },
   };
 
@@ -2841,7 +2846,7 @@
   function renderPaymentMethodPickers() {
     $$('[data-payment-method-picker]').forEach((picker) => {
       const groupName = picker.dataset.paymentMethodPicker;
-      picker.innerHTML = Object.keys(paymentMethodLabels)
+      picker.innerHTML = paymentMethodChoices
         .map((method) => paymentMethodChoiceBlock(groupName, method))
         .join("");
       $$(`input[name='${groupName}']`, picker).forEach((input) => {
@@ -2917,7 +2922,7 @@
   }
 
   function normalizePaymentMethod(value) {
-    if (value === "id" || value === "transit") return "card";
+    if (value === "id") return "card";
     return Object.prototype.hasOwnProperty.call(paymentMethodLabels, value) ? value : "cash";
   }
 
