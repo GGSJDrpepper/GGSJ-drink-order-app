@@ -381,7 +381,13 @@
     const item = state.cart.find((entry) => entry.id === row.dataset.cartId);
     if (!item) return;
     if (button.dataset.cartAction === "increase") item.quantity = Math.min(20, item.quantity + 1);
-    if (button.dataset.cartAction === "decrease") item.quantity = Math.max(1, item.quantity - 1);
+    if (button.dataset.cartAction === "decrease") {
+      if (item.quantity <= 1) {
+        state.cart = state.cart.filter((entry) => entry.id !== item.id);
+      } else {
+        item.quantity -= 1;
+      }
+    }
     if (button.dataset.cartAction === "remove") state.cart = state.cart.filter((entry) => entry.id !== item.id);
     if (!state.cart.length) $("#cartDialog").close();
     renderMenu();
