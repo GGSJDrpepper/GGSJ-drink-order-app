@@ -1587,6 +1587,8 @@ button:focus-visible {
 
 .order-card.customer-order {
   padding-top: 19px;
+  border-color: #a8d8f2;
+  background: linear-gradient(145deg, #ffffff 0%, #f2faff 42%, #e5f5fd 100%);
 }
 
 .order-card.customer-order::before {
@@ -1611,7 +1613,7 @@ button:focus-visible {
   border: 1px solid #8cccf0;
   border-radius: 6px;
   color: #075d91;
-  background: #edf8fe;
+  background: linear-gradient(90deg, #f5fbff 0%, #e4f5fd 100%);
   font-size: 0.94rem;
   font-weight: 900;
 }
