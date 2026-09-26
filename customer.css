@@ -156,6 +156,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 
 .poker-table-surface::after {
   position: absolute;
+  z-index: 2;
   top: -13%;
   left: 50%;
   width: 31%;
@@ -165,6 +166,18 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   border-radius: 0 0 50% 50%;
   background: #faf9f7;
   content: "";
+  transform: translateX(-50%);
+}
+
+.poker-table-number {
+  position: absolute;
+  z-index: 3;
+  top: 1.5%;
+  left: 50%;
+  color: #252321;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
   transform: translateX(-50%);
 }
 

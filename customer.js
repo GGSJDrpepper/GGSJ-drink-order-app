@@ -79,6 +79,7 @@
       <div class="poker-table-surface" aria-hidden="true">
         <img class="poker-table-logo logo-left" src="./assets/logo-shinjuku.png" alt="">
         <img class="poker-table-logo logo-right" src="./assets/logo-shinjuku.png" alt="">
+        <span class="poker-table-number">${state.tableNo}</span>
       </div>
       ${SEATS.map((seat) => `
         <button class="selection-button poker-seat-button seat-position-${seat}${state.seatNo === seat ? " active" : ""}" type="button" data-seat="${seat}" aria-label="${seat}番シート">${seat}</button>
