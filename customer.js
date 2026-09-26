@@ -71,6 +71,7 @@
   function renderSetupChoices() {
     const tableChoices = $("#tableChoices");
     const visibleTables = state.tableNo ? [state.tableNo] : TABLES;
+    $("#tableChoiceFieldset").hidden = Boolean(state.tableNo);
     tableChoices.classList.toggle("is-collapsed", Boolean(state.tableNo));
     tableChoices.innerHTML = visibleTables.map((table) => `
       <button class="selection-button${state.tableNo === table ? " active" : ""}" type="button" data-table="${table}">${table}</button>
@@ -80,7 +81,7 @@
         <img class="poker-table-logo logo-left" src="./assets/logo-shinjuku.png" alt="">
         <img class="poker-table-logo logo-right" src="./assets/logo-shinjuku.png" alt="">
       </div>
-      <span class="poker-table-number" aria-hidden="true">${state.tableNo}</span>
+      <button class="poker-table-number" type="button" data-change-table aria-label="テーブルを変更">${state.tableNo}</button>
       ${SEATS.map((seat) => `
         <button class="selection-button poker-seat-button seat-position-${seat}${state.seatNo === seat ? " active" : ""}" type="button" data-seat="${seat}" aria-label="${seat}番シート">${seat}</button>
       `).join("")}
@@ -109,6 +110,13 @@
   }
 
   function handleSeatChoice(event) {
+    if (event.target.closest("[data-change-table]")) {
+      state.tableNo = "";
+      state.seatNo = "";
+      renderSetupChoices();
+      updateCheckoutState();
+      return;
+    }
     const button = event.target.closest("[data-seat]");
     if (!button || !state.tableNo) return;
     state.seatNo = button.dataset.seat;
