@@ -2715,6 +2715,10 @@
     const paymentIndicator = isUncollected
       ? `<div class="payment-indicator-row">${paymentMethodIndicator(paymentMethod)}</div>`
       : "";
+    const isCustomerOrder = order.source === "table";
+    const customerIndicator = isCustomerOrder
+      ? `<div class="customer-order-indicator"><span class="customer-order-dot" aria-hidden="true"></span>お客様からの注文</div>`
+      : "";
     const quantity = Math.max(1, Number(order.quantity || 1));
     const quantityPill = quantity >= 2 ? `<span class="qty-pill">x${escapeHtml(String(quantity))}</span>` : "";
     const locationCode = barLocationCode(order);
@@ -2727,8 +2731,9 @@
     const note = displayOrderNote(order.notes);
 
     return `
-      <article class="order-card ${statusClass}${paymentClass}${waitingClass}" data-order-id="${escapeHtml(order.id)}">
+      <article class="order-card ${statusClass}${paymentClass}${waitingClass}${isCustomerOrder ? " customer-order" : ""}" data-order-id="${escapeHtml(order.id)}">
         <div class="order-main">
+          ${customerIndicator}
           ${paymentIndicator}
           <div class="order-destination-row">
             <span class="order-target-label">

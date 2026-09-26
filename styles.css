@@ -1585,6 +1585,46 @@ button:focus-visible {
   background: #ffffff;
 }
 
+.order-card.customer-order {
+  padding-top: 19px;
+}
+
+.order-card.customer-order::before {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  left: -1px;
+  height: 4px;
+  border-radius: 8px 8px 0 0;
+  background: #35a7e8;
+  content: "";
+  pointer-events: none;
+}
+
+.customer-order-indicator {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: -2px 0 10px;
+  padding: 7px 10px;
+  border: 1px solid #8cccf0;
+  border-radius: 6px;
+  color: #075d91;
+  background: #edf8fe;
+  font-size: 0.94rem;
+  font-weight: 900;
+}
+
+.customer-order-dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 50%;
+  background: #168fd2;
+  box-shadow: 0 0 0 4px rgba(22, 143, 210, 0.15);
+}
+
 .order-card.payment-cash {
   --payment-accent: #777f7b;
   --payment-soft: #f1f3f2;
