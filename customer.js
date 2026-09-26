@@ -17,7 +17,7 @@
     supabase: null,
     menu: [],
     tableNo: "",
-    seatNo: "",
+    seatNos: [],
     paymentMethod: "",
     categoryId: "",
     subcategoryId: "",
@@ -68,10 +68,14 @@
   }
 
   function renderSetupChoices() {
+    normalizeSeatSelection();
     const seatChoices = $("#seatChoices");
     seatChoices.classList.toggle("is-table-picking", !state.tableNo);
     seatChoices.setAttribute("aria-label", state.tableNo ? "シート番号選択" : "テーブル選択");
-    $("#seatChoiceLegend").innerHTML = `${state.tableNo ? "シート番号" : "テーブル"} <span>必須</span>`;
+    const multiSeatHint = state.tableNo && cartCount() >= 2
+      ? '<small class="multi-seat-hint">複数選択可</small>'
+      : "";
+    $("#seatChoiceLegend").innerHTML = `${state.tableNo ? "シート番号" : "テーブル"} <span>必須</span>${multiSeatHint}`;
     seatChoices.innerHTML = `
       <div class="poker-table-surface" aria-hidden="true">
         <img class="poker-table-logo logo-left" src="./assets/logo-shinjuku.png" alt="">
@@ -87,7 +91,7 @@
         </div>
       `}
       ${SEATS.map((seat) => `
-        <button class="selection-button poker-seat-button seat-position-${seat}${state.seatNo === seat ? " active" : ""}" type="button" data-seat="${seat}" aria-label="${seat}番シート"${state.tableNo ? "" : " disabled"}>${seat}</button>
+        <button class="selection-button poker-seat-button seat-position-${seat}${state.seatNos.includes(seat) ? " active" : ""}" type="button" data-seat="${seat}" aria-label="${seat}番シート"${state.tableNo ? "" : " disabled"}>${seat}</button>
       `).join("")}
     `;
     $("#paymentChoices").innerHTML = PAYMENT_METHODS.map((method) => `
@@ -103,10 +107,10 @@
     const nextTable = button.dataset.table;
     if (state.tableNo === nextTable) {
       state.tableNo = "";
-      state.seatNo = "";
+      state.seatNos = [];
     } else {
       state.tableNo = nextTable;
-      state.seatNo = "";
+      state.seatNos = [];
     }
     renderSetupChoices();
     updateCheckoutState();
@@ -119,16 +123,30 @@
     }
     if (event.target.closest("[data-change-table]")) {
       state.tableNo = "";
-      state.seatNo = "";
+      state.seatNos = [];
       renderSetupChoices();
       updateCheckoutState();
       return;
     }
     const button = event.target.closest("[data-seat]");
     if (!button || !state.tableNo) return;
-    state.seatNo = button.dataset.seat;
+    const seat = button.dataset.seat;
+    if (cartCount() < 2) {
+      state.seatNos = [seat];
+    } else if (state.seatNos.includes(seat)) {
+      state.seatNos = state.seatNos.filter((value) => value !== seat);
+    } else if (state.seatNos.length < Math.min(cartCount(), SEATS.length)) {
+      state.seatNos = [...state.seatNos, seat];
+    } else {
+      toast(`シートは注文数の${Math.min(cartCount(), SEATS.length)}席まで選択できます`);
+    }
     renderSetupChoices();
     updateCheckoutState();
+  }
+
+  function normalizeSeatSelection() {
+    const limit = Math.max(1, Math.min(cartCount(), SEATS.length));
+    state.seatNos = state.seatNos.filter((seat) => SEATS.includes(seat)).slice(0, limit);
   }
 
   function handlePaymentChoice(event) {
@@ -168,12 +186,13 @@
   }
 
   function updateCheckoutState() {
-    const ready = Boolean(state.tableNo && state.seatNo && state.paymentMethod);
+    const seatLabel = state.seatNos.join("・");
+    const ready = Boolean(state.tableNo && state.seatNos.length && state.paymentMethod);
     const guide = $("#checkoutGuide");
     if (guide) {
       guide.textContent = ready
-        ? `${state.tableNo}テーブル・${state.seatNo}番シート・${paymentLabel(state.paymentMethod)}`
-        : state.tableNo && !state.seatNo
+        ? `${state.tableNo}テーブル・${seatLabel}番シート・${paymentLabel(state.paymentMethod)}`
+        : state.tableNo && !state.seatNos.length
           ? `${state.tableNo}テーブルを選択中・シート番号を選択してください`
           : "テーブル、シート番号、お支払い方法を選択してください";
     }
@@ -350,7 +369,7 @@
       </article>
     `).join("");
     $("#dialogCartTotal").textContent = formatPrice(cartTotal());
-    $("#submitOrderButton").disabled = !state.tableNo || !state.seatNo || !state.paymentMethod || !state.cart.length || state.submitting;
+    $("#submitOrderButton").disabled = !state.tableNo || !state.seatNos.length || !state.paymentMethod || !state.cart.length || state.submitting;
     $("#submitOrderButton").textContent = state.submitting ? "送信中..." : "この内容で注文する";
     updateCheckoutState();
   }
@@ -371,7 +390,7 @@
   }
 
   async function submitOrder() {
-    if (!state.tableNo || !state.seatNo || !state.paymentMethod) {
+    if (!state.tableNo || !state.seatNos.length || !state.paymentMethod) {
       toast("テーブル、シート番号、お支払い方法を選択してください");
       return;
     }
@@ -390,7 +409,7 @@
         quantity: 1,
         target: "ring",
         table_no: state.tableNo,
-        seat_no: state.seatNo,
+        seat_no: state.seatNos.join("・"),
         payment_status: "uncollected",
         payment_method: state.paymentMethod,
         notes: item.options.length ? `オプション: ${item.options.join(" / ")}` : "",
@@ -412,7 +431,7 @@
     }
 
     const table = state.tableNo;
-    const seat = state.seatNo;
+    const seat = state.seatNos.join("・");
     state.cart = [];
     $("#cartDialog").close();
     $("#successTable").textContent = `${table}テーブル ${seat}番シート`;
