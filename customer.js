@@ -18,7 +18,7 @@
     menu: [],
     tableNo: "",
     seatNos: [],
-    paymentMethod: "",
+    paymentMethods: [],
     categoryId: "",
     subcategoryId: "",
     cart: [],
@@ -69,6 +69,7 @@
 
   function renderSetupChoices() {
     normalizeSeatSelection();
+    normalizePaymentSelection();
     const seatChoices = $("#seatChoices");
     seatChoices.classList.toggle("is-table-picking", !state.tableNo);
     seatChoices.setAttribute("aria-label", state.tableNo ? "シート番号選択" : "テーブル選択");
@@ -94,8 +95,10 @@
         <button class="selection-button poker-seat-button seat-position-${seat}${state.seatNos.includes(seat) ? " active" : ""}" type="button" data-seat="${seat}" aria-label="${seat}番シート"${state.tableNo ? "" : " disabled"}>${seat}</button>
       `).join("")}
     `;
+    const multiPaymentHint = cartCount() >= 2 ? '<small class="multi-choice-hint">複数選択可</small>' : "";
+    $("#paymentChoiceLegend").innerHTML = `お支払い方法 <span>必須</span>${multiPaymentHint}`;
     $("#paymentChoices").innerHTML = PAYMENT_METHODS.map((method) => `
-      <button class="selection-button${state.paymentMethod === method.id ? " active" : ""}" type="button" data-payment="${method.id}">
+      <button class="selection-button${state.paymentMethods.includes(method.id) ? " active" : ""}" type="button" data-payment="${method.id}">
         <span class="payment-icon" aria-hidden="true">${method.icon}</span>${method.label}
       </button>
     `).join("");
@@ -152,9 +155,24 @@
   function handlePaymentChoice(event) {
     const button = event.target.closest("[data-payment]");
     if (!button) return;
-    state.paymentMethod = button.dataset.payment;
+    const paymentMethod = button.dataset.payment;
+    if (cartCount() < 2) {
+      state.paymentMethods = [paymentMethod];
+    } else if (state.paymentMethods.includes(paymentMethod)) {
+      state.paymentMethods = state.paymentMethods.filter((value) => value !== paymentMethod);
+    } else if (state.paymentMethods.length < Math.min(cartCount(), PAYMENT_METHODS.length)) {
+      state.paymentMethods = [...state.paymentMethods, paymentMethod];
+    } else {
+      toast(`お支払い方法は注文数の${Math.min(cartCount(), PAYMENT_METHODS.length)}種類まで選択できます`);
+    }
     renderSetupChoices();
     updateCheckoutState();
+  }
+
+  function normalizePaymentSelection() {
+    const validMethods = PAYMENT_METHODS.map((method) => method.id);
+    const limit = Math.max(1, Math.min(cartCount(), validMethods.length));
+    state.paymentMethods = state.paymentMethods.filter((method) => validMethods.includes(method)).slice(0, limit);
   }
 
   async function loadMenu() {
@@ -187,11 +205,12 @@
 
   function updateCheckoutState() {
     const seatLabel = state.seatNos.join("・");
-    const ready = Boolean(state.tableNo && state.seatNos.length && state.paymentMethod);
+    const selectedPaymentLabel = state.paymentMethods.map(paymentLabel).join("・");
+    const ready = Boolean(state.tableNo && state.seatNos.length && state.paymentMethods.length);
     const guide = $("#checkoutGuide");
     if (guide) {
       guide.textContent = ready
-        ? `${state.tableNo}テーブル・${seatLabel}番シート・${paymentLabel(state.paymentMethod)}`
+        ? `${state.tableNo}テーブル・${seatLabel}番シート・${selectedPaymentLabel}`
         : state.tableNo && !state.seatNos.length
           ? `${state.tableNo}テーブルを選択中・シート番号を選択してください`
           : "テーブル、シート番号、お支払い方法を選択してください";
@@ -369,7 +388,7 @@
       </article>
     `).join("");
     $("#dialogCartTotal").textContent = formatPrice(cartTotal());
-    $("#submitOrderButton").disabled = !state.tableNo || !state.seatNos.length || !state.paymentMethod || !state.cart.length || state.submitting;
+    $("#submitOrderButton").disabled = !state.tableNo || !state.seatNos.length || !state.paymentMethods.length || !state.cart.length || state.submitting;
     $("#submitOrderButton").textContent = state.submitting ? "送信中..." : "この内容で注文する";
     updateCheckoutState();
   }
@@ -396,7 +415,7 @@
   }
 
   async function submitOrder() {
-    if (!state.tableNo || !state.seatNos.length || !state.paymentMethod) {
+    if (!state.tableNo || !state.seatNos.length || !state.paymentMethods.length) {
       toast("テーブル、シート番号、お支払い方法を選択してください");
       return;
     }
@@ -404,8 +423,10 @@
     state.submitting = true;
     renderCartDialog();
     const startedAt = Date.now();
+    let rowIndex = 0;
     const rows = state.cart.flatMap((item) => Array.from({ length: item.quantity }, (_, index) => {
-      const now = new Date(startedAt + index).toISOString();
+      const currentRowIndex = rowIndex++;
+      const now = new Date(startedAt + currentRowIndex).toISOString();
       return {
         id: crypto.randomUUID(),
         created_at: now,
@@ -417,7 +438,7 @@
         table_no: state.tableNo,
         seat_no: state.seatNos.join("・"),
         payment_status: "uncollected",
-        payment_method: state.paymentMethod,
+        payment_method: state.paymentMethods[currentRowIndex % state.paymentMethods.length],
         notes: item.options.length ? `オプション: ${item.options.join(" / ")}` : "",
         status: "ordered",
         made_at: null,
