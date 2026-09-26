@@ -45,7 +45,6 @@
   }
 
   function bindEvents() {
-    $("#tableChoices").addEventListener("click", handleTableChoice);
     $("#seatChoices").addEventListener("click", handleSeatChoice);
     $("#paymentChoices").addEventListener("click", handlePaymentChoice);
     $("#categoryTabs").addEventListener("click", handleCategoryChoice);
@@ -69,24 +68,28 @@
   }
 
   function renderSetupChoices() {
-    const tableChoices = $("#tableChoices");
-    const visibleTables = state.tableNo ? [state.tableNo] : TABLES;
-    $("#tableChoiceFieldset").hidden = Boolean(state.tableNo);
-    tableChoices.classList.toggle("is-collapsed", Boolean(state.tableNo));
-    tableChoices.innerHTML = visibleTables.map((table) => `
-      <button class="selection-button${state.tableNo === table ? " active" : ""}" type="button" data-table="${table}">${table}</button>
-    `).join("");
-    $("#seatChoices").innerHTML = `
+    const seatChoices = $("#seatChoices");
+    seatChoices.classList.toggle("is-table-picking", !state.tableNo);
+    seatChoices.setAttribute("aria-label", state.tableNo ? "シート番号選択" : "テーブル選択");
+    $("#seatChoiceLegend").innerHTML = `${state.tableNo ? "シート番号" : "テーブル"} <span>必須</span>`;
+    seatChoices.innerHTML = `
       <div class="poker-table-surface" aria-hidden="true">
         <img class="poker-table-logo logo-left" src="./assets/logo-shinjuku.png" alt="">
         <img class="poker-table-logo logo-right" src="./assets/logo-shinjuku.png" alt="">
       </div>
-      <button class="poker-table-number" type="button" data-change-table aria-label="テーブルを変更">${state.tableNo}</button>
+      ${state.tableNo ? `
+        <button class="poker-table-number" type="button" data-change-table aria-label="テーブルを変更">${state.tableNo}</button>
+      ` : `
+        <div class="table-choice-overlay" aria-label="テーブル選択">
+          ${TABLES.map((table) => `
+            <button class="selection-button" type="button" data-table="${table}">${table}</button>
+          `).join("")}
+        </div>
+      `}
       ${SEATS.map((seat) => `
-        <button class="selection-button poker-seat-button seat-position-${seat}${state.seatNo === seat ? " active" : ""}" type="button" data-seat="${seat}" aria-label="${seat}番シート">${seat}</button>
+        <button class="selection-button poker-seat-button seat-position-${seat}${state.seatNo === seat ? " active" : ""}" type="button" data-seat="${seat}" aria-label="${seat}番シート"${state.tableNo ? "" : " disabled"}>${seat}</button>
       `).join("")}
     `;
-    $("#seatChoiceFlow").hidden = !state.tableNo;
     $("#paymentChoices").innerHTML = PAYMENT_METHODS.map((method) => `
       <button class="selection-button${state.paymentMethod === method.id ? " active" : ""}" type="button" data-payment="${method.id}">
         <span class="payment-icon" aria-hidden="true">${method.icon}</span>${method.label}
@@ -110,6 +113,10 @@
   }
 
   function handleSeatChoice(event) {
+    if (event.target.closest("[data-table]")) {
+      handleTableChoice(event);
+      return;
+    }
     if (event.target.closest("[data-change-table]")) {
       state.tableNo = "";
       state.seatNo = "";
