@@ -333,6 +333,11 @@
   }
 
   function changeItemQuantity(delta) {
+    if (delta < 0 && state.quantity <= 1) {
+      state.activeItem = null;
+      $("#itemDialog").close();
+      return;
+    }
     state.quantity = Math.max(1, Math.min(20, state.quantity + delta));
     $("#itemQuantity").textContent = String(state.quantity);
   }
