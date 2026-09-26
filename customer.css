@@ -95,7 +95,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   font-weight: 800;
 }
 
-.setup-fieldset { margin: 0; padding: 0; border: 0; }
+.setup-fieldset { width: 100%; min-width: 0; margin: 0; padding: 0; border: 0; }
 .setup-fieldset + .setup-fieldset { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
 .seat-choice-flow + .setup-fieldset { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
 .setup-fieldset legend { margin-bottom: 11px; font-size: 17px; }
@@ -191,6 +191,8 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 .poker-seat-button {
   position: absolute;
   z-index: 3;
+  top: var(--seat-y);
+  left: var(--seat-x);
   width: 52px;
   min-height: 52px;
   height: 52px;
@@ -199,22 +201,23 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   background: #ffffff;
   box-shadow: 0 3px 9px rgba(0, 0, 0, 0.2);
   font-size: 16px;
+  transform: translate(-50%, -50%);
 }
 
 .poker-seat-button.active {
   box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2), 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-.seat-position-1 { top: 0; right: 28%; transform: translateX(50%); }
-.seat-position-2 { top: 8%; right: 9%; }
-.seat-position-3 { top: 34%; right: 0; transform: translateY(-50%); }
-.seat-position-4 { right: 1%; bottom: 24%; }
-.seat-position-5 { right: 16%; bottom: 1%; }
-.seat-position-6 { bottom: 0; left: 60%; transform: translateX(-50%); }
-.seat-position-7 { bottom: 0; left: 40%; transform: translateX(-50%); }
-.seat-position-8 { bottom: 1%; left: 16%; }
-.seat-position-9 { bottom: 24%; left: 1%; }
-.seat-position-10 { top: 8%; left: 9%; }
+.seat-position-1 { --seat-x: 69.267%; --seat-y: 16.922%; }
+.seat-position-2 { --seat-x: 86.511%; --seat-y: 30.455%; }
+.seat-position-3 { --seat-x: 92.133%; --seat-y: 57.393%; }
+.seat-position-4 { --seat-x: 78.382%; --seat-y: 77.796%; }
+.seat-position-5 { --seat-x: 59.719%; --seat-y: 86.043%; }
+.seat-position-6 { --seat-x: 40.280%; --seat-y: 86.042%; }
+.seat-position-7 { --seat-x: 21.617%; --seat-y: 77.795%; }
+.seat-position-8 { --seat-x: 7.867%; --seat-y: 57.392%; }
+.seat-position-9 { --seat-x: 13.490%; --seat-y: 30.454%; }
+.seat-position-10 { --seat-x: 30.734%; --seat-y: 16.922%; }
 
 .menu-level-primary {
   margin: 0 -12px;
