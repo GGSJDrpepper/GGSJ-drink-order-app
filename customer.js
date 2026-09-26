@@ -4,7 +4,7 @@
   const SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
-  const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+  const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
   const PAYMENT_METHODS = [
     { id: "cash", label: "現金", icon: "¥" },
     { id: "card", label: "カード端末", icon: "▣" },
@@ -69,12 +69,21 @@
   }
 
   function renderSetupChoices() {
-    $("#tableChoices").innerHTML = TABLES.map((table) => `
+    const tableChoices = $("#tableChoices");
+    const visibleTables = state.tableNo ? [state.tableNo] : TABLES;
+    tableChoices.classList.toggle("is-collapsed", Boolean(state.tableNo));
+    tableChoices.innerHTML = visibleTables.map((table) => `
       <button class="selection-button${state.tableNo === table ? " active" : ""}" type="button" data-table="${table}">${table}</button>
     `).join("");
-    $("#seatChoices").innerHTML = SEATS.map((seat) => `
-      <button class="selection-button${state.seatNo === seat ? " active" : ""}" type="button" data-seat="${seat}">${seat}</button>
-    `).join("");
+    $("#seatChoices").innerHTML = `
+      <div class="poker-table-surface" aria-hidden="true">
+        <img class="poker-table-logo logo-left" src="./assets/logo-shinjuku.png" alt="">
+        <img class="poker-table-logo logo-right" src="./assets/logo-shinjuku.png" alt="">
+      </div>
+      ${SEATS.map((seat) => `
+        <button class="selection-button poker-seat-button seat-position-${seat}${state.seatNo === seat ? " active" : ""}" type="button" data-seat="${seat}" aria-label="${seat}番シート">${seat}</button>
+      `).join("")}
+    `;
     $("#seatChoiceFlow").hidden = !state.tableNo;
     $("#paymentChoices").innerHTML = PAYMENT_METHODS.map((method) => `
       <button class="selection-button${state.paymentMethod === method.id ? " active" : ""}" type="button" data-payment="${method.id}">
@@ -87,8 +96,13 @@
     const button = event.target.closest("[data-table]");
     if (!button) return;
     const nextTable = button.dataset.table;
-    if (state.tableNo !== nextTable) state.seatNo = "";
-    state.tableNo = nextTable;
+    if (state.tableNo === nextTable) {
+      state.tableNo = "";
+      state.seatNo = "";
+    } else {
+      state.tableNo = nextTable;
+      state.seatNo = "";
+    }
     renderSetupChoices();
     updateCheckoutState();
   }

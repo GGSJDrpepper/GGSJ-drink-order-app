@@ -114,6 +114,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 .seat-setup-fieldset { padding-top: 2px; }
 
 .table-choice-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+.table-choice-grid.is-collapsed { grid-template-columns: repeat(4, 1fr); }
 .payment-choice-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; }
 .selection-button {
   min-height: 54px;
@@ -127,6 +128,93 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 .selection-button.active { border-color: var(--orange); color: #8a3d00; background: var(--orange-soft); }
 .payment-choice-grid .selection-button { min-height: 64px; font-size: 14px; }
 .payment-icon { display: block; margin-bottom: 2px; font-size: 22px; }
+
+.poker-seat-map {
+  position: relative;
+  width: min(100%, 560px);
+  aspect-ratio: 1.55;
+  min-height: 210px;
+  margin: 4px auto 2px;
+}
+
+.poker-table-surface {
+  position: absolute;
+  z-index: 1;
+  inset: 13% 7%;
+  overflow: hidden;
+  border: 8px solid #17191b;
+  border-radius: 50% / 44%;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.08), transparent 42%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 7px),
+    #2a2c2f;
+  box-shadow:
+    inset 0 0 0 2px #484b4e,
+    inset 0 0 30px rgba(0, 0, 0, 0.78),
+    0 8px 15px rgba(0, 0, 0, 0.24);
+}
+
+.poker-table-surface::after {
+  position: absolute;
+  bottom: -13%;
+  left: 50%;
+  width: 31%;
+  height: 27%;
+  border: 7px solid #17191b;
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0;
+  background: #faf9f7;
+  content: "";
+  transform: translateX(-50%);
+}
+
+.poker-table-logo {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  width: 25%;
+  height: auto;
+  opacity: 0.78;
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.18));
+}
+
+.poker-table-logo.logo-left {
+  left: 25%;
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.poker-table-logo.logo-right {
+  right: 25%;
+  transform: translate(50%, -50%) rotate(-90deg);
+}
+
+.poker-seat-button {
+  position: absolute;
+  z-index: 3;
+  width: 52px;
+  min-height: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.2);
+  font-size: 16px;
+}
+
+.poker-seat-button.active {
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2), 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.seat-position-1 { top: 1%; left: 12%; }
+.seat-position-2 { top: 0; left: 35%; transform: translateX(-50%); }
+.seat-position-3 { top: 0; right: 35%; transform: translateX(50%); }
+.seat-position-4 { top: 1%; right: 12%; }
+.seat-position-5 { top: 50%; right: 0; transform: translateY(-50%); }
+.seat-position-6 { right: 10%; bottom: 2%; }
+.seat-position-7 { right: 34%; bottom: 0; transform: translateX(50%); }
+.seat-position-8 { bottom: 0; left: 34%; transform: translateX(-50%); }
+.seat-position-9 { bottom: 2%; left: 10%; }
+.seat-position-10 { top: 50%; left: 0; transform: translateY(-50%); }
 
 .menu-level-primary {
   margin: 0 -12px;
@@ -350,4 +438,10 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .table-choice-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .selection-button { padding: 6px; }
+  .poker-seat-button {
+    width: 46px;
+    min-height: 46px;
+    height: 46px;
+    padding: 0;
+  }
 }
