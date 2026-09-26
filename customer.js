@@ -307,25 +307,30 @@
   }
 
   function openItem(category, item) {
-    state.activeItem = { category, item };
-    state.quantity = 1;
+    const cartItem = state.cart.find((entry) => entry.categoryId === category.id && entry.itemId === item.id);
+    state.activeItem = { category, item, cartItemId: cartItem?.id || "" };
+    state.quantity = cartItem?.quantity || 1;
     $("#itemCategory").textContent = category.label;
     $("#itemName").textContent = item.name;
     $("#itemPrice").textContent = formatPrice(item.price);
-    $("#itemQuantity").textContent = "1";
-    $("#itemOptions").innerHTML = item.optionGroups.map((group, groupIndex) => optionGroup(group, groupIndex)).join("");
+    $("#itemQuantity").textContent = String(state.quantity);
+    $("#itemOptions").innerHTML = item.optionGroups
+      .map((group, groupIndex) => optionGroup(group, groupIndex, cartItem?.options || []))
+      .join("");
+    $("#addToCartButton").textContent = cartItem ? "カートを更新" : "カートに入れる";
     $("#itemDialog").showModal();
   }
 
-  function optionGroup(group, groupIndex) {
+  function optionGroup(group, groupIndex, selectedOptions = []) {
     const name = `option-${groupIndex}`;
+    const selectedChoice = group.choices.find((choice) => selectedOptions.includes(String(choice))) || "";
     return `
       <fieldset class="option-group" data-required="${group.required ? "true" : "false"}">
         <legend>${escapeHtml(group.label)}${group.required ? '<span class="required-label">必須</span>' : ""}</legend>
         <div class="option-choices">
-          ${group.required ? "" : `<label class="option-choice"><input type="radio" name="${name}" value="" checked><span>指定なし</span></label>`}
+          ${group.required ? "" : `<label class="option-choice"><input type="radio" name="${name}" value="" ${selectedChoice ? "" : "checked"}><span>指定なし</span></label>`}
           ${group.choices.map((choice, index) => `
-            <label class="option-choice"><input type="radio" name="${name}" value="${escapeHtml(choice)}" ${group.required && index === 0 ? "checked" : ""}><span>${escapeHtml(choice)}</span></label>
+            <label class="option-choice"><input type="radio" name="${name}" value="${escapeHtml(choice)}" ${selectedChoice === String(choice) || (!selectedChoice && group.required && index === 0) ? "checked" : ""}><span>${escapeHtml(choice)}</span></label>
           `).join("")}
         </div>
       </fieldset>
@@ -334,6 +339,14 @@
 
   function changeItemQuantity(delta) {
     if (delta < 0 && state.quantity <= 1) {
+      const cartItemId = state.activeItem?.cartItemId;
+      const itemName = state.activeItem?.item?.name || "商品";
+      if (cartItemId) {
+        state.cart = state.cart.filter((entry) => entry.id !== cartItemId);
+        renderMenu();
+        renderCartDock();
+        toast(`${itemName}をカートから削除しました`);
+      }
       state.activeItem = null;
       $("#itemDialog").close();
       return;
@@ -345,23 +358,30 @@
   function addActiveItemToCart(event) {
     event.preventDefault();
     if (!state.activeItem) return;
-    const { category, item } = state.activeItem;
+    const { category, item, cartItemId } = state.activeItem;
     const options = $$(".option-group", $("#itemOptions"))
       .map((group) => $("input:checked", group)?.value || "")
       .filter(Boolean);
-    state.cart.push({
-      id: crypto.randomUUID(),
-      categoryId: category.id,
-      itemId: item.id,
-      name: item.name,
-      price: item.price,
-      quantity: state.quantity,
-      options,
-    });
+    const cartItem = cartItemId ? state.cart.find((entry) => entry.id === cartItemId) : null;
+    if (cartItem) {
+      cartItem.quantity = state.quantity;
+      cartItem.options = options;
+    } else {
+      state.cart.push({
+        id: crypto.randomUUID(),
+        categoryId: category.id,
+        itemId: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: state.quantity,
+        options,
+      });
+    }
+    state.activeItem = null;
     $("#itemDialog").close();
     renderMenu();
     renderCartDock();
-    toast(`${item.name}をカートに追加しました`);
+    toast(cartItem ? `${item.name}の数量を更新しました` : `${item.name}をカートに追加しました`);
   }
 
   function renderCartDock() {
