@@ -156,13 +156,13 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 
 .poker-table-surface::after {
   position: absolute;
-  bottom: -13%;
+  top: -13%;
   left: 50%;
   width: 31%;
   height: 27%;
   border: 7px solid #17191b;
-  border-bottom: 0;
-  border-radius: 50% 50% 0 0;
+  border-top: 0;
+  border-radius: 0 0 50% 50%;
   background: #faf9f7;
   content: "";
   transform: translateX(-50%);
@@ -179,13 +179,13 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 }
 
 .poker-table-logo.logo-left {
-  left: 25%;
-  transform: translate(-50%, -50%) rotate(90deg);
+  left: 29%;
+  transform: translate(-50%, -50%) rotate(180deg);
 }
 
 .poker-table-logo.logo-right {
-  right: 25%;
-  transform: translate(50%, -50%) rotate(-90deg);
+  right: 29%;
+  transform: translate(50%, -50%) rotate(180deg);
 }
 
 .poker-seat-button {
@@ -205,16 +205,16 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2), 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-.seat-position-1 { top: 1%; left: 12%; }
-.seat-position-2 { top: 0; left: 35%; transform: translateX(-50%); }
-.seat-position-3 { top: 0; right: 35%; transform: translateX(50%); }
-.seat-position-4 { top: 1%; right: 12%; }
-.seat-position-5 { top: 50%; right: 0; transform: translateY(-50%); }
-.seat-position-6 { right: 10%; bottom: 2%; }
-.seat-position-7 { right: 34%; bottom: 0; transform: translateX(50%); }
-.seat-position-8 { bottom: 0; left: 34%; transform: translateX(-50%); }
-.seat-position-9 { bottom: 2%; left: 10%; }
-.seat-position-10 { top: 50%; left: 0; transform: translateY(-50%); }
+.seat-position-1 { top: 0; right: 28%; transform: translateX(50%); }
+.seat-position-2 { top: 8%; right: 9%; }
+.seat-position-3 { top: 34%; right: 0; transform: translateY(-50%); }
+.seat-position-4 { right: 1%; bottom: 24%; }
+.seat-position-5 { right: 16%; bottom: 1%; }
+.seat-position-6 { bottom: 0; left: 60%; transform: translateX(-50%); }
+.seat-position-7 { bottom: 0; left: 40%; transform: translateX(-50%); }
+.seat-position-8 { bottom: 1%; left: 16%; }
+.seat-position-9 { bottom: 24%; left: 1%; }
+.seat-position-10 { top: 8%; left: 9%; }
 
 .menu-level-primary {
   margin: 0 -12px;
