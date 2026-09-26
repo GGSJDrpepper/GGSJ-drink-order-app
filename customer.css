@@ -229,10 +229,8 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2), 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-.poker-seat-map.is-table-picking .poker-table-surface,
-.poker-seat-map.is-table-picking .poker-seat-button {
-  opacity: 0.2;
-}
+.poker-seat-map.is-table-picking .poker-table-surface { opacity: 0.28; }
+.poker-seat-map.is-table-picking .poker-seat-button { opacity: 0.08; }
 
 .table-choice-overlay {
   position: absolute;
@@ -240,17 +238,25 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   top: 50%;
   left: 50%;
   display: grid;
-  width: 76%;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(2, 54px);
-  gap: 9px;
+  width: auto;
+  padding: 9px;
+  border: 1px solid rgba(222, 217, 211, 0.92);
+  border-radius: 8px;
+  grid-template-columns: repeat(4, clamp(46px, 12vw, 58px));
+  grid-template-rows: repeat(2, 48px);
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
   transform: translate(-50%, -50%);
 }
 
 .table-choice-overlay .selection-button {
   min-height: 0;
   padding: 4px;
-  background: rgba(255, 255, 255, 0.96);
+  border-width: 1px;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 17px;
 }
 
 .seat-position-1 { --seat-x: 69.267%; --seat-y: 16.922%; }
