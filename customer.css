@@ -245,11 +245,25 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   border: 1px solid rgba(222, 217, 211, 0.92);
   border-radius: 8px;
   grid-template-columns: repeat(4, clamp(46px, 12vw, 58px));
-  grid-template-rows: repeat(2, 48px);
+  grid-template-rows: repeat(3, 46px);
   gap: 7px;
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
   transform: translate(-50%, -50%);
+}
+
+.bar-counter-choice { grid-column: 1 / -1; }
+
+.poker-seat-map.is-bar-counter-selected {
+  display: grid;
+  min-height: 62px;
+  aspect-ratio: auto;
+  place-items: center;
+}
+
+.selected-bar-counter {
+  width: 100%;
+  min-height: 54px;
 }
 
 .table-choice-overlay .selection-button {

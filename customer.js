@@ -4,6 +4,7 @@
   const SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  const BAR_COUNTER = "bar";
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
   const PAYMENT_METHODS = [
     { id: "cash", label: "現金", icon: "¥" },
@@ -71,13 +72,18 @@
     normalizeSeatSelection();
     normalizePaymentSelection();
     const seatChoices = $("#seatChoices");
+    const barCounterSelected = isBarCounterSelected();
     seatChoices.classList.toggle("is-table-picking", !state.tableNo);
-    seatChoices.setAttribute("aria-label", state.tableNo ? "シート番号選択" : "テーブル選択");
-    const multiSeatHint = state.tableNo && cartCount() >= 2
+    seatChoices.classList.toggle("is-bar-counter-selected", barCounterSelected);
+    seatChoices.setAttribute("aria-label", barCounterSelected ? "お届け先選択" : state.tableNo ? "シート番号選択" : "テーブル選択");
+    const multiSeatHint = state.tableNo && !barCounterSelected && cartCount() >= 2
       ? '<small class="multi-seat-hint">複数選択可</small>'
       : "";
-    $("#seatChoiceLegend").innerHTML = `${state.tableNo ? "シート番号" : "テーブル"} <span>必須</span>${multiSeatHint}`;
-    seatChoices.innerHTML = `
+    const destinationLegend = barCounterSelected ? "お届け先" : state.tableNo ? "シート番号" : "テーブル";
+    $("#seatChoiceLegend").innerHTML = `${destinationLegend} <span>必須</span>${multiSeatHint}`;
+    seatChoices.innerHTML = barCounterSelected ? `
+      <button class="selection-button selected-bar-counter active" type="button" data-change-table>バーカウンター</button>
+    ` : `
       <div class="poker-table-surface" aria-hidden="true">
         <img class="poker-table-logo logo-left" src="./assets/logo-shinjuku.png" alt="">
         <img class="poker-table-logo logo-right" src="./assets/logo-shinjuku.png" alt="">
@@ -89,6 +95,7 @@
           ${TABLES.map((table) => `
             <button class="selection-button" type="button" data-table="${table}">${table}</button>
           `).join("")}
+          <button class="selection-button bar-counter-choice" type="button" data-bar-counter>バーカウンター</button>
         </div>
       `}
       ${SEATS.map((seat) => `
@@ -120,6 +127,13 @@
   }
 
   function handleSeatChoice(event) {
+    if (event.target.closest("[data-bar-counter]")) {
+      state.tableNo = BAR_COUNTER;
+      state.seatNos = [];
+      renderSetupChoices();
+      updateCheckoutState();
+      return;
+    }
     if (event.target.closest("[data-table]")) {
       handleTableChoice(event);
       return;
@@ -148,6 +162,10 @@
   }
 
   function normalizeSeatSelection() {
+    if (isBarCounterSelected()) {
+      state.seatNos = [];
+      return;
+    }
     const limit = Math.max(1, Math.min(cartCount(), SEATS.length));
     state.seatNos = state.seatNos.filter((seat) => SEATS.includes(seat)).slice(0, limit);
   }
@@ -206,11 +224,14 @@
   function updateCheckoutState() {
     const seatLabel = state.seatNos.join("・");
     const selectedPaymentLabel = state.paymentMethods.map(paymentLabel).join("・");
-    const ready = Boolean(state.tableNo && state.seatNos.length && state.paymentMethods.length);
+    const destinationReady = Boolean(state.tableNo && (isBarCounterSelected() || state.seatNos.length));
+    const ready = Boolean(destinationReady && state.paymentMethods.length);
     const guide = $("#checkoutGuide");
     if (guide) {
       guide.textContent = ready
-        ? `${state.tableNo}テーブル・${seatLabel}番シート・${selectedPaymentLabel}`
+        ? `${isBarCounterSelected() ? "バーカウンター" : `${state.tableNo}テーブル・${seatLabel}番シート`}・${selectedPaymentLabel}`
+        : isBarCounterSelected()
+          ? "バーカウンターを選択中・お支払い方法を選択してください"
         : state.tableNo && !state.seatNos.length
           ? `${state.tableNo}テーブルを選択中・シート番号を選択してください`
           : "テーブル、シート番号、お支払い方法を選択してください";
@@ -413,7 +434,7 @@
       </article>
     `).join("");
     $("#dialogCartTotal").textContent = formatPrice(cartTotal());
-    $("#submitOrderButton").disabled = !state.tableNo || !state.seatNos.length || !state.paymentMethods.length || !state.cart.length || state.submitting;
+    $("#submitOrderButton").disabled = !state.tableNo || (!isBarCounterSelected() && !state.seatNos.length) || !state.paymentMethods.length || !state.cart.length || state.submitting;
     $("#submitOrderButton").textContent = state.submitting ? "送信中..." : "この内容で注文する";
     updateCheckoutState();
   }
@@ -440,14 +461,15 @@
   }
 
   async function submitOrder() {
-    if (!state.tableNo || !state.seatNos.length || !state.paymentMethods.length) {
-      toast("テーブル、シート番号、お支払い方法を選択してください");
+    if (!state.tableNo || (!isBarCounterSelected() && !state.seatNos.length) || !state.paymentMethods.length) {
+      toast("お届け先とお支払い方法を選択してください");
       return;
     }
     if (!state.cart.length || state.submitting) return;
     state.submitting = true;
     renderCartDialog();
     const startedAt = Date.now();
+    const barCounterSelected = isBarCounterSelected();
     let rowIndex = 0;
     const rows = state.cart.flatMap((item) => Array.from({ length: item.quantity }, (_, index) => {
       const currentRowIndex = rowIndex++;
@@ -459,9 +481,9 @@
         source: "table",
         drink_name: item.name,
         quantity: 1,
-        target: "ring",
-        table_no: state.tableNo,
-        seat_no: state.seatNos.join("・"),
+        target: barCounterSelected ? "bar" : "ring",
+        table_no: barCounterSelected ? "" : state.tableNo,
+        seat_no: barCounterSelected ? "" : state.seatNos.join("・"),
         payment_status: "uncollected",
         payment_method: state.paymentMethods[currentRowIndex % state.paymentMethods.length],
         notes: item.options.length ? `オプション: ${item.options.join(" / ")}` : "",
@@ -486,7 +508,7 @@
     const seat = state.seatNos.join("・");
     state.cart = [];
     $("#cartDialog").close();
-    $("#successTable").textContent = `${table}テーブル ${seat}番シート`;
+    $("#successTable").textContent = barCounterSelected ? "バーカウンター" : `${table}テーブル ${seat}番シート`;
     $("#successDialog").showModal();
     renderMenu();
     renderCartDock();
@@ -538,6 +560,10 @@
 
   function paymentLabel(value) {
     return PAYMENT_METHODS.find((method) => method.id === value)?.label || "";
+  }
+
+  function isBarCounterSelected() {
+    return state.tableNo === BAR_COUNTER;
   }
 
   function formatPrice(value) {
