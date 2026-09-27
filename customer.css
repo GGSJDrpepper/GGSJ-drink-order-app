@@ -53,7 +53,10 @@ h1 { margin-bottom: 0; font-size: 25px; letter-spacing: 0; }
 h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 
 .connection-badge {
+  display: inline-grid;
+  width: 82px;
   padding: 7px 10px;
+  place-items: center;
   border: 1px solid #b9d9c5;
   border-radius: 6px;
   color: #187542;
@@ -81,7 +84,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 }
 
 .language-button {
-  width: 31px;
+  width: 36px;
   height: 28px;
   padding: 0;
   border: 0;
@@ -503,9 +506,9 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   .customer-header { min-height: 72px; }
   h1 { font-size: 21px; }
   .header-actions { gap: 5px; }
-  .connection-badge { padding: 6px 7px; font-size: 11px; }
+  .connection-badge { width: 72px; padding: 6px 4px; font-size: 11px; }
   .language-switch { height: 32px; }
-  .language-button { width: 28px; height: 26px; }
+  .language-button { width: 34px; height: 26px; }
   .customer-main { padding-right: 10px; padding-left: 10px; }
   .order-setup, .menu-section { padding: 16px 12px; }
   .menu-level-secondary { top: 72px; }
@@ -569,6 +572,11 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   #itemDialog .quantity-stepper { height: 50px; grid-template-columns: 40px 1fr 40px; }
   #itemDialog .primary-button { min-height: 50px; font-size: 16px; }
   .cart-button { grid-template-columns: 60px 1fr 78px; padding: 0 12px; font-size: 15px; }
+}
+
+@media (max-width: 360px) {
+  .customer-header { padding-right: 12px; padding-left: 12px; }
+  .customer-header h1 { font-size: 17px; }
 }
 
 @media (max-width: 390px) {
