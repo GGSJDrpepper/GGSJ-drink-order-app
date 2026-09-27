@@ -7,11 +7,11 @@
   const BAR_COUNTER = "bar";
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
   const PAYMENT_METHODS = [
-    { id: "cash", label: "現金", icon: "¥" },
-    { id: "card", label: "カード・ID", icon: "▣" },
-    { id: "paypay", label: "PayPay", icon: "P" },
-    { id: "coin", label: "コイン", icon: "●" },
-    { id: "transit", label: "交通系", icon: "IC" },
+    { id: "cash", labelKey: "cash", icon: "¥" },
+    { id: "card", labelKey: "card", icon: "▣" },
+    { id: "paypay", labelKey: "paypay", icon: "P" },
+    { id: "coin", labelKey: "coin", icon: "●" },
+    { id: "transit", labelKey: "transit", icon: "IC" },
   ];
 
   const state = {
@@ -26,6 +26,9 @@
     activeItem: null,
     quantity: 1,
     submitting: false,
+    language: savedLanguage(),
+    connectionOk: true,
+    connectionKey: "connecting",
   };
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -34,11 +37,12 @@
   document.addEventListener("DOMContentLoaded", init);
 
   async function init() {
+    applyLanguage();
     renderSetupChoices();
     bindEvents();
     if (!window.supabase) {
-      setConnectionState(false, "接続できません");
-      toast("注文システムを読み込めませんでした");
+      setConnectionState(false, "connectionFailed");
+      toast(t("menuSystemUnavailable"));
       return;
     }
     state.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -46,6 +50,7 @@
   }
 
   function bindEvents() {
+    $(".language-switch").addEventListener("click", handleLanguageChoice);
     $("#seatChoices").addEventListener("click", handleSeatChoice);
     $("#paymentChoices").addEventListener("click", handlePaymentChoice);
     $("#categoryTabs").addEventListener("click", handleCategoryChoice);
@@ -68,6 +73,57 @@
     });
   }
 
+  function handleLanguageChoice(event) {
+    const button = event.target.closest("[data-language]");
+    if (!button || button.dataset.language === state.language) return;
+    state.language = button.dataset.language === "en" ? "en" : "ja";
+    try {
+      localStorage.setItem("customerLanguage", state.language);
+    } catch (error) {
+      console.warn("Language preference could not be saved", error);
+    }
+    applyLanguage();
+  }
+
+  function applyLanguage() {
+    const activeSelections = $("#itemDialog").open
+      ? $$(".option-group", $("#itemOptions")).map((group) => $("input:checked", group)?.value || "").filter(Boolean)
+      : null;
+    document.documentElement.lang = state.language;
+    $$("[data-language]").forEach((button) => {
+      const active = button.dataset.language === state.language;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    $("#appTitle").textContent = t("appTitle");
+    document.title = t("appTitle");
+    $("#menuTitle").textContent = t("menuTitle");
+    $("#menuGuide").textContent = t("menuGuide");
+    $("#categoryLabel").textContent = t("category");
+    $("#subcategoryLabel").textContent = t("subcategory");
+    $("#categoryTabs").setAttribute("aria-label", t("category"));
+    $("#subcategoryTabs").setAttribute("aria-label", t("subcategory"));
+    $("#cartUnit").textContent = t("points");
+    $("#cartReviewText").textContent = t("reviewOrder");
+    $("#cartTitle").textContent = t("cartTitle");
+    $("#checkoutSetupTitle").textContent = t("checkoutTitle");
+    $("#cartTotalLabel").textContent = t("total");
+    $("#submitNote").textContent = t("submitNote");
+    $("#successTitle").textContent = t("successTitle");
+    $("#successSuffix").textContent = t("successSuffix");
+    $("#continueOrderButton").textContent = t("continueOrder");
+    $$("[data-close-dialog]").forEach((button) => button.setAttribute("aria-label", t("close")));
+    $(".quantity-stepper").setAttribute("aria-label", t("quantity"));
+    $("#decreaseQuantity").setAttribute("aria-label", t("decreaseQuantity"));
+    $("#increaseQuantity").setAttribute("aria-label", t("increaseQuantity"));
+    setConnectionState(state.connectionOk, state.connectionKey);
+    renderSetupChoices();
+    if (state.menu.length) renderMenu();
+    renderCartDock();
+    if ($("#itemDialog").open && state.activeItem) renderActiveItem(activeSelections);
+    if ($("#cartDialog").open) renderCartDialog();
+  }
+
   function renderSetupChoices() {
     normalizeSeatSelection();
     normalizePaymentSelection();
@@ -75,38 +131,39 @@
     const barCounterSelected = isBarCounterSelected();
     seatChoices.classList.toggle("is-table-picking", !state.tableNo);
     seatChoices.classList.toggle("is-bar-counter-selected", barCounterSelected);
-    seatChoices.setAttribute("aria-label", barCounterSelected ? "お届け先選択" : state.tableNo ? "シート番号選択" : "テーブル選択");
+    seatChoices.setAttribute("aria-label", barCounterSelected ? t("destinationSelection") : state.tableNo ? t("seatSelection") : t("tableSelection"));
     const multiSeatHint = state.tableNo && !barCounterSelected && cartCount() >= 2
-      ? '<small class="multi-seat-hint">複数選択可</small>'
+      ? `<small class="multi-seat-hint">${t("multipleAllowed")}</small>`
       : "";
-    const destinationLegend = barCounterSelected ? "お届け先" : state.tableNo ? "シート番号" : "テーブル";
-    $("#seatChoiceLegend").innerHTML = `${destinationLegend} <span>必須</span>${multiSeatHint}`;
+    const destinationLegend = barCounterSelected ? t("destination") : state.tableNo ? t("seatNumber") : t("table");
+    $("#seatChoiceLegend").innerHTML = `${destinationLegend} <span>${t("required")}</span>${multiSeatHint}`;
     seatChoices.innerHTML = barCounterSelected ? `
-      <button class="selection-button selected-bar-counter active" type="button" data-change-table>バーカウンター</button>
+      <button class="selection-button selected-bar-counter active" type="button" data-change-table>${t("barCounter")}</button>
     ` : `
       <div class="poker-table-surface" aria-hidden="true">
         <img class="poker-table-logo logo-left" src="./assets/logo-shinjuku.png" alt="">
         <img class="poker-table-logo logo-right" src="./assets/logo-shinjuku.png" alt="">
       </div>
       ${state.tableNo ? `
-        <button class="poker-table-number" type="button" data-change-table aria-label="テーブルを変更">${state.tableNo}</button>
+        <button class="poker-table-number" type="button" data-change-table aria-label="${t("changeTable")}">${state.tableNo}</button>
       ` : `
-        <div class="table-choice-overlay" aria-label="テーブル選択">
+        <div class="table-choice-overlay" aria-label="${t("tableSelection")}">
           ${TABLES.map((table) => `
             <button class="selection-button" type="button" data-table="${table}">${table}</button>
           `).join("")}
-          <button class="selection-button bar-counter-choice" type="button" data-bar-counter>バーカウンター</button>
+          <button class="selection-button bar-counter-choice" type="button" data-bar-counter>${t("barCounter")}</button>
         </div>
       `}
       ${SEATS.map((seat) => `
-        <button class="selection-button poker-seat-button seat-position-${seat}${state.seatNos.includes(seat) ? " active" : ""}" type="button" data-seat="${seat}" aria-label="${seat}番シート"${state.tableNo ? "" : " disabled"}>${seat}</button>
+        <button class="selection-button poker-seat-button seat-position-${seat}${state.seatNos.includes(seat) ? " active" : ""}" type="button" data-seat="${seat}" aria-label="${state.language === "en" ? `Seat ${seat}` : `${seat}番シート`}"${state.tableNo ? "" : " disabled"}>${seat}</button>
       `).join("")}
     `;
-    const multiPaymentHint = cartCount() >= 2 ? '<small class="multi-choice-hint">複数選択可</small>' : "";
-    $("#paymentChoiceLegend").innerHTML = `お支払い方法 <span>必須</span>${multiPaymentHint}`;
+    const multiPaymentHint = cartCount() >= 2 ? `<small class="multi-choice-hint">${t("multipleAllowed")}</small>` : "";
+    $("#paymentChoiceLegend").innerHTML = `${t("paymentMethod")} <span>${t("required")}</span>${multiPaymentHint}`;
+    $("#paymentChoices").setAttribute("aria-label", t("paymentSelection"));
     $("#paymentChoices").innerHTML = PAYMENT_METHODS.map((method) => `
       <button class="selection-button${state.paymentMethods.includes(method.id) ? " active" : ""}" type="button" data-payment="${method.id}">
-        <span class="payment-icon" aria-hidden="true">${method.icon}</span>${method.label}
+        <span class="payment-icon" aria-hidden="true">${method.icon}</span>${t(method.labelKey)}
       </button>
     `).join("");
   }
@@ -155,7 +212,7 @@
     } else if (state.seatNos.length < Math.min(cartCount(), SEATS.length)) {
       state.seatNos = [...state.seatNos, seat];
     } else {
-      toast(`シートは注文数の${Math.min(cartCount(), SEATS.length)}席まで選択できます`);
+      toast(t("seatLimit", { count: Math.min(cartCount(), SEATS.length) }));
     }
     renderSetupChoices();
     updateCheckoutState();
@@ -181,7 +238,7 @@
     } else if (state.paymentMethods.length < Math.min(cartCount(), PAYMENT_METHODS.length)) {
       state.paymentMethods = [...state.paymentMethods, paymentMethod];
     } else {
-      toast(`お支払い方法は注文数の${Math.min(cartCount(), PAYMENT_METHODS.length)}種類まで選択できます`);
+      toast(t("paymentLimit", { count: Math.min(cartCount(), PAYMENT_METHODS.length) }));
     }
     renderSetupChoices();
     updateCheckoutState();
@@ -202,22 +259,24 @@
 
     if (error || !Array.isArray(data?.menu) || !data.menu.length) {
       console.error(error);
-      setConnectionState(false, "メニュー取得失敗");
-      toast("メニューを読み込めませんでした。スタッフへお声がけください");
+      setConnectionState(false, "menuLoadFailed");
+      toast(t("menuUnavailable"));
       return;
     }
 
     state.menu = normalizeMenu(data.menu);
     state.categoryId = state.menu[0]?.id || "";
     state.subcategoryId = state.menu[0]?.subcategories?.[0]?.id || "";
-    setConnectionState(true, "注文受付中");
+    setConnectionState(true, "acceptingOrders");
     renderMenu();
     updateCheckoutState();
   }
 
-  function setConnectionState(ok, label) {
+  function setConnectionState(ok, labelKey) {
+    state.connectionOk = ok;
+    state.connectionKey = labelKey;
     const badge = $("#connectionBadge");
-    badge.textContent = label;
+    badge.textContent = t(labelKey);
     badge.classList.toggle("is-error", !ok);
   }
 
@@ -229,12 +288,15 @@
     const guide = $("#checkoutGuide");
     if (guide) {
       guide.textContent = ready
-        ? `${isBarCounterSelected() ? "バーカウンター" : `${state.tableNo}テーブル・${seatLabel}番シート`}・${selectedPaymentLabel}`
+        ? t("selectedDestination", {
+            destination: isBarCounterSelected() ? t("barCounter") : t("tableSeat", { table: state.tableNo, seat: seatLabel }),
+            payment: selectedPaymentLabel,
+          })
         : isBarCounterSelected()
-          ? "バーカウンターを選択中・お支払い方法を選択してください"
+          ? t("selectPaymentAtBar")
         : state.tableNo && !state.seatNos.length
-          ? `${state.tableNo}テーブルを選択中・シート番号を選択してください`
-          : "テーブル、シート番号、お支払い方法を選択してください";
+          ? t("selectSeatAtTable", { table: state.tableNo })
+          : t("selectTableSeatPayment");
     }
     const button = $("#submitOrderButton");
     if (button) button.disabled = !ready || !state.cart.length || state.submitting;
@@ -242,7 +304,7 @@
 
   function renderMenu() {
     $("#categoryTabs").innerHTML = state.menu.map((category) => `
-      <button class="category-tab${category.id === state.categoryId ? " active" : ""}" type="button" data-category="${escapeHtml(category.id)}">${escapeHtml(category.label)}</button>
+      <button class="category-tab${category.id === state.categoryId ? " active" : ""}" type="button" data-category="${escapeHtml(category.id)}">${escapeHtml(menuText(category.label))}</button>
     `).join("");
 
     const category = activeCategory();
@@ -251,7 +313,7 @@
       state.subcategoryId = category.subcategories[0]?.id || "";
     }
     $("#subcategoryTabs").innerHTML = category.subcategories.map((subcategory) => `
-      <button class="subcategory-tab${subcategory.id === state.subcategoryId ? " active" : ""}" type="button" data-subcategory="${escapeHtml(subcategory.id)}">${escapeHtml(subcategory.label)}</button>
+      <button class="subcategory-tab${subcategory.id === state.subcategoryId ? " active" : ""}" type="button" data-subcategory="${escapeHtml(subcategory.id)}">${escapeHtml(menuText(subcategory.label))}</button>
     `).join("");
 
     const groups = category.subcategories.map((subcategory) => ({
@@ -260,7 +322,7 @@
     })).filter((group) => group.items.length);
     $("#productSections").innerHTML = groups.map((group) => `
       <section class="product-group" data-product-group="${escapeHtml(group.id)}">
-        <h3>${escapeHtml(group.label)}</h3>
+        <h3>${escapeHtml(menuText(group.label))}</h3>
         <div class="product-grid">
           ${group.items.map((item) => productButton(category, item)).join("")}
         </div>
@@ -274,7 +336,7 @@
     return `
       <button class="product-button" type="button" data-item="${escapeHtml(item.id)}">
         ${count ? `<span class="product-cart-count">${count}</span>` : ""}
-        <span class="product-name">${escapeHtml(item.name)}</span>
+        <span class="product-name">${escapeHtml(menuText(item.name))}</span>
         <span class="product-price">${formatPrice(item.price)}</span>
       </button>
     `;
@@ -331,15 +393,23 @@
     const cartItem = state.cart.find((entry) => entry.categoryId === category.id && entry.itemId === item.id);
     state.activeItem = { category, item, cartItemId: cartItem?.id || "" };
     state.quantity = cartItem?.quantity || 1;
-    $("#itemCategory").textContent = category.label;
-    $("#itemName").textContent = item.name;
+    renderActiveItem();
+    $("#itemDialog").showModal();
+  }
+
+  function renderActiveItem(selectedOptions = null) {
+    if (!state.activeItem) return;
+    const { category, item, cartItemId } = state.activeItem;
+    const cartItem = cartItemId ? state.cart.find((entry) => entry.id === cartItemId) : null;
+    const options = Array.isArray(selectedOptions) ? selectedOptions : cartItem?.options || [];
+    $("#itemCategory").textContent = menuText(category.label);
+    $("#itemName").textContent = menuText(item.name);
     $("#itemPrice").textContent = formatPrice(item.price);
     $("#itemQuantity").textContent = String(state.quantity);
     $("#itemOptions").innerHTML = item.optionGroups
-      .map((group, groupIndex) => optionGroup(group, groupIndex, cartItem?.options || []))
+      .map((group, groupIndex) => optionGroup(group, groupIndex, options))
       .join("");
-    $("#addToCartButton").textContent = cartItem ? "カートを更新" : "カートに入れる";
-    $("#itemDialog").showModal();
+    $("#addToCartButton").textContent = cartItem ? t("updateCart") : t("addToCart");
   }
 
   function optionGroup(group, groupIndex, selectedOptions = []) {
@@ -347,11 +417,11 @@
     const selectedChoice = group.choices.find((choice) => selectedOptions.includes(String(choice))) || "";
     return `
       <fieldset class="option-group" data-required="${group.required ? "true" : "false"}">
-        <legend>${escapeHtml(group.label)}${group.required ? '<span class="required-label">必須</span>' : ""}</legend>
+        <legend>${escapeHtml(menuText(group.label))}${group.required ? `<span class="required-label">${t("required")}</span>` : ""}</legend>
         <div class="option-choices">
-          ${group.required ? "" : `<label class="option-choice"><input type="radio" name="${name}" value="" ${selectedChoice ? "" : "checked"}><span>指定なし</span></label>`}
+          ${group.required ? "" : `<label class="option-choice"><input type="radio" name="${name}" value="" ${selectedChoice ? "" : "checked"}><span>${t("none")}</span></label>`}
           ${group.choices.map((choice, index) => `
-            <label class="option-choice"><input type="radio" name="${name}" value="${escapeHtml(choice)}" ${selectedChoice === String(choice) || (!selectedChoice && group.required && index === 0) ? "checked" : ""}><span>${escapeHtml(choice)}</span></label>
+            <label class="option-choice"><input type="radio" name="${name}" value="${escapeHtml(choice)}" ${selectedChoice === String(choice) || (!selectedChoice && group.required && index === 0) ? "checked" : ""}><span>${escapeHtml(menuText(choice))}</span></label>
           `).join("")}
         </div>
       </fieldset>
@@ -366,7 +436,7 @@
         state.cart = state.cart.filter((entry) => entry.id !== cartItemId);
         renderMenu();
         renderCartDock();
-        toast(`${itemName}をカートから削除しました`);
+        toast(t("removedFromCart", { item: menuText(itemName) }));
       }
       state.activeItem = null;
       $("#itemDialog").close();
@@ -402,13 +472,14 @@
     $("#itemDialog").close();
     renderMenu();
     renderCartDock();
-    toast(cartItem ? `${item.name}の数量を更新しました` : `${item.name}をカートに追加しました`);
+    toast(t(cartItem ? "updatedQuantity" : "addedToCart", { item: menuText(item.name) }));
   }
 
   function renderCartDock() {
     const count = cartCount();
     $("#cartDock").hidden = count === 0;
     $("#cartCount").textContent = String(count);
+    $("#cartUnit").textContent = state.language === "en" && count === 1 ? " item" : t("points");
     $("#cartTotal").textContent = formatPrice(cartTotal());
   }
 
@@ -422,20 +493,20 @@
     $("#cartItems").innerHTML = state.cart.map((item) => `
       <article class="cart-item" data-cart-id="${escapeHtml(item.id)}">
         <div>
-          <h3>${escapeHtml(item.name)} × ${item.quantity}</h3>
-          ${item.options.length ? `<p>${escapeHtml(item.options.join(" / "))}</p>` : ""}
+          <h3>${escapeHtml(menuText(item.name))} × ${item.quantity}</h3>
+          ${item.options.length ? `<p>${escapeHtml(item.options.map(menuText).join(" / "))}</p>` : ""}
           <span>${formatPrice(item.price * item.quantity)}</span>
         </div>
         <div class="cart-item-tools">
-          <button type="button" data-cart-action="decrease" aria-label="数量を減らす">−</button>
-          <button type="button" data-cart-action="increase" aria-label="数量を増やす">＋</button>
-          <button class="remove-item" type="button" data-cart-action="remove" aria-label="削除">×</button>
+          <button type="button" data-cart-action="decrease" aria-label="${t("decreaseQuantity")}">−</button>
+          <button type="button" data-cart-action="increase" aria-label="${t("increaseQuantity")}">＋</button>
+          <button class="remove-item" type="button" data-cart-action="remove" aria-label="${t("remove")}">×</button>
         </div>
       </article>
     `).join("");
     $("#dialogCartTotal").textContent = formatPrice(cartTotal());
     $("#submitOrderButton").disabled = !state.tableNo || (!isBarCounterSelected() && !state.seatNos.length) || !state.paymentMethods.length || !state.cart.length || state.submitting;
-    $("#submitOrderButton").textContent = state.submitting ? "送信中..." : "この内容で注文する";
+    $("#submitOrderButton").textContent = t(state.submitting ? "submitting" : "submitOrder");
     updateCheckoutState();
   }
 
@@ -462,7 +533,7 @@
 
   async function submitOrder() {
     if (!state.tableNo || (!isBarCounterSelected() && !state.seatNos.length) || !state.paymentMethods.length) {
-      toast("お届け先とお支払い方法を選択してください");
+      toast(t("selectDestinationPayment"));
       return;
     }
     if (!state.cart.length || state.submitting) return;
@@ -500,7 +571,7 @@
     if (error) {
       console.error(error);
       renderCartDialog();
-      toast("送信できませんでした。通信状態を確認してください");
+      toast(t("sendFailed"));
       return;
     }
 
@@ -508,7 +579,7 @@
     const seat = state.seatNos.join("・");
     state.cart = [];
     $("#cartDialog").close();
-    $("#successTable").textContent = barCounterSelected ? "バーカウンター" : `${table}テーブル ${seat}番シート`;
+    $("#successTable").textContent = barCounterSelected ? t("barCounter") : t("successTable", { table, seat });
     $("#successDialog").showModal();
     renderMenu();
     renderCartDock();
@@ -559,7 +630,8 @@
   }
 
   function paymentLabel(value) {
-    return PAYMENT_METHODS.find((method) => method.id === value)?.label || "";
+    const method = PAYMENT_METHODS.find((entry) => entry.id === value);
+    return method ? t(method.labelKey) : "";
   }
 
   function isBarCounterSelected() {
@@ -567,7 +639,30 @@
   }
 
   function formatPrice(value) {
-    return `¥${Number(value || 0).toLocaleString("ja-JP")}`;
+    return `¥${Number(value || 0).toLocaleString(state.language === "en" ? "en-US" : "ja-JP")}`;
+  }
+
+  function t(key, replacements = {}) {
+    const dictionaries = window.CUSTOMER_I18N?.ui || {};
+    const template = dictionaries[state.language]?.[key] || dictionaries.ja?.[key] || key;
+    return Object.entries(replacements).reduce(
+      (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+      template,
+    );
+  }
+
+  function menuText(value) {
+    const text = String(value ?? "");
+    return state.language === "en" ? window.CUSTOMER_I18N?.menu?.[text] || text : text;
+  }
+
+  function savedLanguage() {
+    try {
+      return localStorage.getItem("customerLanguage") === "en" ? "en" : "ja";
+    } catch (error) {
+      console.warn("Language preference could not be read", error);
+      return "ja";
+    }
   }
 
   function toast(message) {

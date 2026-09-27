@@ -62,6 +62,41 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 }
 .connection-badge.is-error { border-color: #efb8b8; color: #ae2525; background: #fff1f1; }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  background: white;
+  font-size: 12px;
+}
+
+.language-button {
+  width: 31px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.language-button.active {
+  color: white;
+  background: var(--orange);
+}
+
 .customer-main {
   width: min(960px, 100%);
   margin: 0 auto;
@@ -467,6 +502,10 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
 @media (max-width: 640px) {
   .customer-header { min-height: 72px; }
   h1 { font-size: 21px; }
+  .header-actions { gap: 5px; }
+  .connection-badge { padding: 6px 7px; font-size: 11px; }
+  .language-switch { height: 32px; }
+  .language-button { width: 28px; height: 26px; }
   .customer-main { padding-right: 10px; padding-left: 10px; }
   .order-setup, .menu-section { padding: 16px 12px; }
   .menu-level-secondary { top: 72px; }
