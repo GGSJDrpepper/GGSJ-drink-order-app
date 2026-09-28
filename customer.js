@@ -63,6 +63,7 @@
     $("#cartItems").addEventListener("click", handleCartAction);
     $("#submitOrderButton").addEventListener("click", submitOrder);
     $("#continueOrderButton").addEventListener("click", () => $("#successDialog").close());
+    window.addEventListener("resize", updateStickyOffsets);
     $$('[data-close-dialog]').forEach((button) => {
       button.addEventListener("click", () => $(`#${button.dataset.closeDialog}`).close());
     });
@@ -328,6 +329,15 @@
         </div>
       </section>
     `).join("");
+    requestAnimationFrame(updateStickyOffsets);
+  }
+
+  function updateStickyOffsets() {
+    const header = $(".customer-header");
+    const primaryLevel = $(".menu-level-primary");
+    if (!header || !primaryLevel) return;
+    document.documentElement.style.setProperty("--customer-header-height", `${Math.ceil(header.getBoundingClientRect().height)}px`);
+    document.documentElement.style.setProperty("--menu-primary-height", `${Math.ceil(primaryLevel.getBoundingClientRect().height)}px`);
   }
 
   function productButton(category, item) {
@@ -373,9 +383,10 @@
   function scrollToProductGroup(subcategoryId) {
     const group = $(`[data-product-group="${cssEscape(subcategoryId)}"]`);
     const header = $(".customer-header");
+    const primaryLevel = $(".menu-level-primary");
     const subcategoryLevel = $(".menu-level-secondary");
     if (!group || !subcategoryLevel) return;
-    const offset = (header?.offsetHeight || 0) + subcategoryLevel.offsetHeight + 10;
+    const offset = (header?.offsetHeight || 0) + (primaryLevel?.offsetHeight || 0) + subcategoryLevel.offsetHeight + 10;
     const top = window.scrollY + group.getBoundingClientRect().top - offset;
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }

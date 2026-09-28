@@ -325,6 +325,9 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 .seat-position-10 { --seat-x: 30.734%; --seat-y: 16.922%; }
 
 .menu-level-primary {
+  position: sticky;
+  z-index: 13;
+  top: var(--customer-header-height, 84px);
   margin: 0 -12px;
   padding: 14px 12px 12px;
   border-top: 1px solid #e7e2dc;
@@ -334,7 +337,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 .menu-level-secondary {
   position: sticky;
   z-index: 12;
-  top: 84px;
+  top: calc(var(--customer-header-height, 84px) + var(--menu-primary-height, 91px));
   padding: 17px 0 11px;
   border-bottom: 1px solid #e4dfd9;
   background: var(--surface);
@@ -511,7 +514,6 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   .language-button { width: 34px; height: 26px; }
   .customer-main { padding-right: 10px; padding-left: 10px; }
   .order-setup, .menu-section { padding: 16px 12px; }
-  .menu-level-secondary { top: 72px; }
   .category-tabs {
     display: grid;
     grid-template-columns: 1.45fr 1.15fr .8fr .8fr;
