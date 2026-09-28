@@ -1628,6 +1628,10 @@
     const showSubcategories = shouldShowSubcategoryUi(groups);
     const groupBlocks = groups
       .map((group) => {
+        const showCustomPrice = source === "reception"
+          && state.receptionMenuMode === "custom"
+          && menuCategoryKind(category) === "alcohol"
+          && ["ウィスキー", "ウイスキー"].includes(group.label.trim());
         const itemButtons = group.items.map((item) => {
         const selectedCount = cartQuantityForMenuItem(source, category.id, item);
         const classes = [
@@ -1648,7 +1652,7 @@
         }).join("");
 
         return `
-          <section class="menu-subcategory-section" data-menu-subsection="${escapeHtml(subcategoryKey(category.id, group.id))}">
+          <section class="menu-subcategory-section${showCustomPrice ? " show-item-prices" : ""}" data-menu-subsection="${escapeHtml(subcategoryKey(category.id, group.id))}">
             ${showSubcategories ? `<h4 class="menu-subcategory-heading">${escapeHtml(group.label)}</h4>` : ""}
             ${itemButtons}
           </section>

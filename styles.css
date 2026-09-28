@@ -974,6 +974,10 @@ button:focus-visible {
   display: none;
 }
 
+.custom-menu-picker .menu-subcategory-section.show-item-prices .menu-item-price {
+  display: inline;
+}
+
 .menu-category-section {
   background: #ffffff;
 }
