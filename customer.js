@@ -141,8 +141,8 @@
       <button class="selection-button selected-bar-counter active" type="button" data-change-table>${t("barCounter")}</button>
     ` : `
       <div class="poker-table-surface" aria-hidden="true">
-        <img class="poker-table-logo logo-left" src="./assets/logo-shinjuku.png" alt="">
-        <img class="poker-table-logo logo-right" src="./assets/logo-shinjuku.png" alt="">
+        <img class="poker-table-logo logo-left" src="./assets/logo-shinjuku-white.png" alt="">
+        <img class="poker-table-logo logo-right" src="./assets/logo-shinjuku-white.png" alt="">
       </div>
       ${state.tableNo ? `
         <button class="poker-table-number" type="button" data-change-table aria-label="${t("changeTable")}">${state.tableNo}</button>
