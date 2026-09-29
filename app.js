@@ -2652,7 +2652,12 @@
   function renderBar() {
     const openOrders = state.orders.filter((order) => !["served", "canceled"].includes(order.status));
     updateBarOrderBadge(openOrders.length);
-    const visibleOrders = state.filter === "open" ? openOrders : state.orders;
+    const visibleOrders = state.filter === "open"
+      ? openOrders
+      : [...state.orders].sort((a, b) => orderActivityTime(b) - orderActivityTime(a));
+    $("#barOrderGuide").textContent = state.filter === "open"
+      ? "未提供オーダーを古い順で表示"
+      : "最新の履歴から表示";
     const uncollectedCount = openOrders.filter((order) => order.payment_status === "uncollected").length;
     const oldest = openOrders.length
       ? openOrders.reduce((oldestOrder, order) =>
@@ -3021,6 +3026,11 @@
   function completedOrderTime(order) {
     const value = order.served_at || order.updated_at || order.created_at;
     const timestamp = new Date(value).getTime();
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  }
+
+  function orderActivityTime(order) {
+    const timestamp = new Date(order.updated_at || order.created_at).getTime();
     return Number.isFinite(timestamp) ? timestamp : 0;
   }
 
