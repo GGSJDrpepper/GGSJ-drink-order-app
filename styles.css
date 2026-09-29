@@ -755,7 +755,7 @@ button:focus-visible {
 }
 
 .seat-choice-grid {
-  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-columns: repeat(10, minmax(0, 1fr));
 }
 
 .choice-button {
@@ -3501,7 +3501,7 @@ dialog::backdrop {
   }
 
   .seat-choice-grid {
-    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-template-columns: repeat(10, minmax(0, 1fr));
   }
 
   .menu-picker {

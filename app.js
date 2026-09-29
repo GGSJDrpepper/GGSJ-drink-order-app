@@ -38,7 +38,7 @@
   ];
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const CAST_BAR_TABLE = "バーカウンター";
-  const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+  const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
   const DEFAULT_PRICE_SUGGESTIONS = [600, 700, 800, 1000];
   const DEFAULT_SUBCATEGORY_ID = "default";
   const DEFAULT_SUBCATEGORY_LABEL = "未分類";
