@@ -77,7 +77,7 @@
   function handleLanguageChoice(event) {
     const button = event.target.closest("[data-language]");
     if (!button) return;
-    state.language = state.language === "ja" ? "en" : "ja";
+    state.language = button.dataset.language === "en" ? "en" : "ja";
     try {
       localStorage.setItem("customerLanguage", state.language);
     } catch (error) {
