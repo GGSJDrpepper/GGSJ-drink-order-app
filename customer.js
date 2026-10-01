@@ -359,6 +359,7 @@
       "ワイルドターキー8年": "./assets/wild-turkey-8.png?v=2026100101",
       "ジョニーウォーカー": "./assets/johnnie-walker.png?v=2026100101",
       "グレンフィディック12年": "./assets/glenfiddich-12.png?v=2026100101",
+      "ボウモア12年": "./assets/bowmore-12.png?v=2026100101",
     }[item.name.trim()] || "";
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
