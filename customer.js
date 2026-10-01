@@ -366,6 +366,7 @@
       "いいちこ": "./assets/iichiko.png?v=2026100101",
       "黒霧島": "./assets/kuro-kirishima.png?v=2026100101",
       "鍛高譚": "./assets/tantakatan.png?v=2026100101",
+      "カシス": "./assets/cassis.png?v=2026100101",
     }[item.name.trim()] || "";
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
