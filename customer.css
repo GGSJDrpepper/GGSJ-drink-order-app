@@ -424,6 +424,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   object-fit: contain;
   transform: translateY(-50%);
 }
+.product-image-square { object-fit: cover; }
 .product-name { display: block; overflow: hidden; font-size: clamp(14px, 3.5vw, 19px); font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
 .product-price { display: block; margin-top: 7px; color: var(--muted); font-size: 14px; }
 .product-cart-count {
