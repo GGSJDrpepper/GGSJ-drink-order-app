@@ -347,13 +347,17 @@
       "水": "./assets/crystal-geyser.png",
       "ペリエ": "./assets/perrier.png",
       "レッドブル（ノーマル）": "./assets/red-bull-original.png?v=2026100101",
+      "レッドブル（ノンシュガー）": "./assets/red-bull-sugarfree.png?v=2026100101",
+      "レッドブル（パープル）": "./assets/red-bull-purple.png?v=2026100101",
     }[item.name.trim()] || "";
-    const splitNormalName = state.language === "ja" && item.name.trim() === "レッドブル（ノーマル）";
+    const splitRedBullName = state.language === "ja"
+      ? item.name.trim().match(/^レッドブル（(.+)）$/)
+      : null;
     return `
       <button class="product-button${productImage ? " has-product-image" : ""}" type="button" data-item="${escapeHtml(item.id)}">
         ${count ? `<span class="product-cart-count">${count}</span>` : ""}
-        <span class="product-name${splitNormalName ? " force-two-lines" : ""}">${splitNormalName
-          ? `<span class="product-name-line">レッドブル</span><span class="product-name-line">（ノーマル）</span>`
+        <span class="product-name${splitRedBullName ? " force-two-lines" : ""}">${splitRedBullName
+          ? `<span class="product-name-line">レッドブル</span><span class="product-name-line">${escapeHtml(`（${splitRedBullName[1]}）`)}</span>`
           : escapeHtml(menuText(item.name))}</span>
         <span class="product-price">${formatPrice(item.price)}</span>
         ${productImage ? `<img class="product-image${item.name.trim() === "ペリエ" ? " product-image-square" : ""}" src="${escapeHtml(productImage)}" alt="" aria-hidden="true">` : ""}
