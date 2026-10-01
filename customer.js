@@ -353,6 +353,8 @@
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
       : null;
+    const compactRedBullImage = ["レッドブル（ノンシュガー）", "レッドブル（パープル）"]
+      .includes(item.name.trim());
     return `
       <button class="product-button${productImage ? " has-product-image" : ""}" type="button" data-item="${escapeHtml(item.id)}">
         ${count ? `<span class="product-cart-count">${count}</span>` : ""}
@@ -360,7 +362,7 @@
           ? `<span class="product-name-line">レッドブル</span><span class="product-name-line">${escapeHtml(`（${splitRedBullName[1]}）`)}</span>`
           : escapeHtml(menuText(item.name))}</span>
         <span class="product-price">${formatPrice(item.price)}</span>
-        ${productImage ? `<img class="product-image${item.name.trim() === "ペリエ" ? " product-image-square" : ""}" src="${escapeHtml(productImage)}" alt="" aria-hidden="true">` : ""}
+        ${productImage ? `<img class="product-image${item.name.trim() === "ペリエ" ? " product-image-square" : ""}${compactRedBullImage ? " product-image-compact" : ""}" src="${escapeHtml(productImage)}" alt="" aria-hidden="true">` : ""}
       </button>
     `;
   }
