@@ -357,6 +357,7 @@
       "ジャックダニエル": "./assets/jack-daniels.png?v=2026100101",
       "I.W ハーパー": "./assets/iw-harper.png?v=2026100101",
       "ワイルドターキー8年": "./assets/wild-turkey-8.png?v=2026100101",
+      "ジョニーウォーカー": "./assets/johnnie-walker.png?v=2026100101",
     }[item.name.trim()] || "";
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
