@@ -351,6 +351,7 @@
       "レッドブル（パープル）": "./assets/red-bull-purple.png?v=2026100101",
       "コロナビール": "./assets/corona-extra.png?v=2026100101",
       "ハイネケン": "./assets/heineken.png?v=2026100101",
+      "PUNK IPA": "./assets/punk-ipa.png?v=2026100101",
     }[item.name.trim()] || "";
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
