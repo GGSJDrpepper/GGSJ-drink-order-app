@@ -354,6 +354,7 @@
       "PUNK IPA": "./assets/punk-ipa.png?v=2026100101",
       "角": "./assets/suntory-kaku.png?v=2026100101",
       "メーカーズマーク": "./assets/makers-mark.png?v=2026100101",
+      "ジャックダニエル": "./assets/jack-daniels.png?v=2026100101",
     }[item.name.trim()] || "";
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
