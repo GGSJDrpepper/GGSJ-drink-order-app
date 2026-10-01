@@ -350,12 +350,14 @@
       "レッドブル（ノンシュガー）": "./assets/red-bull-sugarfree.png?v=2026100101",
       "レッドブル（パープル）": "./assets/red-bull-purple.png?v=2026100101",
       "コロナビール": "./assets/corona-extra.png?v=2026100101",
+      "ハイネケン": "./assets/heineken.png?v=2026100101",
     }[item.name.trim()] || "";
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
       : null;
     const compactRedBullImage = ["レッドブル（ノンシュガー）", "レッドブル（パープル）"]
       .includes(item.name.trim());
+    const coverProductImage = ["ペリエ", "ハイネケン"].includes(item.name.trim());
     return `
       <button class="product-button${productImage ? " has-product-image" : ""}" type="button" data-item="${escapeHtml(item.id)}">
         ${count ? `<span class="product-cart-count">${count}</span>` : ""}
@@ -363,7 +365,7 @@
           ? `<span class="product-name-line">レッドブル</span><span class="product-name-line">${escapeHtml(`（${splitRedBullName[1]}）`)}</span>`
           : escapeHtml(menuText(item.name))}</span>
         <span class="product-price">${formatPrice(item.price)}</span>
-        ${productImage ? `<img class="product-image${item.name.trim() === "ペリエ" ? " product-image-square" : ""}${compactRedBullImage ? " product-image-compact" : ""}" src="${escapeHtml(productImage)}" alt="" aria-hidden="true">` : ""}
+        ${productImage ? `<img class="product-image${coverProductImage ? " product-image-square" : ""}${compactRedBullImage ? " product-image-compact" : ""}" src="${escapeHtml(productImage)}" alt="" aria-hidden="true">` : ""}
       </button>
     `;
   }
