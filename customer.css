@@ -413,6 +413,17 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   text-align: left;
 }
 .product-button:active { border-color: var(--orange); background: var(--orange-soft); }
+.product-button.has-product-image { padding-right: 58px; }
+.product-button.has-product-image .product-cart-count { right: 54px; }
+.product-image {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 34px;
+  height: 68px;
+  object-fit: contain;
+  transform: translateY(-50%);
+}
 .product-name { display: block; overflow: hidden; font-size: clamp(14px, 3.5vw, 19px); font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
 .product-price { display: block; margin-top: 7px; color: var(--muted); font-size: 14px; }
 .product-cart-count {
@@ -529,6 +540,9 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   .payment-choice-grid { grid-template-columns: repeat(3, 1fr); }
   .product-grid { gap: 7px; }
   .product-button { min-height: 76px; padding: 11px 8px; }
+  .product-button.has-product-image { padding-right: 50px; }
+  .product-button.has-product-image .product-cart-count { right: 42px; }
+  .product-image { right: 7px; width: 30px; height: 62px; }
   .sheet-dialog { width: calc(100% - 12px); max-height: calc(100dvh - 12px); }
   .sheet-card { max-height: calc(100dvh - 12px); padding: 20px 16px; }
   #itemDialog .sheet-card { padding: 12px; }

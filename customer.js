@@ -343,11 +343,13 @@
   function productButton(category, item) {
     const count = state.cart.filter((entry) => entry.categoryId === category.id && entry.itemId === item.id)
       .reduce((sum, entry) => sum + entry.quantity, 0);
+    const hasProductImage = item.name.trim() === "水";
     return `
-      <button class="product-button" type="button" data-item="${escapeHtml(item.id)}">
+      <button class="product-button${hasProductImage ? " has-product-image" : ""}" type="button" data-item="${escapeHtml(item.id)}">
         ${count ? `<span class="product-cart-count">${count}</span>` : ""}
         <span class="product-name">${escapeHtml(menuText(item.name))}</span>
         <span class="product-price">${formatPrice(item.price)}</span>
+        ${hasProductImage ? `<img class="product-image" src="./assets/crystal-geyser.png" alt="" aria-hidden="true">` : ""}
       </button>
     `;
   }
