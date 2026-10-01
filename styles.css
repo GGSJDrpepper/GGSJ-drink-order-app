@@ -215,6 +215,14 @@ button {
   background: #ffffff;
 }
 
+#headerBarButton.has-waiting-orders {
+  background: rgba(255, 196, 61, 0.22);
+}
+
+#headerBarButton.has-critical-orders {
+  background: rgba(255, 70, 88, 0.18);
+}
+
 .bar-order-badge {
   position: absolute;
   top: -8px;

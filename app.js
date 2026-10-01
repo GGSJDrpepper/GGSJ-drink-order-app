@@ -2683,9 +2683,14 @@
   function updateBarOrderBadge(count = state.orders.filter((order) => !["served", "canceled"].includes(order.status)).length) {
     const badge = $("#barOrderBadge");
     if (!badge) return;
+    const openOrders = state.orders.filter((order) => !["served", "canceled"].includes(order.status));
+    const hasCriticalOrder = openOrders.some((order) => minutesSince(order.created_at) >= 10);
+    const barButton = $("#headerBarButton");
     badge.hidden = count === 0;
     badge.textContent = count > 99 ? "99+" : String(count);
-    $("#headerBarButton")?.setAttribute("aria-label", count ? `バー、未提供${count}件` : "バー");
+    barButton?.classList.toggle("has-waiting-orders", count > 0 && !hasCriticalOrder);
+    barButton?.classList.toggle("has-critical-orders", count > 0 && hasCriticalOrder);
+    barButton?.setAttribute("aria-label", count ? `バー、未提供${count}件` : "バー");
   }
 
   function barOrderColumns(orders) {
