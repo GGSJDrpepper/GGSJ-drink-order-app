@@ -346,11 +346,15 @@
     const productImage = {
       "水": "./assets/crystal-geyser.png",
       "ペリエ": "./assets/perrier.png",
+      "レッドブル（ノーマル）": "./assets/red-bull-original.png",
     }[item.name.trim()] || "";
+    const splitNormalName = state.language === "ja" && item.name.trim() === "レッドブル（ノーマル）";
     return `
       <button class="product-button${productImage ? " has-product-image" : ""}" type="button" data-item="${escapeHtml(item.id)}">
         ${count ? `<span class="product-cart-count">${count}</span>` : ""}
-        <span class="product-name">${escapeHtml(menuText(item.name))}</span>
+        <span class="product-name${splitNormalName ? " force-two-lines" : ""}">${splitNormalName
+          ? `<span class="product-name-line">レッドブル</span><span class="product-name-line">（ノーマル）</span>`
+          : escapeHtml(menuText(item.name))}</span>
         <span class="product-price">${formatPrice(item.price)}</span>
         ${productImage ? `<img class="product-image${item.name.trim() === "ペリエ" ? " product-image-square" : ""}" src="${escapeHtml(productImage)}" alt="" aria-hidden="true">` : ""}
       </button>
