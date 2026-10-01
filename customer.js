@@ -346,7 +346,7 @@
     const productImage = {
       "水": "./assets/crystal-geyser.png",
       "ペリエ": "./assets/perrier.png",
-      "レッドブル（ノーマル）": "./assets/red-bull-original.png",
+      "レッドブル（ノーマル）": "./assets/red-bull-original.png?v=2026100101",
     }[item.name.trim()] || "";
     const splitNormalName = state.language === "ja" && item.name.trim() === "レッドブル（ノーマル）";
     return `
