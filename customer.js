@@ -360,6 +360,12 @@
       "ジョニーウォーカー": "./assets/johnnie-walker.png?v=2026100101",
       "グレンフィディック12年": "./assets/glenfiddich-12.png?v=2026100101",
       "ボウモア12年": "./assets/bowmore-12.png?v=2026100101",
+      "ラフロイグ10年": "./assets/laphroaig-10.png?v=2026100101",
+      "白州": "./assets/hakushu.png?v=2026100101",
+      "マッカラン": "./assets/macallan.png?v=2026100101",
+      "いいちこ": "./assets/iichiko.png?v=2026100101",
+      "黒霧島": "./assets/kuro-kirishima.png?v=2026100101",
+      "鍛高譚": "./assets/tantakatan.png?v=2026100101",
     }[item.name.trim()] || "";
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
@@ -367,6 +373,7 @@
     const compactRedBullImage = ["レッドブル（ノンシュガー）", "レッドブル（パープル）"]
       .includes(item.name.trim());
     const coverProductImage = ["ペリエ", "ハイネケン"].includes(item.name.trim());
+    const bottomCropProductImage = item.name.trim() === "黒霧島";
     return `
       <button class="product-button${productImage ? " has-product-image" : ""}" type="button" data-item="${escapeHtml(item.id)}">
         ${count ? `<span class="product-cart-count">${count}</span>` : ""}
@@ -374,7 +381,7 @@
           ? `<span class="product-name-line">レッドブル</span><span class="product-name-line">${escapeHtml(`（${splitRedBullName[1]}）`)}</span>`
           : escapeHtml(menuText(item.name))}</span>
         <span class="product-price">${formatPrice(item.price)}</span>
-        ${productImage ? `<img class="product-image${coverProductImage ? " product-image-square" : ""}${compactRedBullImage ? " product-image-compact" : ""}" src="${escapeHtml(productImage)}" alt="" aria-hidden="true">` : ""}
+        ${productImage ? `<img class="product-image${coverProductImage ? " product-image-square" : ""}${compactRedBullImage ? " product-image-compact" : ""}${bottomCropProductImage ? " product-image-bottom-crop" : ""}" src="${escapeHtml(productImage)}" alt="" aria-hidden="true">` : ""}
       </button>
     `;
   }
