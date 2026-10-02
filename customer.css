@@ -425,7 +425,6 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   transform: translateY(-50%);
 }
 .product-image-square { object-fit: cover; }
-.product-image-compact { width: 27px; object-fit: fill; }
 .product-image.product-image-bottom-crop {
   width: 27px;
   transform: translateY(-50%) scale(1.35);
@@ -552,7 +551,6 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   .product-button.has-product-image { padding-right: 50px; }
   .product-button.has-product-image .product-cart-count { right: 42px; }
   .product-image { right: 7px; width: 30px; height: 62px; }
-  .product-image-compact { width: 24px; }
   .product-image.product-image-bottom-crop { width: 24px; transform: translateY(-50%) scale(1.45); }
   .product-name.force-two-lines { font-size: 14px; }
   .product-name.force-two-lines + .product-price { margin-top: 3px; }
