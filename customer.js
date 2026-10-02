@@ -374,6 +374,8 @@
       "コアントロー": "./assets/cointreau.png?v=2026100101",
       "ディタ": "./assets/dita.png?v=2026100101",
       "ジン": "./assets/gin.png?v=2026100101",
+      "ウォッカ": "./assets/vodka.png?v=2026100201",
+      "ラム": "./assets/rum.png?v=2026100201",
     }[item.name.trim()] || "";
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
