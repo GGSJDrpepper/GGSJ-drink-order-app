@@ -382,6 +382,7 @@
       "タランチュラ": "./assets/tarantula.png?v=2026100201",
       "ストロベリーテキーラ": "./assets/strawberry-tequila.png?v=2026100201",
       "モエ・エ・シャンドン": "./assets/moet-chandon.png?v=2026100301",
+      "モエ・エ・シャンドン・ロゼ": "./assets/moet-chandon-rose.png?v=2026100301",
     }[item.name.trim()] || "";
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
