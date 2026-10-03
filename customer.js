@@ -381,6 +381,7 @@
       "アネホ1800": "./assets/anejo-1800.png?v=2026100201",
       "タランチュラ": "./assets/tarantula.png?v=2026100201",
       "ストロベリーテキーラ": "./assets/strawberry-tequila.png?v=2026100201",
+      "モエ・エ・シャンドン": "./assets/moet-chandon.png?v=2026100301",
     }[item.name.trim()] || "";
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
