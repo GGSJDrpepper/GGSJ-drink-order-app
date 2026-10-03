@@ -44,7 +44,6 @@
   const DEFAULT_SUBCATEGORY_LABEL = "未分類";
   const ALCOHOL_SUBCATEGORY_ORDER = [
     "ビール",
-    "シャンパン",
     "ウィスキー",
     "サワー",
     "ジン",
@@ -57,6 +56,7 @@
     "ウォッカ",
     "サウザテキーラ",
     "オリジナルカクテル",
+    "シャンパン",
   ];
   const DEFAULT_OPTION_TEMPLATES = [
     { id: "hot", label: "hot", choices: ["hot"], required: false },
