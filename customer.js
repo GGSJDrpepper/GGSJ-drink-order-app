@@ -385,6 +385,7 @@
       "モエ・エ・シャンドン・ロゼ": "./assets/moet-chandon-rose.png?v=2026100301",
       "ヴーヴ・クリエ・イエロー": "./assets/veuve-yellow.png?v=2026100301",
       "ドン・ペリニョン": "./assets/dom-perignon.png?v=2026100401",
+      "ドン・ペリニョン ロゼ": "./assets/dom-perignon-rose.png?v=2026100401",
     }[item.name.trim()] || "";
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
