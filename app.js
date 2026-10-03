@@ -44,6 +44,7 @@
   const DEFAULT_SUBCATEGORY_LABEL = "未分類";
   const ALCOHOL_SUBCATEGORY_ORDER = [
     "ビール",
+    "シャンパン",
     "ウィスキー",
     "サワー",
     "ジン",

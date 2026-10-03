@@ -385,12 +385,23 @@
     const splitRedBullName = state.language === "ja"
       ? item.name.trim().match(/^レッドブル（(.+)）$/)
       : null;
+    const multilineProductName = splitRedBullName || [
+      "オリジナルシャンパン",
+      "モエ・エ・シャンドン",
+      "モエ・エ・シャンドン・ロゼ",
+      "ヴーヴ・クリエ・イエロー",
+      "ドン・ペリニョン",
+      "ドン・ペリニョン ロゼ",
+      "エンジェル",
+      "アルマンド・ゴールド",
+      "シャンメリー",
+    ].includes(item.name.trim());
     const coverProductImage = ["ペリエ", "ハイネケン"].includes(item.name.trim());
     const bottomCropProductImage = item.name.trim() === "黒霧島";
     return `
       <button class="product-button${productImage ? " has-product-image" : ""}" type="button" data-item="${escapeHtml(item.id)}">
         ${count ? `<span class="product-cart-count">${count}</span>` : ""}
-        <span class="product-name${splitRedBullName ? " force-two-lines" : ""}">${splitRedBullName
+        <span class="product-name${multilineProductName ? " force-two-lines" : ""}">${splitRedBullName
           ? `<span class="product-name-line">レッドブル</span><span class="product-name-line">${escapeHtml(`（${splitRedBullName[1]}）`)}</span>`
           : escapeHtml(menuText(item.name))}</span>
         <span class="product-price">${formatPrice(item.price)}</span>

@@ -130,7 +130,7 @@
 
   const menu = {
     "ソフトドリンク": "Soft Drinks", "水、お茶": "Water & Tea", "ジュース": "Juice", "エナジードリンク": "Energy Drinks",
-    "アルコール": "Alcohol", "ビール": "Beer", "ウィスキー": "Whisky", "焼酎": "Shochu", "サワー": "Sours",
+    "アルコール": "Alcohol", "ビール": "Beer", "シャンパン": "Champagne", "ウィスキー": "Whisky", "焼酎": "Shochu", "サワー": "Sours",
     "カクテル": "Cocktails", "ディタ": "Dita", "ジン": "Gin", "ウォッカ": "Vodka", "サウザテキーラ": "Sauza Tequila",
     "ラム": "Rum", "レッドブル割り": "Red Bull Mixes", "ショット": "Shots", "ショット（テキーラ）": "Shots (Tequila)", "オリジナルカクテル": "Original Cocktails",
     "フード": "Food", "その他": "Other", "サービス": "Service", "メニュー": "Menu", "商品": "Item", "オプション": "Options",
@@ -153,6 +153,9 @@
     "ジンライム": "Gin Lime", "ウォッカトニック": "Vodka Tonic", "スクリュードライバー": "Screwdriver", "モスコミュール": "Moscow Mule",
     "テコニック": "Tequila & Tonic", "テキーラサンライズ": "Tequila Sunrise", "キューバリバー": "Cuba Libre", "モヒート": "Mojito",
     "レッドブルウォッカ": "Red Bull Vodka", "レッドブルテキーラ": "Red Bull Tequila", "レッドブルラム": "Red Bull Rum", "テキーラ": "Tequila",
+    "オリジナルシャンパン": "Original Champagne", "モエ・エ・シャンドン": "Moet & Chandon", "モエ・エ・シャンドン・ロゼ": "Moet & Chandon Rose",
+    "ヴーヴ・クリエ・イエロー": "Veuve Clicquot Yellow", "ドン・ペリニョン": "Dom Perignon", "ドン・ペリニョン ロゼ": "Dom Perignon Rose",
+    "エンジェル": "Angel Champagne", "アルマンド・ゴールド": "Armand de Brignac Gold", "シャンメリー": "Chanmery",
     "♤スペード": "Spade", "♡ハート": "Heart", "♢ダイヤ": "Diamond", "♧クラブ": "Club", "岩茶オリジナルカクテル": "Iwa-cha Original Cocktail",
     "カレーライス": "Curry Rice", "ミックスピザ": "Mixed Pizza", "マルゲリータ": "Margherita Pizza", "クアトロピザ": "Quattro Formaggi Pizza",
     "パスタ（ボロネーゼ）": "Bolognese Pasta", "パスタ（カルボナーラ）": "Carbonara Pasta", "パスタ（めんたいこ）": "Mentaiko Pasta",
