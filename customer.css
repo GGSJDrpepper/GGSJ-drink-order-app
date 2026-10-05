@@ -488,6 +488,7 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   font-size: 14px;
   font-weight: 500;
   line-height: 1.65;
+  white-space: pre-line;
 }
 .sheet-description[hidden] { display: none; }
 .close-button { flex: 0 0 46px; height: 46px; border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 30px; font-weight: 400; }
