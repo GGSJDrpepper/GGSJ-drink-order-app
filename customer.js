@@ -480,11 +480,23 @@
     $("#itemCategory").textContent = menuText(category.label);
     $("#itemName").textContent = menuText(item.name);
     $("#itemPrice").textContent = formatPrice(item.price);
+    const description = itemDescription(item.name);
+    $("#itemDescription").textContent = description;
+    $("#itemDescription").hidden = !description;
     $("#itemQuantity").textContent = String(state.quantity);
     $("#itemOptions").innerHTML = item.optionGroups
       .map((group, groupIndex) => optionGroup(group, groupIndex, options))
       .join("");
     $("#addToCartButton").textContent = cartItem ? t("updateCart") : t("addToCart");
+  }
+
+  function itemDescription(itemName) {
+    const description = window.DRINK_DESCRIPTIONS?.[String(itemName || "").trim()];
+    if (typeof description === "string") return description.trim();
+    if (!description || typeof description !== "object") return "";
+    const preferred = state.language === "en" ? description.en : description.ja;
+    const fallback = state.language === "en" ? description.ja : description.en;
+    return String(preferred || fallback || "").trim();
   }
 
   function optionGroup(group, groupIndex, selectedOptions = []) {

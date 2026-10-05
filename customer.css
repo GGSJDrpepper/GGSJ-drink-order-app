@@ -481,6 +481,15 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
 .sheet-head { display: flex; justify-content: space-between; gap: 15px; align-items: flex-start; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .sheet-head h2 { margin-bottom: 0; font-size: 26px; }
 .sheet-price { margin: 7px 0 0; color: var(--muted); }
+.sheet-description {
+  max-width: 560px;
+  margin: 10px 0 0;
+  color: #4f4b47;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.65;
+}
+.sheet-description[hidden] { display: none; }
 .close-button { flex: 0 0 46px; height: 46px; border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 30px; font-weight: 400; }
 .item-options { padding: 6px 0 16px; }
 .option-group {
@@ -564,6 +573,7 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   #itemDialog .sheet-head h2 { font-size: 23px; }
   #itemDialog .sheet-kicker { margin-bottom: 3px; font-size: 12px; }
   #itemDialog .sheet-price { margin-top: 3px; font-size: 14px; }
+  #itemDialog .sheet-description { margin-top: 7px; font-size: 13px; line-height: 1.55; }
   #itemDialog .close-button {
     flex-basis: 42px;
     height: 42px;
