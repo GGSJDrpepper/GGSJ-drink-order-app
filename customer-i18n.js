@@ -10,6 +10,7 @@
       menuLoadFailed: "メニュー取得失敗",
       menuTitle: "商品を選ぶ",
       menuGuide: "商品を選んでカートに追加してください",
+      applicationsGuide: "申請・ご案内を選んでリンク先を開いてください",
       category: "ジャンル",
       subcategory: "サブジャンル",
       points: "点",
@@ -72,6 +73,7 @@
       menuLoadFailed: "Menu unavailable",
       menuTitle: "Choose Items",
       menuGuide: "Select an item and add it to your cart",
+      applicationsGuide: "Choose an application or guide to open its page",
       category: "Category",
       subcategory: "Subcategory",
       points: " items",
@@ -129,7 +131,7 @@
   };
 
   const menu = {
-    "ソフトドリンク": "Soft Drinks", "水、お茶": "Water & Tea", "ジュース": "Juice", "エナジードリンク": "Energy Drinks",
+    "各種申請": "Applications", "各種申請・ご案内": "Applications & Guides", "ソフトドリンク": "Soft Drinks", "水、お茶": "Water & Tea", "ジュース": "Juice", "エナジードリンク": "Energy Drinks",
     "アルコール": "Alcohol", "ビール": "Beer", "シャンパン": "Champagne", "ウィスキー": "Whisky", "焼酎": "Shochu", "サワー": "Sours",
     "カクテル": "Cocktails", "ディタ": "Dita", "ジン": "Gin", "ウォッカ": "Vodka", "サウザテキーラ": "Sauza Tequila",
     "ラム": "Rum", "レッドブル割り": "Red Bull Mixes", "ショット": "Shots", "ショット（テキーラ）": "Shots (Tequila)", "オリジナルカクテル": "Original Cocktails",

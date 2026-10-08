@@ -5,6 +5,7 @@
   const SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const BAR_COUNTER = "bar";
+  const APPLICATIONS_CATEGORY_ID = "applications";
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
   const PAYMENT_METHODS = [
     { id: "cash", labelKey: "cash", icon: "¥" },
@@ -13,6 +14,31 @@
     { id: "coin", labelKey: "coin", icon: "●" },
     { id: "transit", labelKey: "transit", icon: "IC" },
   ];
+  const APPLICATION_LINKS = [
+    { label: "①メニュー表", href: "https://lit.link/ggpldrink", iconText: "①" },
+    { label: "②ポーカーギルド選手契約", note: "※初回のみ要登録", href: "https://pokerguild-contract.com/ja/", image: "./assets/application-pokerguild.png" },
+    { label: "③競技結果申請フォーム", href: "https://docs.google.com/forms/d/e/1FAIpQLSdVap9LAD022FRGOHfzync_6-soLtHFtqsV0ayfjuh4sBZmEg/viewform", iconText: "③" },
+    { label: "④JG Free権利申請", note: "※初回のみ要登録", href: "https://miniapp.line.me/2011431861-jUMUxBv5?store=ggplsj&qr=QR-261001-A58B54C53A70C08C&st=9e94d11a422ee117ae5cf6c8daf6e1038c9fdafc9b40f4bf0e1cadb903d65ec6", image: "./assets/application-jg-free.png" },
+    { label: "⑤GGPL新宿各種SNSのご案内", href: "https://lit.link/ggplsns", image: "./assets/application-sns.jpg" },
+    { label: "⑥本日のトーナメント情報", href: "https://beta.pokerguild.jp/room?no=4", image: "./assets/application-tournament.jpg" },
+  ];
+  const GAME_ID_NOTICE = `【個人認証（eKYC）導入とトランスファー手数料の変更】
+
+2025年7月24日（木）午前1時 より、プレイヤー会員アプリ「GameID」に登録された情報が、身分証の情報や写真と一致しているかを確認する個人認証（eKYC）を導入されています。
+
+2025年8月1日（金）午前1時 より、個人認証を行っていないGameIDアカウントは、以下の操作が制限されます。
+
+・店舗へのコイン送信
+・プレイヤーへのコイン送信
+・プレイヤーからのコイン受信
+
+個人認証は以下のブラウザからのみ行うことができます
+
+iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイコンは本人の顔写真に切り替わります。
+
+これにより、そのGameIDが本人のものであることが明示され、年齢（未成年かどうか）や国籍の確認、選手契約内容との照合が可能になります。
+
+また、2025年8月1日（金）から、プレイヤー同士のトランスファー手数料は、これまでの3％から5％に変更させていただきます。`;
 
   const state = {
     supabase: null,
@@ -266,8 +292,8 @@
     }
 
     state.menu = normalizeMenu(data.menu);
-    state.categoryId = state.menu[0]?.id || "";
-    state.subcategoryId = state.menu[0]?.subcategories?.[0]?.id || "";
+    state.categoryId = APPLICATIONS_CATEGORY_ID;
+    state.subcategoryId = "";
     setConnectionState(true, "acceptingOrders");
     renderMenu();
     updateCheckoutState();
@@ -304,9 +330,21 @@
   }
 
   function renderMenu() {
-    $("#categoryTabs").innerHTML = state.menu.map((category) => `
+    const categories = [{ id: APPLICATIONS_CATEGORY_ID, label: "各種申請" }, ...state.menu];
+    $("#categoryTabs").innerHTML = categories.map((category) => `
       <button class="category-tab${category.id === state.categoryId ? " active" : ""}" type="button" data-category="${escapeHtml(category.id)}">${escapeHtml(menuText(category.label))}</button>
     `).join("");
+
+    const applicationsActive = state.categoryId === APPLICATIONS_CATEGORY_ID;
+    $(".menu-level-secondary").hidden = applicationsActive;
+    $("#menuGuide").textContent = applicationsActive ? t("applicationsGuide") : t("menuGuide");
+    $("#productSections").classList.toggle("is-applications", applicationsActive);
+    if (applicationsActive) {
+      $("#subcategoryTabs").innerHTML = "";
+      renderApplications();
+      requestAnimationFrame(updateStickyOffsets);
+      return;
+    }
 
     const category = activeCategory();
     if (!category) return;
@@ -330,6 +368,38 @@
       </section>
     `).join("");
     requestAnimationFrame(updateStickyOffsets);
+  }
+
+  function renderApplications() {
+    $("#productSections").innerHTML = `
+      <section class="applications-portal" aria-labelledby="applicationsTitle">
+        <div class="applications-inner">
+          <div class="applications-heading">
+            <p>GG新宿</p>
+            <h3 id="applicationsTitle">${escapeHtml(menuText("各種申請・ご案内"))}</h3>
+          </div>
+          <div class="application-link-list">
+            ${APPLICATION_LINKS.map((link) => `
+              <a class="application-link" href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer">
+                <span class="application-link-icon" aria-hidden="true">${link.image
+                  ? `<img src="${escapeHtml(link.image)}" alt="">`
+                  : escapeHtml(link.iconText || "")}</span>
+                <span class="application-link-copy">
+                  <strong>${escapeHtml(menuText(link.label))}</strong>
+                  ${link.note ? `<small>${escapeHtml(menuText(link.note))}</small>` : ""}
+                </span>
+                <span class="application-link-arrow" aria-hidden="true">↗</span>
+              </a>
+            `).join("")}
+          </div>
+          <img class="application-identity-guide" src="./assets/gameid-identity-guide.jpg?v=2026100801" alt="本人確認のお手続き">
+          <article class="gameid-notice">
+            <h3>GameIDアプリの重要なお知らせ</h3>
+            <p>${escapeHtml(GAME_ID_NOTICE)}</p>
+          </article>
+        </div>
+      </section>
+    `;
   }
 
   function updateStickyOffsets() {
@@ -420,7 +490,9 @@
     const button = event.target.closest("[data-category]");
     if (!button) return;
     state.categoryId = button.dataset.category;
-    state.subcategoryId = activeCategory()?.subcategories?.[0]?.id || "";
+    state.subcategoryId = state.categoryId === APPLICATIONS_CATEGORY_ID
+      ? ""
+      : activeCategory()?.subcategories?.[0]?.id || "";
     renderMenu();
     requestAnimationFrame(ensureMenuHeadingVisible);
   }
