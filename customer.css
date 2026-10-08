@@ -438,13 +438,10 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 .applications-portal {
   min-height: 780px;
   padding: 28px 18px 42px;
-  background-color: #573326;
-  background-image: url("./assets/applications-background.jpg?v=2026100801");
-  background-position: center top;
-  background-size: cover;
+  background: #eeeae5;
 }
 .applications-inner { width: min(100%, 560px); margin: 0 auto; }
-.applications-heading { margin-bottom: 18px; color: white; text-align: center; text-shadow: 0 2px 8px rgba(0, 0, 0, .72); }
+.applications-heading { margin-bottom: 18px; color: #403b37; text-align: center; }
 .applications-heading p { margin: 0 0 4px; font-size: 13px; font-weight: 800; }
 .applications-heading h3 { margin: 0; font-size: 24px; }
 .application-link-list { display: grid; gap: 10px; }
