@@ -292,8 +292,9 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     }
 
     state.menu = normalizeMenu(data.menu);
-    state.categoryId = APPLICATIONS_CATEGORY_ID;
-    state.subcategoryId = "";
+    const initialCategory = state.menu.find((category) => category.id === "soft" || category.label === "ソフトドリンク") || state.menu[0];
+    state.categoryId = initialCategory?.id || "";
+    state.subcategoryId = initialCategory?.subcategories[0]?.id || "";
     setConnectionState(true, "acceptingOrders");
     renderMenu();
     updateCheckoutState();
