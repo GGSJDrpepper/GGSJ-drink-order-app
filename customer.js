@@ -336,8 +336,9 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     `).join("");
 
     const applicationsActive = state.categoryId === APPLICATIONS_CATEGORY_ID;
+    $(".section-heading").hidden = applicationsActive;
     $(".menu-level-secondary").hidden = applicationsActive;
-    $("#menuGuide").textContent = applicationsActive ? t("applicationsGuide") : t("menuGuide");
+    $("#menuGuide").textContent = t("menuGuide");
     $("#productSections").classList.toggle("is-applications", applicationsActive);
     if (applicationsActive) {
       $("#subcategoryTabs").innerHTML = "";
