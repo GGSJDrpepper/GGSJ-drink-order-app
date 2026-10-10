@@ -8,7 +8,8 @@
   const APPLICATIONS_CATEGORY_ID = "applications";
   const CAST_CATEGORY_ID = "cast-drink";
   const CAST_SHEET_ID = "16_UQYWtL1wGHUUuGfK6HbSsaG5sl7x9T_LOxIJWUbEU";
-  const CAST_ROSTER_RANGE = "B50:B75";
+  const CAST_ROSTER_RANGE = "AR19:BE49";
+  const CAST_DAY_CUTOFF_HOUR = 6;
   const CAST_STORAGE_TARGET = "tournament";
   const CAST_STORAGE_SEAT = "__cast__";
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
@@ -311,20 +312,70 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     updateCheckoutState();
   }
 
-  function currentCastSheetName() {
+  function currentCastSchedule() {
     const parts = new Intl.DateTimeFormat("en-US", {
       timeZone: "Asia/Tokyo",
+      year: "numeric",
       month: "numeric",
       day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hourCycle: "h23",
     }).formatToParts(new Date());
-    const month = parts.find((part) => part.type === "month")?.value || "";
-    const day = parts.find((part) => part.type === "day")?.value || "";
-    return `${month}/${day}`;
+    const value = (type) => Number(parts.find((part) => part.type === type)?.value || 0);
+    const year = value("year");
+    const month = value("month");
+    const day = value("day");
+    const hour = value("hour");
+    const minute = value("minute");
+    const beforeCutoff = hour < CAST_DAY_CUTOFF_HOUR;
+    const sheetDate = new Date(Date.UTC(year, month - 1, day - (beforeCutoff ? 1 : 0)));
+    return {
+      sheetName: `${sheetDate.getUTCMonth() + 1}/${sheetDate.getUTCDate()}`,
+      currentHour: hour + minute / 60 + (beforeCutoff ? 24 : 0),
+    };
+  }
+
+  function rosterCell(row, index) {
+    return String(row?.c?.[index]?.f ?? row?.c?.[index]?.v ?? "").trim();
+  }
+
+  function rosterHour(value) {
+    const text = String(value || "").trim();
+    if (!text) return null;
+    const clock = text.match(/^(\d{1,2}):(\d{2})$/);
+    const parsed = clock
+      ? Number(clock[1]) + Number(clock[2]) / 60
+      : Number(text);
+    if (!Number.isFinite(parsed)) return null;
+    return parsed < CAST_DAY_CUTOFF_HOUR ? parsed + 24 : parsed;
+  }
+
+  function activeCastNames(rows, currentHour) {
+    return [...new Set(rows.map((row) => {
+      const changedStart = rosterHour(rosterCell(row, 0));
+      const changedEnd = rosterHour(rosterCell(row, 1));
+      const attendanceNote = rosterCell(row, 2);
+      const scheduledStart = rosterHour(rosterCell(row, 3));
+      const scheduledEnd = rosterHour(rosterCell(row, 4));
+      const name = rosterCell(row, 5);
+      const breakStart = rosterHour(rosterCell(row, 12));
+      const breakEnd = rosterHour(rosterCell(row, 13));
+      const start = changedStart ?? scheduledStart;
+      const end = changedEnd ?? scheduledEnd;
+
+      if (!name || start === null || end === null) return "";
+      if (attendanceNote && (changedStart === null || currentHour < changedStart)) return "";
+      if (currentHour < start || currentHour >= end) return "";
+      if (breakStart !== null && currentHour >= breakStart && (breakEnd === null || currentHour < breakEnd)) return "";
+      return name;
+    }).filter(Boolean))];
   }
 
   function loadCastNames() {
     const requestId = ++state.castRosterRequest;
-    const sheetName = currentCastSheetName();
+    const schedule = currentCastSchedule();
+    const sheetName = schedule.sheetName;
     const callbackName = `__castRoster${Date.now()}${Math.random().toString(36).slice(2)}`;
     const script = document.createElement("script");
     const timeout = window.setTimeout(() => finish(null), 10000);
@@ -348,15 +399,10 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
         cleanup();
         return;
       }
-      const values = response?.status === "ok"
-        ? (response.table?.rows || []).map((row) => String(row.c?.[0]?.f ?? row.c?.[0]?.v ?? "").trim()).filter(Boolean)
-        : [];
-      const start = values.indexOf("出勤中のキャスト");
-      const end = values.indexOf("卓稼働時間", start + 1);
-      const names = start >= 0 ? values.slice(start + 1, end >= 0 ? end : values.length) : [];
-      state.castNames = [...new Set(names)];
+      const responseOk = response?.status === "ok";
+      state.castNames = responseOk ? activeCastNames(response.table?.rows || [], schedule.currentHour) : [];
       state.castRosterLoading = false;
-      state.castRosterError = !state.castNames.length;
+      state.castRosterError = !responseOk;
       if (!state.castNames.includes(state.selectedCastName)) state.selectedCastName = "";
       cleanup();
       if (state.categoryId === CAST_CATEGORY_ID) renderMenu();
@@ -470,15 +516,17 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
       ? `<p class="cast-roster-status">${t("castRosterLoading")}</p>`
       : state.castRosterError
         ? `<p class="cast-roster-status is-error">${t("castRosterError")}</p>`
-        : `<div class="cast-name-grid">${state.castNames.map((name) => `
+        : state.castNames.length
+          ? `<div class="cast-name-grid">${state.castNames.map((name) => `
             <button class="cast-name-button${name === state.selectedCastName ? " active" : ""}" type="button" data-cast-name="${escapeHtml(name)}" aria-pressed="${name === state.selectedCastName}">${escapeHtml(name)}</button>
-          `).join("")}</div>`;
+          `).join("")}</div>`
+          : `<p class="cast-roster-status">${t("noCastOnDuty")}</p>`;
     return `
       <section class="cast-roster-panel" aria-labelledby="castRosterTitle">
         <div class="cast-roster-heading">
           <div>
             <h3 id="castRosterTitle">${t("selectCast")}</h3>
-            <p>${t("castRosterDate", { date: state.castRosterDate || currentCastSheetName() })}</p>
+            <p>${t("castRosterDate", { date: state.castRosterDate || currentCastSchedule().sheetName })}</p>
           </div>
           <button class="cast-roster-refresh" type="button" data-refresh-cast-roster aria-label="${t("refreshCastRoster")}" title="${t("refreshCastRoster")}">↻</button>
         </div>
