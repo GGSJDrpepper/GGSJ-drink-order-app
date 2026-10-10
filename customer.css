@@ -120,10 +120,6 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   align-items: flex-start;
   margin-bottom: 18px;
 }
-.section-heading.is-placeholder {
-  visibility: hidden;
-  pointer-events: none;
-}
 .section-heading p { margin-bottom: 0; color: var(--muted); font-size: 14px; font-weight: 500; }
 .step-number {
   display: grid;
