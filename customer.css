@@ -482,6 +482,13 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 .product-name-line { display: block; }
 .product-price { display: block; margin-top: 7px; color: var(--muted); font-size: 14px; }
 .product-sections.is-applications { margin: 0 -12px -20px; }
+.menu-section.is-applications-active {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.menu-section.is-applications-active .menu-level-primary { margin: 0; }
+.menu-section.is-applications-active .product-sections.is-applications { margin: 0; }
 .applications-portal {
   min-height: 780px;
   padding: 28px 18px 42px;
