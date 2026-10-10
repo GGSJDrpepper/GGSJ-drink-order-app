@@ -484,7 +484,6 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
 
     const applicationsActive = state.categoryId === APPLICATIONS_CATEGORY_ID;
     const castActive = state.categoryId === CAST_CATEGORY_ID;
-    $("#menuSection").classList.toggle("is-applications-active", applicationsActive);
     $(".section-heading").hidden = applicationsActive;
     $(".menu-level-secondary").hidden = applicationsActive || castActive;
     $("#menuGuide").textContent = t(castActive ? "castMenuGuide" : "menuGuide");
