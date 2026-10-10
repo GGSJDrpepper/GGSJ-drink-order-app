@@ -167,16 +167,24 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     normalizeSeatSelection();
     normalizePaymentSelection();
     const seatChoices = $("#seatChoices");
+    const castOnly = isCastOnlyCart();
     const barCounterSelected = isBarCounterSelected();
-    seatChoices.classList.toggle("is-table-picking", !state.tableNo);
+    seatChoices.classList.toggle("is-table-picking", !state.tableNo && !castOnly);
     seatChoices.classList.toggle("is-bar-counter-selected", barCounterSelected);
-    seatChoices.setAttribute("aria-label", barCounterSelected ? t("destinationSelection") : state.tableNo ? t("seatSelection") : t("tableSelection"));
-    const multiSeatHint = state.tableNo && !barCounterSelected && cartCount() >= 2
+    seatChoices.classList.toggle("is-cast-table-only", castOnly);
+    seatChoices.setAttribute("aria-label", castOnly ? t("tableSelection") : barCounterSelected ? t("destinationSelection") : state.tableNo ? t("seatSelection") : t("tableSelection"));
+    const multiSeatHint = !castOnly && state.tableNo && !barCounterSelected && cartCount() >= 2
       ? `<small class="multi-seat-hint">${t("multipleAllowed")}</small>`
       : "";
-    const destinationLegend = barCounterSelected ? t("destination") : state.tableNo ? t("seatNumber") : t("table");
+    const destinationLegend = castOnly ? t("table") : barCounterSelected ? t("destination") : state.tableNo ? t("seatNumber") : t("table");
     $("#seatChoiceLegend").innerHTML = `${destinationLegend} <span>${t("required")}</span>${multiSeatHint}`;
-    seatChoices.innerHTML = barCounterSelected ? `
+    seatChoices.innerHTML = castOnly ? `
+      <div class="table-choice-grid">
+        ${TABLES.map((table) => `
+          <button class="selection-button${state.tableNo === table ? " active" : ""}" type="button" data-table="${table}">${table}</button>
+        `).join("")}
+      </div>
+    ` : barCounterSelected ? `
       <button class="selection-button selected-bar-counter active" type="button" data-change-table>${t("barCounter")}</button>
     ` : `
       <div class="poker-table-surface" aria-hidden="true">
@@ -258,6 +266,11 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
   }
 
   function normalizeSeatSelection() {
+    if (isCastOnlyCart()) {
+      if (isBarCounterSelected()) state.tableNo = "";
+      state.seatNos = [];
+      return;
+    }
     if (isBarCounterSelected()) {
       state.seatNos = [];
       return;
@@ -421,17 +434,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
   }
 
   function castCategory() {
-    const sourceCategories = state.menu.filter((category) => ["soft", "alcohol"].includes(category.id));
-    const subcategories = sourceCategories.flatMap((category) => category.subcategories.map((subcategory) => ({
-      id: `${category.id}-${subcategory.id}`,
-      label: subcategory.label,
-    })));
-    const items = sourceCategories.flatMap((category) => category.items.map((item) => ({
-      ...item,
-      id: `${category.id}-${item.id}`,
-      subcategory_id: `${category.id}-${item.subcategory_id}`,
-    })));
-    return { id: CAST_CATEGORY_ID, label: "キャスドリ", subcategories, items };
+    return { id: CAST_CATEGORY_ID, label: "キャスドリ", subcategories: [], items: [] };
   }
 
   function setConnectionState(ok, labelKey) {
@@ -445,15 +448,20 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
   function updateCheckoutState() {
     const seatLabel = state.seatNos.join("・");
     const selectedPaymentLabel = state.paymentMethods.map(paymentLabel).join("・");
-    const destinationReady = Boolean(state.tableNo && (isBarCounterSelected() || state.seatNos.length));
+    const castOnly = isCastOnlyCart();
+    const destinationReady = castOnly
+      ? Boolean(state.tableNo && !isBarCounterSelected())
+      : Boolean(state.tableNo && (isBarCounterSelected() || state.seatNos.length));
     const ready = Boolean(destinationReady && state.paymentMethods.length);
     const guide = $("#checkoutGuide");
     if (guide) {
       guide.textContent = ready
         ? t("selectedDestination", {
-            destination: isBarCounterSelected() ? t("barCounter") : t("tableSeat", { table: state.tableNo, seat: seatLabel }),
+            destination: castOnly ? t("tableOnly", { table: state.tableNo }) : isBarCounterSelected() ? t("barCounter") : t("tableSeat", { table: state.tableNo, seat: seatLabel }),
             payment: selectedPaymentLabel,
           })
+        : castOnly
+          ? t("selectTablePayment")
         : isBarCounterSelected()
           ? t("selectPaymentAtBar")
         : state.tableNo && !state.seatNos.length
@@ -476,8 +484,8 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     const applicationsActive = state.categoryId === APPLICATIONS_CATEGORY_ID;
     const castActive = state.categoryId === CAST_CATEGORY_ID;
     $(".section-heading").hidden = applicationsActive;
-    $(".menu-level-secondary").hidden = applicationsActive;
-    $("#menuGuide").textContent = t("menuGuide");
+    $(".menu-level-secondary").hidden = applicationsActive || castActive;
+    $("#menuGuide").textContent = t(castActive ? "castMenuGuide" : "menuGuide");
     $("#productSections").classList.toggle("is-applications", applicationsActive);
     $("#productSections").classList.toggle("is-cast-drink", castActive);
     if (applicationsActive) {
@@ -705,7 +713,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     }
     const castNameButton = event.target.closest("[data-cast-name]");
     if (castNameButton) {
-      state.selectedCastName = castNameButton.dataset.castName;
+      selectCastDrink(castNameButton.dataset.castName);
       renderMenu();
       return;
     }
@@ -719,6 +727,26 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     const item = category?.items.find((entry) => entry.id === button.dataset.item);
     if (!item) return;
     openItem(category, item);
+  }
+
+  function selectCastDrink(castName) {
+    const existing = state.cart.find((item) => item.categoryId === CAST_CATEGORY_ID && item.castName === castName);
+    state.selectedCastName = castName;
+    state.cart = [{
+      id: existing?.id || crypto.randomUUID(),
+      categoryId: CAST_CATEGORY_ID,
+      itemId: `cast-${castName}`,
+      name: `${castName}　キャスドリ`,
+      price: 0,
+      quantity: 1,
+      options: [],
+      castName,
+    }];
+    if (isBarCounterSelected()) state.tableNo = "";
+    state.seatNos = [];
+    normalizePaymentSelection();
+    renderCartDock();
+    updateCheckoutState();
   }
 
   function openItem(category, item) {
@@ -802,6 +830,10 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
       .map((group) => $("input:checked", group)?.value || "")
       .filter(Boolean);
     const cartItem = cartItemId ? state.cart.find((entry) => entry.id === cartItemId) : null;
+    if (category.id !== CAST_CATEGORY_ID && isCastOnlyCart()) {
+      state.cart = [];
+      state.selectedCastName = "";
+    }
     if (cartItem) {
       cartItem.quantity = state.quantity;
       cartItem.options = options;
@@ -830,7 +862,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     $("#cartDock").hidden = count === 0;
     $("#cartCount").textContent = String(count);
     $("#cartUnit").textContent = state.language === "en" && count === 1 ? " item" : t("points");
-    $("#cartTotal").textContent = formatPrice(cartTotal());
+    $("#cartTotal").textContent = isCastOnlyCart() ? t("castDrink") : formatPrice(cartTotal());
   }
 
   function openCart() {
@@ -843,20 +875,22 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     $("#cartItems").innerHTML = state.cart.map((item) => `
       <article class="cart-item" data-cart-id="${escapeHtml(item.id)}">
         <div>
-          <h3>${escapeHtml(menuText(item.name))} × ${item.quantity}</h3>
-          ${item.castName ? `<p class="cart-cast-name">${escapeHtml(t("castRecipient", { name: item.castName }))}</p>` : ""}
+          <h3>${escapeHtml(menuText(item.name))}${item.categoryId === CAST_CATEGORY_ID ? "" : ` × ${item.quantity}`}</h3>
           ${item.options.length ? `<p>${escapeHtml(item.options.map(menuText).join(" / "))}</p>` : ""}
-          <span>${formatPrice(item.price * item.quantity)}</span>
+          ${item.categoryId === CAST_CATEGORY_ID ? "" : `<span>${formatPrice(item.price * item.quantity)}</span>`}
         </div>
         <div class="cart-item-tools">
-          <button type="button" data-cart-action="decrease" aria-label="${t("decreaseQuantity")}">−</button>
-          <button type="button" data-cart-action="increase" aria-label="${t("increaseQuantity")}">＋</button>
+          ${item.categoryId === CAST_CATEGORY_ID ? "" : `
+            <button type="button" data-cart-action="decrease" aria-label="${t("decreaseQuantity")}">−</button>
+            <button type="button" data-cart-action="increase" aria-label="${t("increaseQuantity")}">＋</button>
+          `}
           <button class="remove-item" type="button" data-cart-action="remove" aria-label="${t("remove")}">×</button>
         </div>
       </article>
     `).join("");
+    $("#cartDialog .cart-summary").hidden = isCastOnlyCart();
     $("#dialogCartTotal").textContent = formatPrice(cartTotal());
-    $("#submitOrderButton").disabled = !state.tableNo || (!isBarCounterSelected() && !state.seatNos.length) || !state.paymentMethods.length || !state.cart.length || state.submitting;
+    $("#submitOrderButton").disabled = !checkoutReady();
     $("#submitOrderButton").textContent = t(state.submitting ? "submitting" : "submitOrder");
     updateCheckoutState();
   }
@@ -876,6 +910,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
       }
     }
     if (button.dataset.cartAction === "remove") state.cart = state.cart.filter((entry) => entry.id !== item.id);
+    if (!state.cart.some((entry) => entry.categoryId === CAST_CATEGORY_ID)) state.selectedCastName = "";
     if (!state.cart.length) $("#cartDialog").close();
     renderMenu();
     renderCartDock();
@@ -883,7 +918,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
   }
 
   async function submitOrder() {
-    if (!state.tableNo || (!isBarCounterSelected() && !state.seatNos.length) || !state.paymentMethods.length) {
+    if (!checkoutReady()) {
       toast(t("selectDestinationPayment"));
       return;
     }
@@ -892,7 +927,10 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     renderCartDialog();
     const startedAt = Date.now();
     const barCounterSelected = isBarCounterSelected();
-    const sourceLocation = barCounterSelected
+    const castOnly = isCastOnlyCart();
+    const sourceLocation = castOnly
+      ? `${state.tableNo}卓`
+      : barCounterSelected
       ? "バーカウンター"
       : `${state.tableNo}卓 ${state.seatNos.join("・")}番席`;
     let rowIndex = 0;
@@ -911,7 +949,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
         drink_name: item.name,
         quantity: 1,
         target: castOrder ? CAST_STORAGE_TARGET : barCounterSelected ? "bar" : "ring",
-        table_no: castOrder ? item.castName : barCounterSelected ? "" : state.tableNo,
+        table_no: castOrder ? state.tableNo : barCounterSelected ? "" : state.tableNo,
         seat_no: castOrder ? CAST_STORAGE_SEAT : barCounterSelected ? "" : state.seatNos.join("・"),
         payment_status: "uncollected",
         payment_method: state.paymentMethods[currentRowIndex % state.paymentMethods.length],
@@ -937,7 +975,9 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     const seat = state.seatNos.join("・");
     state.cart = [];
     $("#cartDialog").close();
-    $("#successTable").textContent = barCounterSelected ? t("barCounter") : t("successTable", { table, seat });
+    $("#successTable").textContent = castOnly
+      ? t("tableOnly", { table })
+      : barCounterSelected ? t("barCounter") : t("successTable", { table, seat });
     $("#successDialog").showModal();
     renderMenu();
     renderCartDock();
@@ -986,6 +1026,17 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
 
   function cartTotal() {
     return state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  }
+
+  function isCastOnlyCart() {
+    return Boolean(state.cart.length && state.cart.every((item) => item.categoryId === CAST_CATEGORY_ID));
+  }
+
+  function checkoutReady() {
+    const destinationReady = isCastOnlyCart()
+      ? Boolean(state.tableNo && !isBarCounterSelected())
+      : Boolean(state.tableNo && (isBarCounterSelected() || state.seatNos.length));
+    return Boolean(destinationReady && state.paymentMethods.length && state.cart.length && !state.submitting);
   }
 
   function paymentLabel(value) {
