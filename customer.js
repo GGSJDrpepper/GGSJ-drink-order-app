@@ -6,6 +6,11 @@
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const BAR_COUNTER = "bar";
   const APPLICATIONS_CATEGORY_ID = "applications";
+  const CAST_CATEGORY_ID = "cast-drink";
+  const CAST_SHEET_ID = "16_UQYWtL1wGHUUuGfK6HbSsaG5sl7x9T_LOxIJWUbEU";
+  const CAST_ROSTER_RANGE = "B50:B75";
+  const CAST_STORAGE_TARGET = "tournament";
+  const CAST_STORAGE_SEAT = "__cast__";
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
   const PAYMENT_METHODS = [
     { id: "cash", labelKey: "cash", icon: "¥" },
@@ -55,6 +60,12 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     language: savedLanguage(),
     connectionOk: true,
     connectionKey: "connecting",
+    castNames: [],
+    selectedCastName: "",
+    castRosterDate: "",
+    castRosterLoading: false,
+    castRosterError: false,
+    castRosterRequest: 0,
   };
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -300,6 +311,83 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     updateCheckoutState();
   }
 
+  function currentCastSheetName() {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Tokyo",
+      month: "numeric",
+      day: "numeric",
+    }).formatToParts(new Date());
+    const month = parts.find((part) => part.type === "month")?.value || "";
+    const day = parts.find((part) => part.type === "day")?.value || "";
+    return `${month}/${day}`;
+  }
+
+  function loadCastNames() {
+    const requestId = ++state.castRosterRequest;
+    const sheetName = currentCastSheetName();
+    const callbackName = `__castRoster${Date.now()}${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement("script");
+    const timeout = window.setTimeout(() => finish(null), 10000);
+    let completed = false;
+
+    state.castRosterLoading = true;
+    state.castRosterError = false;
+    state.castRosterDate = sheetName;
+    if (state.categoryId === CAST_CATEGORY_ID) renderMenu();
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      script.remove();
+      delete window[callbackName];
+    }
+
+    function finish(response) {
+      if (completed) return;
+      completed = true;
+      if (requestId !== state.castRosterRequest) {
+        cleanup();
+        return;
+      }
+      const values = response?.status === "ok"
+        ? (response.table?.rows || []).map((row) => String(row.c?.[0]?.f ?? row.c?.[0]?.v ?? "").trim()).filter(Boolean)
+        : [];
+      const start = values.indexOf("出勤中のキャスト");
+      const end = values.indexOf("卓稼働時間", start + 1);
+      const names = start >= 0 ? values.slice(start + 1, end >= 0 ? end : values.length) : [];
+      state.castNames = [...new Set(names)];
+      state.castRosterLoading = false;
+      state.castRosterError = !state.castNames.length;
+      if (!state.castNames.includes(state.selectedCastName)) state.selectedCastName = "";
+      cleanup();
+      if (state.categoryId === CAST_CATEGORY_ID) renderMenu();
+    }
+
+    window[callbackName] = finish;
+    script.onerror = () => finish(null);
+    const query = new URLSearchParams({
+      tqx: `out:json;responseHandler:${callbackName}`,
+      sheet: sheetName,
+      range: CAST_ROSTER_RANGE,
+      headers: "0",
+    });
+    script.src = `https://docs.google.com/spreadsheets/d/${CAST_SHEET_ID}/gviz/tq?${query}`;
+    document.head.append(script);
+  }
+
+  function castCategory() {
+    const sourceCategories = state.menu.filter((category) => ["soft", "alcohol"].includes(category.id));
+    const subcategories = sourceCategories.flatMap((category) => category.subcategories.map((subcategory) => ({
+      id: `${category.id}-${subcategory.id}`,
+      label: subcategory.label,
+    })));
+    const items = sourceCategories.flatMap((category) => category.items.map((item) => ({
+      ...item,
+      id: `${category.id}-${item.id}`,
+      subcategory_id: `${category.id}-${item.subcategory_id}`,
+    })));
+    return { id: CAST_CATEGORY_ID, label: "キャスドリ", subcategories, items };
+  }
+
   function setConnectionState(ok, labelKey) {
     state.connectionOk = ok;
     state.connectionKey = labelKey;
@@ -331,16 +419,21 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
   }
 
   function renderMenu() {
-    const categories = [{ id: APPLICATIONS_CATEGORY_ID, label: "各種申請" }, ...state.menu];
+    const menuCategories = [...state.menu];
+    const castInsertIndex = menuCategories.findIndex((category) => category.id === "alcohol") + 1;
+    menuCategories.splice(Math.max(0, castInsertIndex), 0, { id: CAST_CATEGORY_ID, label: "キャスドリ" });
+    const categories = [{ id: APPLICATIONS_CATEGORY_ID, label: "各種申請" }, ...menuCategories];
     $("#categoryTabs").innerHTML = categories.map((category) => `
       <button class="category-tab${category.id === state.categoryId ? " active" : ""}" type="button" data-category="${escapeHtml(category.id)}">${escapeHtml(menuText(category.label))}</button>
     `).join("");
 
     const applicationsActive = state.categoryId === APPLICATIONS_CATEGORY_ID;
+    const castActive = state.categoryId === CAST_CATEGORY_ID;
     $(".section-heading").hidden = applicationsActive;
     $(".menu-level-secondary").hidden = applicationsActive;
     $("#menuGuide").textContent = t("menuGuide");
     $("#productSections").classList.toggle("is-applications", applicationsActive);
+    $("#productSections").classList.toggle("is-cast-drink", castActive);
     if (applicationsActive) {
       $("#subcategoryTabs").innerHTML = "";
       renderApplications();
@@ -361,15 +454,40 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
       ...subcategory,
       items: category.items.filter((item) => item.subcategory_id === subcategory.id),
     })).filter((group) => group.items.length);
-    $("#productSections").innerHTML = groups.map((group) => `
+    $("#productSections").innerHTML = `${castActive ? renderCastRoster() : ""}${groups.map((group) => `
       <section class="product-group" data-product-group="${escapeHtml(group.id)}">
         <h3>${escapeHtml(menuText(group.label))}</h3>
         <div class="product-grid">
           ${group.items.map((item) => productButton(category, item)).join("")}
         </div>
       </section>
-    `).join("");
+    `).join("")}`;
     requestAnimationFrame(updateStickyOffsets);
+  }
+
+  function renderCastRoster() {
+    const status = state.castRosterLoading
+      ? `<p class="cast-roster-status">${t("castRosterLoading")}</p>`
+      : state.castRosterError
+        ? `<p class="cast-roster-status is-error">${t("castRosterError")}</p>`
+        : `<div class="cast-name-grid">${state.castNames.map((name) => `
+            <button class="cast-name-button${name === state.selectedCastName ? " active" : ""}" type="button" data-cast-name="${escapeHtml(name)}" aria-pressed="${name === state.selectedCastName}">${escapeHtml(name)}</button>
+          `).join("")}</div>`;
+    return `
+      <section class="cast-roster-panel" aria-labelledby="castRosterTitle">
+        <div class="cast-roster-heading">
+          <div>
+            <h3 id="castRosterTitle">${t("selectCast")}</h3>
+            <p>${t("castRosterDate", { date: state.castRosterDate || currentCastSheetName() })}</p>
+          </div>
+          <button class="cast-roster-refresh" type="button" data-refresh-cast-roster aria-label="${t("refreshCastRoster")}" title="${t("refreshCastRoster")}">↻</button>
+        </div>
+        ${status}
+        <p class="cast-roster-guide${state.selectedCastName ? " is-selected" : ""}">${state.selectedCastName
+          ? t("selectedCast", { name: state.selectedCastName })
+          : t("selectCastFirst")}</p>
+      </section>
+    `;
   }
 
   function renderApplications() {
@@ -413,7 +531,9 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
   }
 
   function productButton(category, item) {
-    const count = state.cart.filter((entry) => entry.categoryId === category.id && entry.itemId === item.id)
+    const castItem = category.id === CAST_CATEGORY_ID;
+    const count = state.cart.filter((entry) => entry.categoryId === category.id && entry.itemId === item.id
+      && (!castItem || entry.castName === state.selectedCastName))
       .reduce((sum, entry) => sum + entry.quantity, 0);
     const productImage = {
       "水": "./assets/crystal-geyser.png",
@@ -477,7 +597,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     const coverProductImage = ["ペリエ", "ハイネケン"].includes(item.name.trim());
     const bottomCropProductImage = item.name.trim() === "黒霧島";
     return `
-      <button class="product-button${productImage ? " has-product-image" : ""}" type="button" data-item="${escapeHtml(item.id)}">
+      <button class="product-button${productImage ? " has-product-image" : ""}" type="button" data-item="${escapeHtml(item.id)}"${castItem && !state.selectedCastName ? " disabled" : ""}>
         ${count ? `<span class="product-cart-count">${count}</span>` : ""}
         <span class="product-name${multilineProductName ? " force-two-lines" : ""}">${splitRedBullName
           ? `<span class="product-name-line">レッドブル</span><span class="product-name-line">${escapeHtml(`（${splitRedBullName[1]}）`)}</span>`
@@ -496,6 +616,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
       ? ""
       : activeCategory()?.subcategories?.[0]?.id || "";
     renderMenu();
+    if (state.categoryId === CAST_CATEGORY_ID) loadCastNames();
     requestAnimationFrame(ensureMenuHeadingVisible);
   }
 
@@ -530,17 +651,33 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
   }
 
   function handleProductChoice(event) {
+    if (event.target.closest("[data-refresh-cast-roster]")) {
+      loadCastNames();
+      return;
+    }
+    const castNameButton = event.target.closest("[data-cast-name]");
+    if (castNameButton) {
+      state.selectedCastName = castNameButton.dataset.castName;
+      renderMenu();
+      return;
+    }
     const button = event.target.closest("[data-item]");
     if (!button) return;
     const category = activeCategory();
+    if (category?.id === CAST_CATEGORY_ID && !state.selectedCastName) {
+      toast(t("selectCastFirst"));
+      return;
+    }
     const item = category?.items.find((entry) => entry.id === button.dataset.item);
     if (!item) return;
     openItem(category, item);
   }
 
   function openItem(category, item) {
-    const cartItem = state.cart.find((entry) => entry.categoryId === category.id && entry.itemId === item.id);
-    state.activeItem = { category, item, cartItemId: cartItem?.id || "" };
+    const castName = category.id === CAST_CATEGORY_ID ? state.selectedCastName : "";
+    const cartItem = state.cart.find((entry) => entry.categoryId === category.id && entry.itemId === item.id
+      && (category.id !== CAST_CATEGORY_ID || entry.castName === castName));
+    state.activeItem = { category, item, castName, cartItemId: cartItem?.id || "" };
     state.quantity = cartItem?.quantity || 1;
     renderActiveItem();
     $("#itemDialog").showModal();
@@ -551,7 +688,9 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     const { category, item, cartItemId } = state.activeItem;
     const cartItem = cartItemId ? state.cart.find((entry) => entry.id === cartItemId) : null;
     const options = Array.isArray(selectedOptions) ? selectedOptions : cartItem?.options || [];
-    $("#itemCategory").textContent = menuText(category.label);
+    $("#itemCategory").textContent = category.id === CAST_CATEGORY_ID
+      ? `${menuText(category.label)} / ${cartItem?.castName || state.activeItem.castName}`
+      : menuText(category.label);
     $("#itemName").textContent = menuText(item.name);
     $("#itemPrice").textContent = formatPrice(item.price);
     const description = itemDescription(item.name);
@@ -610,7 +749,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
   function addActiveItemToCart(event) {
     event.preventDefault();
     if (!state.activeItem) return;
-    const { category, item, cartItemId } = state.activeItem;
+    const { category, item, castName, cartItemId } = state.activeItem;
     const options = $$(".option-group", $("#itemOptions"))
       .map((group) => $("input:checked", group)?.value || "")
       .filter(Boolean);
@@ -618,6 +757,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     if (cartItem) {
       cartItem.quantity = state.quantity;
       cartItem.options = options;
+      if (category.id === CAST_CATEGORY_ID) cartItem.castName = castName;
     } else {
       state.cart.push({
         id: crypto.randomUUID(),
@@ -627,6 +767,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
         price: item.price,
         quantity: state.quantity,
         options,
+        castName: category.id === CAST_CATEGORY_ID ? castName : "",
       });
     }
     state.activeItem = null;
@@ -655,6 +796,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
       <article class="cart-item" data-cart-id="${escapeHtml(item.id)}">
         <div>
           <h3>${escapeHtml(menuText(item.name))} × ${item.quantity}</h3>
+          ${item.castName ? `<p class="cart-cast-name">${escapeHtml(t("castRecipient", { name: item.castName }))}</p>` : ""}
           ${item.options.length ? `<p>${escapeHtml(item.options.map(menuText).join(" / "))}</p>` : ""}
           <span>${formatPrice(item.price * item.quantity)}</span>
         </div>
@@ -702,10 +844,17 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     renderCartDialog();
     const startedAt = Date.now();
     const barCounterSelected = isBarCounterSelected();
+    const sourceLocation = barCounterSelected
+      ? "バーカウンター"
+      : `${state.tableNo}卓 ${state.seatNos.join("・")}番席`;
     let rowIndex = 0;
     const rows = state.cart.flatMap((item) => Array.from({ length: item.quantity }, (_, index) => {
       const currentRowIndex = rowIndex++;
       const now = new Date(startedAt + currentRowIndex).toISOString();
+      const castOrder = item.categoryId === CAST_CATEGORY_ID;
+      const noteParts = [];
+      if (castOrder) noteParts.push(`注文元: ${sourceLocation}`);
+      if (item.options.length) noteParts.push(`オプション: ${item.options.join(" / ")}`);
       return {
         id: crypto.randomUUID(),
         created_at: now,
@@ -713,12 +862,12 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
         source: "table",
         drink_name: item.name,
         quantity: 1,
-        target: barCounterSelected ? "bar" : "ring",
-        table_no: barCounterSelected ? "" : state.tableNo,
-        seat_no: barCounterSelected ? "" : state.seatNos.join("・"),
+        target: castOrder ? CAST_STORAGE_TARGET : barCounterSelected ? "bar" : "ring",
+        table_no: castOrder ? item.castName : barCounterSelected ? "" : state.tableNo,
+        seat_no: castOrder ? CAST_STORAGE_SEAT : barCounterSelected ? "" : state.seatNos.join("・"),
         payment_status: "uncollected",
         payment_method: state.paymentMethods[currentRowIndex % state.paymentMethods.length],
-        notes: item.options.length ? `オプション: ${item.options.join(" / ")}` : "",
+        notes: noteParts.join(" / "),
         status: "ordered",
         made_at: null,
         served_at: null,
@@ -779,6 +928,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
   }
 
   function activeCategory() {
+    if (state.categoryId === CAST_CATEGORY_ID) return castCategory();
     return state.menu.find((category) => category.id === state.categoryId) || state.menu[0];
   }
 
