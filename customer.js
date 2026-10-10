@@ -7,6 +7,7 @@
   const BAR_COUNTER = "bar";
   const APPLICATIONS_CATEGORY_ID = "applications";
   const CAST_CATEGORY_ID = "cast-drink";
+  const CAST_DRINK_PRICE = 1000;
   const CAST_SHEET_ID = "16_UQYWtL1wGHUUuGfK6HbSsaG5sl7x9T_LOxIJWUbEU";
   const CAST_ROSTER_RANGE = "AR19:BE49";
   const CAST_DAY_CUTOFF_HOUR = 6;
@@ -534,7 +535,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
         <div class="cast-roster-heading">
           <div>
             <h3 id="castRosterTitle">${t("selectCast")}</h3>
-            <p>${t("castRosterDate", { date: state.castRosterDate || currentCastSchedule().sheetName })}</p>
+            <p>${t("castRosterDate", { date: state.castRosterDate || currentCastSchedule().sheetName })}・${formatPrice(CAST_DRINK_PRICE)}</p>
           </div>
           <button class="cast-roster-refresh" type="button" data-refresh-cast-roster aria-label="${t("refreshCastRoster")}" title="${t("refreshCastRoster")}">↻</button>
         </div>
@@ -737,7 +738,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
       categoryId: CAST_CATEGORY_ID,
       itemId: `cast-${castName}`,
       name: `${castName}　キャスドリ`,
-      price: 0,
+      price: CAST_DRINK_PRICE,
       quantity: 1,
       options: [],
       castName,
@@ -862,7 +863,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     $("#cartDock").hidden = count === 0;
     $("#cartCount").textContent = String(count);
     $("#cartUnit").textContent = state.language === "en" && count === 1 ? " item" : t("points");
-    $("#cartTotal").textContent = isCastOnlyCart() ? t("castDrink") : formatPrice(cartTotal());
+    $("#cartTotal").textContent = formatPrice(cartTotal());
   }
 
   function openCart() {
@@ -877,7 +878,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
         <div>
           <h3>${escapeHtml(menuText(item.name))}${item.categoryId === CAST_CATEGORY_ID ? "" : ` × ${item.quantity}`}</h3>
           ${item.options.length ? `<p>${escapeHtml(item.options.map(menuText).join(" / "))}</p>` : ""}
-          ${item.categoryId === CAST_CATEGORY_ID ? "" : `<span>${formatPrice(item.price * item.quantity)}</span>`}
+          <span>${formatPrice(item.price * item.quantity)}</span>
         </div>
         <div class="cart-item-tools">
           ${item.categoryId === CAST_CATEGORY_ID ? "" : `
@@ -888,7 +889,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
         </div>
       </article>
     `).join("");
-    $("#cartDialog .cart-summary").hidden = isCastOnlyCart();
+    $("#cartDialog .cart-summary").hidden = false;
     $("#dialogCartTotal").textContent = formatPrice(cartTotal());
     $("#submitOrderButton").disabled = !checkoutReady();
     $("#submitOrderButton").textContent = t(state.submitting ? "submitting" : "submitOrder");
