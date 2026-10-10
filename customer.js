@@ -929,18 +929,12 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     const startedAt = Date.now();
     const barCounterSelected = isBarCounterSelected();
     const castOnly = isCastOnlyCart();
-    const sourceLocation = castOnly
-      ? `${state.tableNo}卓`
-      : barCounterSelected
-      ? "バーカウンター"
-      : `${state.tableNo}卓 ${state.seatNos.join("・")}番席`;
     let rowIndex = 0;
     const rows = state.cart.flatMap((item) => Array.from({ length: item.quantity }, (_, index) => {
       const currentRowIndex = rowIndex++;
       const now = new Date(startedAt + currentRowIndex).toISOString();
       const castOrder = item.categoryId === CAST_CATEGORY_ID;
       const noteParts = [];
-      if (castOrder) noteParts.push(`注文元: ${sourceLocation}`);
       if (item.options.length) noteParts.push(`オプション: ${item.options.join(" / ")}`);
       return {
         id: crypto.randomUUID(),
