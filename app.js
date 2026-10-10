@@ -290,6 +290,7 @@
 
   function switchView(viewName) {
     state.view = viewName;
+    document.body.classList.toggle("bar-view-active", viewName === "bar");
     if (viewName === "bar" && state.soundEnabled) {
       unlockAudio();
     }
