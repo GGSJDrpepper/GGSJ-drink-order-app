@@ -3051,7 +3051,12 @@
   }
 
   function normalizeOrder(order) {
-    const isStoredCast = order.target === CAST_STORAGE_TARGET && order.seat_no === CAST_STORAGE_SEAT;
+    const storedSeat = String(order.seat_no || "");
+    const isStoredCast = order.target === CAST_STORAGE_TARGET
+      && (storedSeat === CAST_STORAGE_SEAT || storedSeat.startsWith(`${CAST_STORAGE_SEAT}:`));
+    const castSeat = isStoredCast && storedSeat.startsWith(`${CAST_STORAGE_SEAT}:`)
+      ? storedSeat.slice(CAST_STORAGE_SEAT.length + 1)
+      : "";
     return {
       id: order.id,
       created_at: order.created_at,
@@ -3061,7 +3066,7 @@
       quantity: Number(order.quantity || 1),
       target: isStoredCast ? "cast" : order.target || "ring",
       table_no: order.table_no || "",
-      seat_no: isStoredCast ? "" : order.seat_no || "",
+      seat_no: isStoredCast ? castSeat : order.seat_no || "",
       payment_status: order.payment_status || "uncollected",
       payment_method: normalizePaymentMethod(order.payment_method || "cash"),
       notes: order.notes || "",
@@ -3084,7 +3089,7 @@
       quantity: order.quantity,
       target: isCast ? CAST_STORAGE_TARGET : order.target,
       table_no: order.table_no,
-      seat_no: isCast ? CAST_STORAGE_SEAT : order.seat_no,
+      seat_no: isCast && order.seat_no ? `${CAST_STORAGE_SEAT}:${order.seat_no}` : isCast ? CAST_STORAGE_SEAT : order.seat_no,
       payment_status: order.payment_status,
       payment_method: order.payment_method,
       notes: order.notes,
