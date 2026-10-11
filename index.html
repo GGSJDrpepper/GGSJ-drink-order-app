@@ -11,10 +11,10 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026101206">
+    <link rel="stylesheet" href="./styles.css?v=2026101207">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026101206"></script>
+    <script defer src="./app.js?v=2026101207"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -92,6 +92,7 @@
                 <input name="drinkItemId" type="hidden">
                 <input name="customDrink" type="hidden">
                 <input name="quantity" type="hidden" value="1">
+                <div id="receptionCastMenuContext" class="cast-order-context" hidden></div>
                 <div class="menu-picker">
                   <div class="menu-category-list" data-menu-categories aria-label="カテゴリ選択"></div>
                   <div class="choice-grid menu-item-grid" data-drink-buttons aria-label="商品選択"></div>
@@ -157,6 +158,7 @@
         <div class="sheet-head">
           <div>
             <h2 id="itemSheetTitle"></h2>
+            <p id="itemSheetContext" class="sheet-context" hidden></p>
           </div>
           <button id="itemSheetClose" class="sheet-close" type="button" aria-label="閉じる">
             <i data-lucide="x" aria-hidden="true"></i>
@@ -183,7 +185,10 @@
     <dialog id="confirmDialog">
       <form class="confirm-modal" method="dialog">
         <div class="section-head compact">
-          <h2>確認</h2>
+          <div>
+            <h2>確認</h2>
+            <p id="confirmCastContext" class="confirm-cast-context" hidden></p>
+          </div>
           <button class="icon-button" value="cancel" type="submit" aria-label="閉じる" title="閉じる">
             <i data-lucide="x" aria-hidden="true"></i>
           </button>

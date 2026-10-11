@@ -745,6 +745,34 @@ body.bar-view-active .bar-board {
   cursor: pointer;
 }
 
+.cast-order-context {
+  position: sticky;
+  top: 63px;
+  z-index: 6;
+  margin-bottom: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--orange);
+  border-radius: 7px;
+  color: #8a3d00;
+  background: #fff7ed;
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.cast-order-context[hidden],
+.sheet-context[hidden],
+.confirm-cast-context[hidden] {
+  display: none !important;
+}
+
+.sheet-context,
+.confirm-cast-context {
+  margin: 4px 0 0;
+  color: #9a4a0a;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
 .reception-cast-grid {
   grid-template-columns: minmax(0, 1fr);
   gap: 7px;

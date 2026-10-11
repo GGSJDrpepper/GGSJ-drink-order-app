@@ -1038,9 +1038,16 @@
     const castSelected = form.elements.target?.value === "cast";
     const panel = $("#receptionCastPicker");
     const picker = $("[data-drink-picker]", form);
+    const menuContext = $("#receptionCastMenuContext");
     if (panel) panel.hidden = !castSelected;
     if (picker) picker.hidden = castSelected
       && (state.receptionCastView === "report" || !state.receptionSelectedCastName);
+    if (menuContext) {
+      menuContext.hidden = !castSelected || !state.receptionSelectedCastName;
+      menuContext.textContent = castSelected && state.receptionSelectedCastName
+        ? `${state.receptionSelectedCastName}のキャスドリを選択中`
+        : "";
+    }
     if (!castSelected) return;
     if (!state.receptionCastRosterLoaded && !state.receptionCastRosterLoading) loadReceptionCastNames();
     renderReceptionCastPicker();
@@ -1525,6 +1532,12 @@
     $("#confirmSummary").hidden = true;
 
     if (!preservePayment) setConfirmPaymentDefaults(draft);
+    const castNames = [...new Set(draft.items.map(castNameForOrder).filter(Boolean))];
+    const castContext = $("#confirmCastContext");
+    if (castContext) {
+      castContext.hidden = castNames.length === 0;
+      castContext.textContent = castNames.length ? `キャスト: ${castNames.join("・")}` : "";
+    }
     const deliveryItem = draft.items.find((item) => targetNeedsLocation(item.target));
     const hasDelivery = Boolean(deliveryItem);
     const hasSeatSelection = draft.items.some((item) => targetAllowsSeat(item.target));
@@ -1739,7 +1752,7 @@
   }
 
   function targetAllowsSeat(target) {
-    return (target || "ring") !== "bar";
+    return !["bar", "cast"].includes(target || "ring");
   }
 
   function tablesForTarget() {
@@ -1981,6 +1994,12 @@
 
   function renderItemSheet(form, item) {
     $("#itemSheetTitle").textContent = item.name;
+    const context = $("#itemSheetContext");
+    const castOrder = form.elements.target?.value === "cast" && state.receptionSelectedCastName;
+    if (context) {
+      context.hidden = !castOrder;
+      context.textContent = castOrder ? `${state.receptionSelectedCastName}のキャスドリ` : "";
+    }
     const optionGroups = item.optionGroups.filter((group) => group.choices.length);
 
     $("#itemSheetOptions").innerHTML = optionGroups.length
