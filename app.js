@@ -21,6 +21,27 @@
   const CAST_SHEET_ID = "16_UQYWtL1wGHUUuGfK6HbSsaG5sl7x9T_LOxIJWUbEU";
   const CAST_ROSTER_RANGE = "AR19:BE49";
   const CAST_DAY_CUTOFF_HOUR = 6;
+  const MONTHLY_CAST_ROSTERS = {
+    month: "2026-10",
+    label: "2026年10月",
+    stores: [
+      {
+        id: "ggpl-shinjuku",
+        label: "GGPL新宿",
+        names: ["またん", "アルム", "りこ", "ZIN", "はづき", "吉川", "てあめ", "ドクペ", "かいとねこ", "でく", "くろすけ", "わこ", "キサラ", "セナ", "さわ", "なぎさ", "はく", "ぺこ", "林檎", "にこ", "ゆめ", "しぇな", "ねる", "のの", "こにゃ", "のっち", "さとる", "如月", "あお", "みず", "たいき", "ボブ", "しょーた", "けんま", "しずく"],
+      },
+      {
+        id: "clt",
+        label: "CLT",
+        names: ["かなでまる", "はづき", "吉川", "Toma", "ZIN", "ぽん", "杏", "あくた", "ヒロ", "おの", "ハヤテ", "ゆる", "すてら", "よる", "しずく", "めあ", "うどん", "みみ", "ふゆみ", "まみ", "らぴ", "月", "ちはる", "ゆうか", "ミサト", "つばさ", "うな"],
+      },
+      {
+        id: "kklp-shinjuku",
+        label: "KKLP新宿",
+        names: ["はにゃ", "マイティ", "おきた", "夜沈", "ちとせ", "めんま", "だいじゅ", "おりん", "みらい", "ゆづ", "るる", "こむぎ", "ちの", "ゆるり", "るり", "よう", "リゼ", "クロワ", "ゆるち", "とどめ", "あいり", "ゆうや", "りゅーご", "come", "OYZ"],
+      },
+    ],
+  };
   const DEFAULT_SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
   const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
   const MAX_LOCAL_HISTORY = 200;
@@ -252,6 +273,7 @@
     receptionCastRosterError: false,
     receptionCastRosterLoaded: false,
     receptionCastRosterRequest: 0,
+    dailyCastOrders: [],
     booted: false,
   };
 
@@ -277,6 +299,7 @@
     await configureSupabaseFromStorage();
     await loadSharedSettings();
     await loadOrders();
+    await loadDailyCastOrders();
     state.orders.forEach((order) => state.knownIds.add(order.id));
     state.booted = true;
     render();
@@ -768,6 +791,7 @@
     $$("[data-action='refresh']").forEach((button) => {
       button.addEventListener("click", async () => {
         await loadOrders();
+        await loadDailyCastOrders();
         render();
         toast("更新しました");
       });
@@ -994,9 +1018,17 @@
     const minute = value("minute");
     const beforeCutoff = hour < CAST_DAY_CUTOFF_HOUR;
     const sheetDate = new Date(Date.UTC(year, month - 1, day - (beforeCutoff ? 1 : 0)));
+    const dayStart = new Date(Date.UTC(
+      sheetDate.getUTCFullYear(),
+      sheetDate.getUTCMonth(),
+      sheetDate.getUTCDate(),
+      -3
+    ));
     return {
       sheetName: `${sheetDate.getUTCMonth() + 1}/${sheetDate.getUTCDate()}`,
       currentHour: hour + minute / 60 + (beforeCutoff ? 24 : 0),
+      dayStartMs: dayStart.getTime(),
+      dayStartIso: dayStart.toISOString(),
     };
   }
 
@@ -1024,6 +1056,98 @@
       if (attendanceNote && changedStart === null) return "";
       return name;
     }).filter(Boolean))];
+  }
+
+  function isCurrentOperationalOrder(order) {
+    const createdAt = new Date(order?.created_at || 0).getTime();
+    const dayStart = currentReceptionCastSchedule().dayStartMs;
+    return Number.isFinite(createdAt) && createdAt >= dayStart && createdAt < dayStart + 24 * 60 * 60 * 1000;
+  }
+
+  function castNameForOrder(order) {
+    if (order?.target !== "cast") return "";
+    return String(order.drink_name || "").replace(/[ 　]*キャスドリ\s*$/, "").trim();
+  }
+
+  async function loadDailyCastOrders() {
+    if (state.syncMode !== "supabase" || !state.supabase) {
+      state.dailyCastOrders = state.orders.filter((order) => castNameForOrder(order) && isCurrentOperationalOrder(order));
+      return;
+    }
+
+    const { data, error } = await state.supabase
+      .from("drink_orders")
+      .select("*")
+      .gte("created_at", currentReceptionCastSchedule().dayStartIso)
+      .eq("target", CAST_STORAGE_TARGET)
+      .like("seat_no", `${CAST_STORAGE_SEAT}%`)
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.error(error);
+      state.dailyCastOrders = state.orders.filter((order) => castNameForOrder(order) && isCurrentOperationalOrder(order));
+      return;
+    }
+    state.dailyCastOrders = (data || []).map(normalizeOrder).filter(isCurrentOperationalOrder);
+  }
+
+  function upsertDailyCastOrder(order) {
+    const index = state.dailyCastOrders.findIndex((item) => item.id === order.id);
+    if (!castNameForOrder(order) || !isCurrentOperationalOrder(order)) {
+      if (index >= 0) state.dailyCastOrders.splice(index, 1);
+      return;
+    }
+    if (index >= 0) state.dailyCastOrders[index] = order;
+    else state.dailyCastOrders.push(order);
+  }
+
+  function removeDailyCastOrder(orderId) {
+    state.dailyCastOrders = state.dailyCastOrders.filter((order) => order.id !== orderId);
+  }
+
+  function receptionCastCounts() {
+    const counts = new Map();
+    state.dailyCastOrders.forEach((order) => {
+      if (order.status === "canceled") return;
+      const name = castNameForOrder(order);
+      if (!name) return;
+      counts.set(name, (counts.get(name) || 0) + Math.max(1, Number(order.quantity || 1)));
+    });
+    (state.carts.reception || []).forEach((item) => {
+      if (item.target !== "cast") return;
+      const name = castNameForOrder(item);
+      if (!name) return;
+      counts.set(name, (counts.get(name) || 0) + Math.max(1, Number(item.quantity || 1)));
+    });
+    return counts;
+  }
+
+  function receptionCastRow(name, count, extraClass = "") {
+    return `
+      <button class="choice-button reception-cast-row ${extraClass}" type="button" data-reception-cast-name="${escapeHtml(name)}">
+        <span>${escapeHtml(name)}</span>
+        <span class="reception-cast-count">${escapeHtml(String(count))}杯</span>
+      </button>
+    `;
+  }
+
+  function renderReceptionCastStores(counts) {
+    const container = $("#receptionCastStores");
+    if (!container) return;
+    const openStores = new Set($$("details[open]", container).map((details) => details.dataset.castStore));
+    container.innerHTML = `
+      <p class="reception-cast-store-guide">店舗別キャスト（${escapeHtml(MONTHLY_CAST_ROSTERS.label)}）</p>
+      ${MONTHLY_CAST_ROSTERS.stores.map((store) => `
+        <details class="reception-cast-store" data-cast-store="${escapeHtml(store.id)}"${openStores.has(store.id) ? " open" : ""}>
+          <summary>
+            <span>${escapeHtml(store.label)}</span>
+            <span>${store.names.length}名</span>
+          </summary>
+          <div class="reception-cast-store-list">
+            ${store.names.map((name) => receptionCastRow(name, counts.get(name) || 0, "reception-cast-store-row")).join("")}
+          </div>
+        </details>
+      `).join("")}
+    `;
   }
 
   function loadReceptionCastNames() {
@@ -1082,17 +1206,21 @@
     $("#receptionCastDate").textContent = `${state.receptionCastRosterDate || currentReceptionCastSchedule().sheetName} 出勤キャスト`;
     const names = $("#receptionCastNames");
     const status = $("#receptionCastStatus");
-    names.innerHTML = state.receptionCastNames.map((name) => `
-      <button class="choice-button" type="button" data-reception-cast-name="${escapeHtml(name)}">${escapeHtml(name)}</button>
-    `).join("");
+    const counts = receptionCastCounts();
+    const visibleNames = [...state.receptionCastNames];
+    counts.forEach((count, name) => {
+      if (count > 0 && !visibleNames.includes(name)) visibleNames.push(name);
+    });
+    names.innerHTML = visibleNames.map((name) => receptionCastRow(name, counts.get(name) || 0)).join("");
     status.textContent = state.receptionCastRosterLoading
       ? "当日の出勤キャストを読み込んでいます..."
       : state.receptionCastRosterError
         ? "出勤キャストを読み込めませんでした"
-        : state.receptionCastNames.length
+        : visibleNames.length
           ? "名前を選択してください"
           : "出勤済みのキャストはいません";
     status.classList.toggle("is-error", state.receptionCastRosterError);
+    renderReceptionCastStores(counts);
   }
 
   function openReceptionCastDrink(form, castName) {
@@ -1130,6 +1258,7 @@
     closeItemSheet();
     clearDrinkSelection(form);
     renderMenuPickers();
+    renderReceptionCastPicker();
     updateConfirmButtonState(form);
   }
 
@@ -1351,6 +1480,7 @@
     item.locations = locationsForItem(item, nextQuantity, selections);
     syncLiveCartItem(pending.draft.source, cartId, { quantity: nextQuantity, locations: item.locations });
     updateConfirmButtonState(pending.form);
+    renderReceptionCastPicker();
     renderConfirmContents(pending.draft, selections, true);
   }
 
@@ -1361,6 +1491,7 @@
     pending.draft.items = pending.draft.items.filter((item) => item.id !== cartId);
     state.carts[pending.draft.source] = (state.carts[pending.draft.source] || []).filter((item) => item.id !== cartId);
     updateConfirmButtonState(pending.form);
+    renderReceptionCastPicker();
     if (!pending.draft.items.length) {
       closeConfirm();
       return;
@@ -2496,6 +2627,7 @@
 
     orders.forEach((order) => {
       upsertOrder(order);
+      upsertDailyCastOrder(order);
       state.knownIds.add(order.id);
     });
     updateBarOrderBadge();
@@ -2515,7 +2647,10 @@
         toast(supabaseErrorMessage("共有同期に失敗したためデモ同期へ保存しました", error), { long: true });
         setSyncMode("local", "送信失敗");
       } else {
-        (data || []).map(normalizeOrder).forEach(upsertOrder);
+        (data || []).map(normalizeOrder).forEach((order) => {
+          upsertOrder(order);
+          upsertDailyCastOrder(order);
+        });
         return true;
       }
     }
@@ -2568,6 +2703,7 @@
     if (patch.payment_status === "paid" && !next.paid_at) next.paid_at = new Date().toISOString();
 
     upsertOrder(next);
+    upsertDailyCastOrder(next);
     if (state.syncMode === "local") saveLocalOrders();
     renderBar();
     scheduleIconRefresh();
@@ -2577,6 +2713,7 @@
       if (error) {
         console.error(error);
         upsertOrder(order);
+        upsertDailyCastOrder(order);
         renderBar();
         scheduleIconRefresh();
         toast("更新に失敗しました");
@@ -2590,6 +2727,7 @@
   function handleRealtimePayload(payload) {
     if (payload.eventType === "DELETE") {
       state.orders = state.orders.filter((order) => order.id !== payload.old.id);
+      removeDailyCastOrder(payload.old.id);
       refreshCustomMenuRanking();
       render();
       return;
@@ -2598,6 +2736,7 @@
     const order = normalizeOrder(payload.new);
     const isNew = !state.knownIds.has(order.id);
     upsertOrder(order);
+    upsertDailyCastOrder(order);
     pruneCompletedHistory();
 
     if (state.booted && isNew) {
@@ -2655,6 +2794,7 @@
   function render() {
     pruneCompletedHistory();
     updateBarOrderBadge();
+    if (state.view === "reception") renderReceptionCastPicker();
     if (state.view !== "bar") return;
     renderBar();
     scheduleIconRefresh();
@@ -3384,6 +3524,7 @@
       await saveSharedOptionTemplates(nextOptionTemplates);
     }
     await loadOrders();
+    await loadDailyCastOrders();
     state.orders.forEach((order) => state.knownIds.add(order.id));
     render();
     toast("設定を保存しました");
@@ -3432,6 +3573,7 @@
     await configureSupabaseFromStorage();
     await loadSharedSettings();
     await loadOrders();
+    await loadDailyCastOrders();
     render();
     toast("共有同期に戻しました");
   }

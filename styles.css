@@ -641,12 +641,90 @@ body.bar-view-active .bar-board {
 }
 
 .reception-cast-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
 }
 
 .reception-cast-grid .choice-button {
   min-height: 48px;
   color: var(--ink);
+}
+
+.choice-button.reception-cast-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.reception-cast-count {
+  flex: 0 0 auto;
+  min-width: 48px;
+  color: var(--orange-dark);
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-align: right;
+}
+
+.reception-cast-stores {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.reception-cast-store-guide {
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.reception-cast-store {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.reception-cast-store summary {
+  display: flex;
+  min-height: 50px;
+  padding: 0 14px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 900;
+  list-style: none;
+}
+
+.reception-cast-store summary::-webkit-details-marker {
+  display: none;
+}
+
+.reception-cast-store summary span:last-child {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.reception-cast-store[open] summary {
+  border-bottom: 1px solid var(--line);
+  background: #fff8f1;
+}
+
+.reception-cast-store-list {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+}
+
+.reception-cast-store-row {
+  min-height: 44px;
+  border-color: #e7e1dc;
+  background: #ffffff;
 }
 
 .reception-cast-status.is-error {
@@ -3563,10 +3641,6 @@ dialog::backdrop {
 
   .destination-row {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .reception-cast-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .destination-row label {
