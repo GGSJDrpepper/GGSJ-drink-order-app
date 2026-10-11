@@ -607,6 +607,52 @@ body.bar-view-active .bar-board {
   background: var(--paper);
 }
 
+.reception-cast-panel {
+  padding: 16px 0 20px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.reception-cast-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.reception-cast-head h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.reception-cast-head p,
+.reception-cast-status {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.reception-cast-head .icon-button {
+  color: var(--ink);
+  background: #ffffff;
+  border-color: var(--line);
+}
+
+.reception-cast-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.reception-cast-grid .choice-button {
+  min-height: 48px;
+  color: var(--ink);
+}
+
+.reception-cast-status.is-error {
+  color: var(--rose);
+}
+
 .main-fields {
   grid-template-columns: minmax(200px, 1fr) minmax(200px, 1fr) minmax(96px, 0.35fr);
 }
@@ -3517,6 +3563,10 @@ dialog::backdrop {
 
   .destination-row {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .reception-cast-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .destination-row label {

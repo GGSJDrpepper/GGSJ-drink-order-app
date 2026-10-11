@@ -17,6 +17,10 @@
   const OPTION_TEMPLATE_SETTINGS_ROW_ID = "option-templates";
   const CAST_STORAGE_TARGET = "tournament";
   const CAST_STORAGE_SEAT = "__cast__";
+  const CAST_DRINK_PRICE = 1000;
+  const CAST_SHEET_ID = "16_UQYWtL1wGHUUuGfK6HbSsaG5sl7x9T_LOxIJWUbEU";
+  const CAST_ROSTER_RANGE = "AR19:BE49";
+  const CAST_DAY_CUTOFF_HOUR = 6;
   const DEFAULT_SUPABASE_URL = "https://tmnyzkycdiokahujqblt.supabase.co";
   const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
   const MAX_LOCAL_HISTORY = 200;
@@ -242,6 +246,12 @@
     configActiveCategoryId: "",
     configDraftMenu: null,
     configDraftOptionTemplates: null,
+    receptionCastNames: [],
+    receptionCastRosterDate: "",
+    receptionCastRosterLoading: false,
+    receptionCastRosterError: false,
+    receptionCastRosterLoaded: false,
+    receptionCastRosterRequest: 0,
     booted: false,
   };
 
@@ -335,9 +345,11 @@
   function setupForms() {
     $$(".order-form").forEach((form) => {
       form.addEventListener("change", () => {
+        updateReceptionCastPicker(form);
         updateCustomDrinkField(form);
         updateConfirmButtonState(form);
       });
+      updateReceptionCastPicker(form);
       updateCustomDrinkField(form);
       updateConfirmButtonState(form);
       form.addEventListener("submit", async (event) => {
@@ -352,6 +364,17 @@
   function setupChoiceButtons() {
     $$(".order-form").forEach((form) => {
       form.addEventListener("click", (event) => {
+        if (event.target.closest("#refreshReceptionCast")) {
+          loadReceptionCastNames();
+          return;
+        }
+
+        const castNameButton = event.target.closest("[data-reception-cast-name]");
+        if (castNameButton && form.contains(castNameButton)) {
+          openReceptionCastDrink(form, castNameButton.dataset.receptionCastName);
+          return;
+        }
+
         const subcategoryButton = event.target.closest("[data-menu-subcategory]");
         if (subcategoryButton && form.contains(subcategoryButton)) {
           const picker = subcategoryButton.closest("[data-drink-picker]");
@@ -941,6 +964,148 @@
     };
   }
 
+  function updateReceptionCastPicker(form) {
+    if (form.dataset.source !== "reception") return;
+    const castSelected = form.elements.target?.value === "cast";
+    const panel = $("#receptionCastPicker");
+    const picker = $("[data-drink-picker]", form);
+    if (panel) panel.hidden = !castSelected;
+    if (picker) picker.hidden = castSelected;
+    if (!castSelected) return;
+    if (!state.receptionCastRosterLoaded && !state.receptionCastRosterLoading) loadReceptionCastNames();
+    renderReceptionCastPicker();
+  }
+
+  function currentReceptionCastSchedule() {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Tokyo",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hourCycle: "h23",
+    }).formatToParts(new Date());
+    const value = (type) => Number(parts.find((part) => part.type === type)?.value || 0);
+    const year = value("year");
+    const month = value("month");
+    const day = value("day");
+    const hour = value("hour");
+    const minute = value("minute");
+    const beforeCutoff = hour < CAST_DAY_CUTOFF_HOUR;
+    const sheetDate = new Date(Date.UTC(year, month - 1, day - (beforeCutoff ? 1 : 0)));
+    return {
+      sheetName: `${sheetDate.getUTCMonth() + 1}/${sheetDate.getUTCDate()}`,
+      currentHour: hour + minute / 60 + (beforeCutoff ? 24 : 0),
+    };
+  }
+
+  function receptionRosterCell(row, index) {
+    return String(row?.c?.[index]?.f ?? row?.c?.[index]?.v ?? "").trim();
+  }
+
+  function receptionRosterHour(value) {
+    const text = String(value || "").trim();
+    if (!text) return null;
+    const clock = text.match(/^(\d{1,2}):(\d{2})$/);
+    const parsed = clock ? Number(clock[1]) + Number(clock[2]) / 60 : Number(text);
+    if (!Number.isFinite(parsed)) return null;
+    return parsed < CAST_DAY_CUTOFF_HOUR ? parsed + 24 : parsed;
+  }
+
+  function attendedReceptionCastNames(rows, currentHour) {
+    return [...new Set(rows.map((row) => {
+      const changedStart = receptionRosterHour(receptionRosterCell(row, 0));
+      const attendanceNote = receptionRosterCell(row, 2);
+      const scheduledStart = receptionRosterHour(receptionRosterCell(row, 3));
+      const name = receptionRosterCell(row, 5);
+      const start = changedStart ?? scheduledStart;
+      if (!name || start === null || currentHour < start) return "";
+      if (attendanceNote && changedStart === null) return "";
+      return name;
+    }).filter(Boolean))];
+  }
+
+  function loadReceptionCastNames() {
+    const requestId = ++state.receptionCastRosterRequest;
+    const schedule = currentReceptionCastSchedule();
+    const callbackName = `__receptionCastRoster${Date.now()}${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement("script");
+    const timeout = window.setTimeout(() => finish(null), 20000);
+    let completed = false;
+
+    state.receptionCastRosterLoading = true;
+    state.receptionCastRosterError = false;
+    state.receptionCastRosterDate = schedule.sheetName;
+    renderReceptionCastPicker();
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      script.remove();
+      window[callbackName] = () => {};
+      window.setTimeout(() => delete window[callbackName], 60000);
+    }
+
+    function finish(response) {
+      if (completed) return;
+      completed = true;
+      if (requestId !== state.receptionCastRosterRequest) {
+        cleanup();
+        return;
+      }
+      const responseOk = response?.status === "ok";
+      state.receptionCastNames = responseOk
+        ? attendedReceptionCastNames(response.table?.rows || [], schedule.currentHour)
+        : [];
+      state.receptionCastRosterLoading = false;
+      state.receptionCastRosterError = !responseOk;
+      state.receptionCastRosterLoaded = responseOk;
+      cleanup();
+      renderReceptionCastPicker();
+    }
+
+    window[callbackName] = finish;
+    script.onerror = () => finish(null);
+    const query = new URLSearchParams({
+      tqx: `out:json;responseHandler:${callbackName}`,
+      sheet: schedule.sheetName,
+      range: CAST_ROSTER_RANGE,
+      headers: "0",
+    });
+    script.src = `https://docs.google.com/spreadsheets/d/${CAST_SHEET_ID}/gviz/tq?${query}`;
+    document.head.append(script);
+  }
+
+  function renderReceptionCastPicker() {
+    const panel = $("#receptionCastPicker");
+    if (!panel || panel.hidden) return;
+    $("#receptionCastDate").textContent = `${state.receptionCastRosterDate || currentReceptionCastSchedule().sheetName} 出勤キャスト`;
+    const names = $("#receptionCastNames");
+    const status = $("#receptionCastStatus");
+    names.innerHTML = state.receptionCastNames.map((name) => `
+      <button class="choice-button" type="button" data-reception-cast-name="${escapeHtml(name)}">${escapeHtml(name)}</button>
+    `).join("");
+    status.textContent = state.receptionCastRosterLoading
+      ? "当日の出勤キャストを読み込んでいます..."
+      : state.receptionCastRosterError
+        ? "出勤キャストを読み込めませんでした"
+        : state.receptionCastNames.length
+          ? "名前を選択してください"
+          : "出勤済みのキャストはいません";
+    status.classList.toggle("is-error", state.receptionCastRosterError);
+  }
+
+  function openReceptionCastDrink(form, castName) {
+    const name = String(castName || "").trim();
+    if (!name) return;
+    setDrinkSelection(form, "cast-drink", {
+      id: `cast-${name}`,
+      name: `${name}　キャスドリ`,
+      price: CAST_DRINK_PRICE,
+      optionGroups: [],
+    });
+  }
+
   function readCartDraft(form) {
     const source = form.dataset.source;
     const cart = state.carts[source] || [];
@@ -995,7 +1160,6 @@
   function openConfirm(form, draft) {
     state.pendingConfirmation = { form, draft };
     renderConfirm(draft);
-    $("#sendConfirmedOrder").disabled = false;
     $("#confirmDialog").showModal();
     scheduleIconRefresh();
   }
@@ -1032,6 +1196,7 @@
       .join("");
     $("#confirmLocation").innerHTML = locationBlock;
     $("#confirmItems").innerHTML = itemBlocks;
+    updateConfirmSendState();
     scheduleIconRefresh();
   }
 
@@ -1139,6 +1304,20 @@
     if (!wasActive) button.classList.add("active");
     if (button.dataset.confirmChoice === "tableNo") updateConfirmSeatChoices(button);
     persistConfirmOrderLocation(button.closest("[data-confirm-order-location]"));
+    updateConfirmSendState();
+  }
+
+  function updateConfirmSendState() {
+    const pending = state.pendingConfirmation;
+    const sendButton = $("#sendConfirmedOrder");
+    if (!pending || !sendButton) return;
+
+    const locationBlock = $("#confirmLocation [data-confirm-order-location]");
+    const needsTable = pending.draft.items.some((item) => targetNeedsLocation(item.target));
+    const needsSeat = pending.draft.items.some((item) => targetAllowsSeat(item.target));
+    const tableNo = activeConfirmValue(locationBlock, "tableNo");
+    const seatNo = activeConfirmValue(locationBlock, "seatNo");
+    sendButton.disabled = (needsTable && !tableNo) || (needsSeat && !seatNo);
   }
 
   function updateConfirmSeatChoices(tableButton) {
@@ -1217,11 +1396,11 @@
   }
 
   function targetAllowsSeat(target) {
-    return !["bar", "cast"].includes(target || "ring");
+    return (target || "ring") !== "bar";
   }
 
-  function tablesForTarget(target) {
-    return target === "cast" ? [...TABLES, CAST_BAR_TABLE] : TABLES;
+  function tablesForTarget() {
+    return TABLES;
   }
 
   function locationForTarget(target, location = {}) {
@@ -1286,11 +1465,21 @@
 
     const { form, draft } = pending;
     const button = $("#sendConfirmedOrder");
+    const items = collectConfirmItems();
+    if (items.some((item) => targetNeedsLocation(item.target) && !item.tableNo)) {
+      toast("テーブルを選択してください");
+      updateConfirmSendState();
+      return;
+    }
+    if (items.some((item) => targetAllowsSeat(item.target) && !item.seatNo)) {
+      toast("席番号を選択してください");
+      updateConfirmSendState();
+      return;
+    }
     button.disabled = true;
     setOrderSendStatus("sending");
 
     try {
-      const items = collectConfirmItems();
       const paymentStatus = confirmPaymentStatus();
       const paymentMethod = paymentStatus === "uncollected" ? paymentMethodValue("confirmPaymentMethod") : "cash";
       const savePromise = createOrders(items.map((item) => ({
@@ -1361,6 +1550,7 @@
     }
     form.elements.quantity.value = 1;
     clearDrinkSelection(form);
+    updateReceptionCastPicker(form);
     updateCustomDrinkField(form);
     updateConfirmButtonState(form);
   }
