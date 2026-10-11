@@ -711,10 +711,10 @@ body.bar-view-active .bar-board {
   cursor: default;
 }
 
-.reception-cast-quantity-button svg {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2.5;
+.reception-cast-quantity-button span {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .reception-cast-count {

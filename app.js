@@ -1168,21 +1168,48 @@
       else state.carts.reception = cart.filter((entry) => entry.id !== item.id);
     }
 
-    renderReceptionCastPicker();
+    updateReceptionCastQuantityUi(name);
     updateConfirmButtonState(form);
+  }
+
+  function updateReceptionCastQuantityUi(name) {
+    const counts = receptionCastCounts();
+    const count = counts.get(name) || 0;
+    const pendingCount = receptionPendingCastCount(name);
+    const names = $("#receptionCastNames");
+    const rosteredToday = state.receptionCastNames.includes(name);
+    let topRow = names
+      ? Array.from(names.children).find((row) => row.dataset.receptionCastRowName === name)
+      : null;
+
+    if (names && count > 0 && !topRow) {
+      names.insertAdjacentHTML("beforeend", receptionCastRow(name, count));
+      topRow = names.lastElementChild;
+    } else if (topRow && count === 0 && !rosteredToday) {
+      topRow.remove();
+      topRow = null;
+    }
+
+    $$(".reception-cast-row").forEach((row) => {
+      if (row.dataset.receptionCastRowName !== name) return;
+      const countLabel = $(".reception-cast-count", row);
+      const decreaseButton = $('[data-reception-cast-quantity="decrease"]', row);
+      if (countLabel) countLabel.textContent = `${count}杯`;
+      if (decreaseButton) decreaseButton.disabled = pendingCount === 0;
+    });
   }
 
   function receptionCastRow(name, count, extraClass = "") {
     const pendingCount = receptionPendingCastCount(name);
     return `
-      <div class="reception-cast-row ${extraClass}">
+      <div class="reception-cast-row ${extraClass}" data-reception-cast-row-name="${escapeHtml(name)}">
         <button class="reception-cast-name-button" type="button" data-reception-cast-name="${escapeHtml(name)}">${escapeHtml(name)}</button>
         <div class="reception-cast-quantity-controls" aria-label="${escapeHtml(name)}の杯数">
           <button class="reception-cast-quantity-button" type="button" data-reception-cast-quantity="decrease" data-reception-cast-name="${escapeHtml(name)}" aria-label="${escapeHtml(name)}を1杯減らす"${pendingCount ? "" : " disabled"}>
-            <i data-lucide="minus" aria-hidden="true"></i>
+            <span aria-hidden="true">−</span>
           </button>
           <button class="reception-cast-quantity-button" type="button" data-reception-cast-quantity="increase" data-reception-cast-name="${escapeHtml(name)}" aria-label="${escapeHtml(name)}を1杯増やす">
-            <i data-lucide="plus" aria-hidden="true"></i>
+            <span aria-hidden="true">＋</span>
           </button>
           <span class="reception-cast-count">${escapeHtml(String(count))}杯</span>
         </div>
