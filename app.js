@@ -18,6 +18,12 @@
   const CAST_STORAGE_TARGET = "tournament";
   const CAST_STORAGE_SEAT = "__cast__";
   const CAST_DRINK_PRICE = 1000;
+  const CAST_ORDER_TIME_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
   const CAST_SHEET_ID = "16_UQYWtL1wGHUUuGfK6HbSsaG5sl7x9T_LOxIJWUbEU";
   const CAST_ROSTER_RANGE = "AR19:BE49";
   const CAST_DAY_CUTOFF_HOUR = 6;
@@ -1131,6 +1137,23 @@
     return counts;
   }
 
+  function receptionCastLatestTimes() {
+    const latestTimes = new Map();
+    state.dailyCastOrders.forEach((order) => {
+      if (order.status === "canceled") return;
+      const name = castNameForOrder(order);
+      const timestamp = new Date(order.created_at || 0).getTime();
+      if (!name || !Number.isFinite(timestamp)) return;
+      if (timestamp > (latestTimes.get(name) || 0)) latestTimes.set(name, timestamp);
+    });
+    return latestTimes;
+  }
+
+  function receptionCastLastOrderLabel(timestamp) {
+    if (!timestamp) return "最終 --:--";
+    return `最終 ${CAST_ORDER_TIME_FORMATTER.format(new Date(timestamp))}`;
+  }
+
   function receptionPendingCastCount(name) {
     return (state.carts.reception || []).reduce((sum, item) => {
       return item.target === "cast" && castNameForOrder(item) === name
@@ -1174,6 +1197,7 @@
 
   function updateReceptionCastQuantityUi(name) {
     const counts = receptionCastCounts();
+    const latestTimes = receptionCastLatestTimes();
     const count = counts.get(name) || 0;
     const pendingCount = receptionPendingCastCount(name);
     const names = $("#receptionCastNames");
@@ -1183,7 +1207,7 @@
       : null;
 
     if (names && count > 0 && !topRow) {
-      names.insertAdjacentHTML("beforeend", receptionCastRow(name, count));
+      names.insertAdjacentHTML("beforeend", receptionCastRow(name, count, "", latestTimes.get(name)));
       topRow = names.lastElementChild;
     } else if (topRow && count === 0 && !rosteredToday) {
       topRow.remove();
@@ -1193,13 +1217,15 @@
     $$(".reception-cast-row").forEach((row) => {
       if (row.dataset.receptionCastRowName !== name) return;
       const countLabel = $(".reception-cast-count", row);
+      const lastOrderLabel = $(".reception-cast-last-order", row);
       const decreaseButton = $('[data-reception-cast-quantity="decrease"]', row);
       if (countLabel) countLabel.textContent = `${count}杯`;
+      if (lastOrderLabel) lastOrderLabel.textContent = receptionCastLastOrderLabel(latestTimes.get(name));
       if (decreaseButton) decreaseButton.disabled = pendingCount === 0;
     });
   }
 
-  function receptionCastRow(name, count, extraClass = "") {
+  function receptionCastRow(name, count, extraClass = "", latestTimestamp = 0) {
     const pendingCount = receptionPendingCastCount(name);
     return `
       <div class="reception-cast-row ${extraClass}" data-reception-cast-row-name="${escapeHtml(name)}">
@@ -1212,12 +1238,13 @@
             <span aria-hidden="true">＋</span>
           </button>
           <span class="reception-cast-count">${escapeHtml(String(count))}杯</span>
+          <span class="reception-cast-last-order">${escapeHtml(receptionCastLastOrderLabel(latestTimestamp))}</span>
         </div>
       </div>
     `;
   }
 
-  function renderReceptionCastStores(counts) {
+  function renderReceptionCastStores(counts, latestTimes) {
     const container = $("#receptionCastStores");
     if (!container) return;
     const openStores = new Set($$("details[open]", container).map((details) => details.dataset.castStore));
@@ -1230,7 +1257,7 @@
             <span>${store.names.length}名</span>
           </summary>
           <div class="reception-cast-store-list">
-            ${store.names.map((name) => receptionCastRow(name, counts.get(name) || 0, "reception-cast-store-row")).join("")}
+            ${store.names.map((name) => receptionCastRow(name, counts.get(name) || 0, "reception-cast-store-row", latestTimes.get(name))).join("")}
           </div>
         </details>
       `).join("")}
@@ -1294,11 +1321,12 @@
     const names = $("#receptionCastNames");
     const status = $("#receptionCastStatus");
     const counts = receptionCastCounts();
+    const latestTimes = receptionCastLatestTimes();
     const visibleNames = [...state.receptionCastNames];
     counts.forEach((count, name) => {
       if (count > 0 && !visibleNames.includes(name)) visibleNames.push(name);
     });
-    names.innerHTML = visibleNames.map((name) => receptionCastRow(name, counts.get(name) || 0)).join("");
+    names.innerHTML = visibleNames.map((name) => receptionCastRow(name, counts.get(name) || 0, "", latestTimes.get(name))).join("");
     status.textContent = state.receptionCastRosterLoading
       ? "当日の出勤キャストを読み込んでいます..."
       : state.receptionCastRosterError
@@ -1307,7 +1335,7 @@
           ? "名前を選択してください"
           : "出勤済みのキャストはいません";
     status.classList.toggle("is-error", state.receptionCastRosterError);
-    renderReceptionCastStores(counts);
+    renderReceptionCastStores(counts, latestTimes);
     scheduleIconRefresh();
   }
 

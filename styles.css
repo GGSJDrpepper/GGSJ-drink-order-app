@@ -726,6 +726,41 @@ body.bar-view-active .bar-board {
   text-align: right;
 }
 
+.reception-cast-last-order {
+  flex: 0 0 auto;
+  min-width: 76px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .reception-cast-row {
+    gap: 6px;
+    padding-left: 10px;
+  }
+
+  .reception-cast-quantity-controls {
+    gap: 4px;
+  }
+
+  .reception-cast-quantity-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .reception-cast-count {
+    min-width: 36px;
+  }
+
+  .reception-cast-last-order {
+    min-width: 68px;
+    font-size: 0.7rem;
+  }
+}
+
 .reception-cast-stores {
   display: grid;
   gap: 8px;
