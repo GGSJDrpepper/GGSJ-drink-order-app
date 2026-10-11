@@ -612,6 +612,10 @@ body.bar-view-active .bar-board {
   border-bottom: 1px solid #eeeeee;
 }
 
+.reception-cast-panel [hidden] {
+  display: none !important;
+}
+
 .reception-cast-head {
   display: flex;
   align-items: flex-start;
@@ -640,6 +644,75 @@ body.bar-view-active .bar-board {
   border-color: var(--line);
 }
 
+.reception-cast-view-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.reception-cast-view-switch button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  background: #ffffff;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.reception-cast-view-switch button.active {
+  border-color: var(--orange);
+  color: #8a3d00;
+  background: var(--orange-soft);
+}
+
+.reception-cast-order-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.reception-cast-order-grid .choice-button {
+  min-height: 48px;
+  justify-content: center;
+  text-align: center;
+}
+
+.reception-selected-cast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px 10px 8px 14px;
+  border: 1px solid var(--orange);
+  border-radius: 7px;
+  background: var(--orange-soft);
+}
+
+.reception-selected-cast strong {
+  color: #8a3d00;
+}
+
+.reception-selected-cast span {
+  flex: 1 1 auto;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.reception-selected-cast button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--orange);
+  border-radius: 6px;
+  color: #8a3d00;
+  background: #ffffff;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
 .reception-cast-grid {
   grid-template-columns: minmax(0, 1fr);
   gap: 7px;
@@ -665,6 +738,8 @@ body.bar-view-active .bar-board {
 }
 
 .reception-cast-name-button {
+  display: flex;
+  align-items: center;
   min-width: 0;
   flex: 1 1 auto;
   align-self: stretch;
@@ -675,7 +750,7 @@ body.bar-view-active .bar-board {
   font: inherit;
   font-weight: 850;
   text-align: left;
-  cursor: pointer;
+  cursor: default;
 }
 
 .reception-cast-quantity-controls {
@@ -737,6 +812,10 @@ body.bar-view-active .bar-board {
 }
 
 @media (max-width: 520px) {
+  .reception-cast-order-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .reception-cast-row {
     gap: 6px;
     padding-left: 10px;

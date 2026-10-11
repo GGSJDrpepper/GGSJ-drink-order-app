@@ -11,10 +11,10 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026101204">
+    <link rel="stylesheet" href="./styles.css?v=2026101205">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026101204"></script>
+    <script defer src="./app.js?v=2026101205"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -63,16 +63,27 @@
               <fieldset id="receptionCastPicker" class="control-group reception-cast-panel" hidden>
                 <div class="reception-cast-head">
                   <div>
-                    <h3>キャストを選ぶ</h3>
+                    <h3 id="receptionCastHeading">キャストを選ぶ</h3>
                     <p id="receptionCastDate"></p>
                   </div>
                   <button id="refreshReceptionCast" class="icon-button" type="button" aria-label="当日の出勤キャストを再読み込み" title="再読み込み">
                     <i data-lucide="refresh-cw" aria-hidden="true"></i>
                   </button>
                 </div>
-                <div id="receptionCastNames" class="choice-grid reception-cast-grid"></div>
-                <p id="receptionCastStatus" class="reception-cast-status"></p>
-                <div id="receptionCastStores" class="reception-cast-stores"></div>
+                <div class="reception-cast-view-switch" role="tablist" aria-label="キャスドリ表示">
+                  <button class="active" type="button" role="tab" aria-selected="true" data-reception-cast-view="order">キャスト選択</button>
+                  <button type="button" role="tab" aria-selected="false" data-reception-cast-view="report">レポート</button>
+                </div>
+                <div id="receptionCastOrderView">
+                  <div id="receptionSelectedCast" class="reception-selected-cast" hidden></div>
+                  <div id="receptionCastOrderNames" class="choice-grid reception-cast-order-grid"></div>
+                  <p id="receptionCastOrderStatus" class="reception-cast-status"></p>
+                </div>
+                <div id="receptionCastReportView" hidden>
+                  <div id="receptionCastNames" class="choice-grid reception-cast-grid"></div>
+                  <p id="receptionCastStatus" class="reception-cast-status"></p>
+                  <div id="receptionCastStores" class="reception-cast-stores"></div>
+                </div>
               </fieldset>
 
               <fieldset class="control-group drink-choice-panel" data-drink-picker aria-label="ドリンクメニュー">

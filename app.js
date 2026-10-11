@@ -279,6 +279,8 @@
     receptionCastRosterError: false,
     receptionCastRosterLoaded: false,
     receptionCastRosterRequest: 0,
+    receptionCastView: "order",
+    receptionSelectedCastName: "",
     dailyCastOrders: [],
     booted: false,
   };
@@ -373,7 +375,12 @@
 
   function setupForms() {
     $$(".order-form").forEach((form) => {
-      form.addEventListener("change", () => {
+      form.addEventListener("change", (event) => {
+        if (form.dataset.source === "reception" && event.target?.name === "target") {
+          state.receptionCastView = "order";
+          state.receptionSelectedCastName = "";
+          clearDrinkSelection(form);
+        }
         updateReceptionCastPicker(form);
         updateCustomDrinkField(form);
         updateConfirmButtonState(form);
@@ -398,6 +405,26 @@
           return;
         }
 
+        const castViewButton = event.target.closest("[data-reception-cast-view]");
+        if (castViewButton && form.contains(castViewButton)) {
+          state.receptionCastView = castViewButton.dataset.receptionCastView === "report" ? "report" : "order";
+          updateReceptionCastPicker(form);
+          return;
+        }
+
+        const castOrderButton = event.target.closest("[data-reception-cast-order-name]");
+        if (castOrderButton && form.contains(castOrderButton)) {
+          selectReceptionCastForOrder(form, castOrderButton.dataset.receptionCastOrderName);
+          return;
+        }
+
+        if (event.target.closest("[data-reception-cast-change]")) {
+          state.receptionSelectedCastName = "";
+          clearDrinkSelection(form);
+          updateReceptionCastPicker(form);
+          return;
+        }
+
         const castQuantityButton = event.target.closest("[data-reception-cast-quantity]");
         if (castQuantityButton && form.contains(castQuantityButton)) {
           adjustReceptionCastCart(
@@ -405,12 +432,6 @@
             castQuantityButton.dataset.receptionCastName,
             castQuantityButton.dataset.receptionCastQuantity === "increase" ? 1 : -1
           );
-          return;
-        }
-
-        const castNameButton = event.target.closest("[data-reception-cast-name]");
-        if (castNameButton && form.contains(castNameButton)) {
-          openReceptionCastDrink(form, castNameButton.dataset.receptionCastName);
           return;
         }
 
@@ -984,18 +1005,26 @@
     const selectedOptions = $$("input[name='drinkOptions']", form)
       .filter((input) => input.type === "hidden" || input.checked)
       .map((input) => input.value);
+    const castName = target === "cast" ? state.receptionSelectedCastName.trim() : "";
 
     if (!selectedDrink) {
       toast("商品を選択してください");
       return null;
     }
 
+    if (target === "cast" && !castName) {
+      toast("キャストを選択してください");
+      return null;
+    }
+
+    if (target === "cast") selectedOptions.unshift(`ドリンク: ${selectedDrink}`);
+
     return {
       id: crypto.randomUUID(),
       source: form.dataset.source,
       target,
-      drink_name: drinkName,
-      price: selectedMenuItem?.price || 0,
+      drink_name: target === "cast" ? `${castName}　キャスドリ` : drinkName,
+      price: target === "cast" ? CAST_DRINK_PRICE : selectedMenuItem?.price || 0,
       selected_options: selectedOptions,
       quantity,
       locations: [],
@@ -1010,7 +1039,8 @@
     const panel = $("#receptionCastPicker");
     const picker = $("[data-drink-picker]", form);
     if (panel) panel.hidden = !castSelected;
-    if (picker) picker.hidden = castSelected;
+    if (picker) picker.hidden = castSelected
+      && (state.receptionCastView === "report" || !state.receptionSelectedCastName);
     if (!castSelected) return;
     if (!state.receptionCastRosterLoaded && !state.receptionCastRosterLoading) loadReceptionCastNames();
     renderReceptionCastPicker();
@@ -1229,7 +1259,7 @@
     const pendingCount = receptionPendingCastCount(name);
     return `
       <div class="reception-cast-row ${extraClass}" data-reception-cast-row-name="${escapeHtml(name)}">
-        <button class="reception-cast-name-button" type="button" data-reception-cast-name="${escapeHtml(name)}">${escapeHtml(name)}</button>
+        <span class="reception-cast-name-button">${escapeHtml(name)}</span>
         <div class="reception-cast-quantity-controls" aria-label="${escapeHtml(name)}の杯数">
           <button class="reception-cast-quantity-button" type="button" data-reception-cast-quantity="decrease" data-reception-cast-name="${escapeHtml(name)}" aria-label="${escapeHtml(name)}を1杯減らす"${pendingCount ? "" : " disabled"}>
             <span aria-hidden="true">−</span>
@@ -1320,34 +1350,72 @@
     $("#receptionCastDate").textContent = `${state.receptionCastRosterDate || currentReceptionCastSchedule().sheetName} 出勤キャスト`;
     const names = $("#receptionCastNames");
     const status = $("#receptionCastStatus");
+    const orderNames = $("#receptionCastOrderNames");
+    const orderStatus = $("#receptionCastOrderStatus");
+    const orderView = $("#receptionCastOrderView");
+    const reportView = $("#receptionCastReportView");
+    const picker = $("[data-drink-picker]", panel.closest("form"));
     const counts = receptionCastCounts();
     const latestTimes = receptionCastLatestTimes();
     const visibleNames = [...state.receptionCastNames];
     counts.forEach((count, name) => {
       if (count > 0 && !visibleNames.includes(name)) visibleNames.push(name);
     });
+    const reportActive = state.receptionCastView === "report";
+    $$('[data-reception-cast-view]', panel).forEach((button) => {
+      const active = button.dataset.receptionCastView === state.receptionCastView;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", String(active));
+    });
+    if (orderView) orderView.hidden = reportActive;
+    if (reportView) reportView.hidden = !reportActive;
+    if (picker) picker.hidden = reportActive || !state.receptionSelectedCastName;
+    $("#receptionCastHeading").textContent = reportActive ? "キャスドリレポート" : "キャストを選ぶ";
+
+    const selectedCast = $("#receptionSelectedCast");
+    if (selectedCast) {
+      selectedCast.hidden = !state.receptionSelectedCastName;
+      selectedCast.innerHTML = state.receptionSelectedCastName
+        ? `<strong>${escapeHtml(state.receptionSelectedCastName)}</strong><span>のドリンクを選択中</span><button type="button" data-reception-cast-change>変更</button>`
+        : "";
+    }
+    if (orderNames) {
+      orderNames.hidden = Boolean(state.receptionSelectedCastName);
+      orderNames.innerHTML = state.receptionCastNames.map((name) => `
+        <button class="choice-button" type="button" data-reception-cast-order-name="${escapeHtml(name)}">${escapeHtml(name)}</button>
+      `).join("");
+    }
+    if (orderStatus) {
+      orderStatus.hidden = Boolean(state.receptionSelectedCastName);
+      orderStatus.textContent = state.receptionCastRosterLoading
+        ? "当日の出勤キャストを読み込んでいます..."
+        : state.receptionCastRosterError
+          ? "出勤キャストを読み込めませんでした"
+          : state.receptionCastNames.length
+            ? "注文するキャストを選択してください"
+            : "出勤済みのキャストはいません";
+      orderStatus.classList.toggle("is-error", state.receptionCastRosterError);
+    }
     names.innerHTML = visibleNames.map((name) => receptionCastRow(name, counts.get(name) || 0, "", latestTimes.get(name))).join("");
     status.textContent = state.receptionCastRosterLoading
       ? "当日の出勤キャストを読み込んでいます..."
       : state.receptionCastRosterError
         ? "出勤キャストを読み込めませんでした"
         : visibleNames.length
-          ? "名前を選択してください"
+          ? "杯数の確認・修正ができます"
           : "出勤済みのキャストはいません";
     status.classList.toggle("is-error", state.receptionCastRosterError);
     renderReceptionCastStores(counts, latestTimes);
     scheduleIconRefresh();
   }
 
-  function openReceptionCastDrink(form, castName) {
+  function selectReceptionCastForOrder(form, castName) {
     const name = String(castName || "").trim();
     if (!name) return;
-    setDrinkSelection(form, "cast-drink", {
-      id: `cast-${name}`,
-      name: `${name}　キャスドリ`,
-      price: CAST_DRINK_PRICE,
-      optionGroups: [],
-    });
+    state.receptionSelectedCastName = name;
+    clearDrinkSelection(form);
+    updateReceptionCastPicker(form);
+    requestAnimationFrame(() => $("[data-drink-picker]", form)?.scrollIntoView({ block: "start" }));
   }
 
   function readCartDraft(form) {
@@ -1791,6 +1859,10 @@
     form.reset();
     if (source === "reception" && selectedTarget) {
       form.elements.target.value = selectedTarget;
+      if (selectedTarget === "cast") {
+        state.receptionCastView = "order";
+        state.receptionSelectedCastName = "";
+      }
     }
     if (source === "table") {
       form.elements.target.value = "ring";
