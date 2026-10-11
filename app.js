@@ -1192,6 +1192,32 @@
     }, 0);
   }
 
+  function receptionCastAffiliation(name) {
+    const value = String(name || "").trim();
+    if (/^CLT(?:[\s　]|$)/i.test(value) || /^CLT/i.test(value)) return "clt";
+    if (/^(?:KKLP|KK)(?:[\s　]|$)/i.test(value) || /^(?:KKLP|KK)/i.test(value)) return "kk";
+    const stores = MONTHLY_CAST_ROSTERS.stores;
+    if (stores.find((store) => store.id === "ggpl-shinjuku")?.names.includes(value)) return "gg";
+    if (stores.find((store) => store.id === "clt")?.names.includes(value)) return "clt";
+    if (stores.find((store) => store.id === "kklp-shinjuku")?.names.includes(value)) return "kk";
+    return "other";
+  }
+
+  function receptionCastAffiliationForStore(storeId) {
+    if (storeId === "ggpl-shinjuku") return "gg";
+    if (storeId === "clt") return "clt";
+    if (storeId === "kklp-shinjuku") return "kk";
+    return "other";
+  }
+
+  function sortedReceptionCastNames(names) {
+    const priority = { gg: 0, clt: 1, kk: 2, other: 3 };
+    return names
+      .map((name, index) => ({ name, index, affiliation: receptionCastAffiliation(name) }))
+      .sort((a, b) => priority[a.affiliation] - priority[b.affiliation] || a.index - b.index)
+      .map((item) => item.name);
+  }
+
   function adjustReceptionCastCart(form, castName, delta) {
     const name = String(castName || "").trim();
     if (!name || !delta || form.dataset.source !== "reception") return;
@@ -1255,10 +1281,10 @@
     });
   }
 
-  function receptionCastRow(name, count, extraClass = "", latestTimestamp = 0) {
+  function receptionCastRow(name, count, extraClass = "", latestTimestamp = 0, affiliation = receptionCastAffiliation(name)) {
     const pendingCount = receptionPendingCastCount(name);
     return `
-      <div class="reception-cast-row ${extraClass}" data-reception-cast-row-name="${escapeHtml(name)}">
+      <div class="reception-cast-row cast-affiliation-${escapeHtml(affiliation)} ${extraClass}" data-reception-cast-row-name="${escapeHtml(name)}">
         <span class="reception-cast-name-button">${escapeHtml(name)}</span>
         <div class="reception-cast-quantity-controls" aria-label="${escapeHtml(name)}の杯数">
           <button class="reception-cast-quantity-button" type="button" data-reception-cast-quantity="decrease" data-reception-cast-name="${escapeHtml(name)}" aria-label="${escapeHtml(name)}を1杯減らす"${pendingCount ? "" : " disabled"}>
@@ -1287,7 +1313,7 @@
             <span>${store.names.length}名</span>
           </summary>
           <div class="reception-cast-store-list">
-            ${store.names.map((name) => receptionCastRow(name, counts.get(name) || 0, "reception-cast-store-row", latestTimes.get(name))).join("")}
+            ${store.names.map((name) => receptionCastRow(name, counts.get(name) || 0, "reception-cast-store-row", latestTimes.get(name), receptionCastAffiliationForStore(store.id))).join("")}
           </div>
         </details>
       `).join("")}
@@ -1361,6 +1387,8 @@
     counts.forEach((count, name) => {
       if (count > 0 && !visibleNames.includes(name)) visibleNames.push(name);
     });
+    const sortedVisibleNames = sortedReceptionCastNames(visibleNames);
+    const sortedOrderNames = sortedReceptionCastNames(state.receptionCastNames);
     const reportActive = state.receptionCastView === "report";
     $$('[data-reception-cast-view]', panel).forEach((button) => {
       const active = button.dataset.receptionCastView === state.receptionCastView;
@@ -1381,8 +1409,8 @@
     }
     if (orderNames) {
       orderNames.hidden = Boolean(state.receptionSelectedCastName);
-      orderNames.innerHTML = state.receptionCastNames.map((name) => `
-        <button class="choice-button" type="button" data-reception-cast-order-name="${escapeHtml(name)}">${escapeHtml(name)}</button>
+      orderNames.innerHTML = sortedOrderNames.map((name) => `
+        <button class="choice-button cast-affiliation-${escapeHtml(receptionCastAffiliation(name))}" type="button" data-reception-cast-order-name="${escapeHtml(name)}">${escapeHtml(name)}</button>
       `).join("");
     }
     if (orderStatus) {
@@ -1396,7 +1424,7 @@
             : "出勤済みのキャストはいません";
       orderStatus.classList.toggle("is-error", state.receptionCastRosterError);
     }
-    names.innerHTML = visibleNames.map((name) => receptionCastRow(name, counts.get(name) || 0, "", latestTimes.get(name))).join("");
+    names.innerHTML = sortedVisibleNames.map((name) => receptionCastRow(name, counts.get(name) || 0, "", latestTimes.get(name))).join("");
     status.textContent = state.receptionCastRosterLoading
       ? "当日の出勤キャストを読み込んでいます..."
       : state.receptionCastRosterError

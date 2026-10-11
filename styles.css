@@ -679,6 +679,38 @@ body.bar-view-active .bar-board {
   text-align: center;
 }
 
+.reception-cast-order-grid .cast-affiliation-gg,
+.reception-cast-row.cast-affiliation-gg {
+  border-color: #ef4444;
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.reception-cast-order-grid .cast-affiliation-clt,
+.reception-cast-row.cast-affiliation-clt {
+  border-color: #eab308;
+  color: #854d0e;
+  background: #fef9c3;
+}
+
+.reception-cast-order-grid .cast-affiliation-kk,
+.reception-cast-row.cast-affiliation-kk {
+  border-color: #84cc16;
+  color: #365314;
+  background: #ecfccb;
+}
+
+.reception-cast-order-grid .cast-affiliation-other,
+.reception-cast-row.cast-affiliation-other {
+  border-color: #9ca3af;
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.reception-cast-order-grid .choice-button:active {
+  filter: brightness(0.94);
+}
+
 .reception-selected-cast {
   display: flex;
   align-items: center;
