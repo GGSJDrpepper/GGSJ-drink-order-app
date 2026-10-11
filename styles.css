@@ -645,23 +645,81 @@ body.bar-view-active .bar-board {
   gap: 7px;
 }
 
-.reception-cast-grid .choice-button {
+.reception-cast-grid .reception-cast-row {
   min-height: 48px;
   color: var(--ink);
 }
 
-.choice-button.reception-cast-row {
+.reception-cast-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   width: 100%;
-  padding: 10px 14px;
+  min-height: 48px;
+  padding: 6px 8px 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #ffffff;
   text-align: left;
+}
+
+.reception-cast-name-button {
+  min-width: 0;
+  flex: 1 1 auto;
+  align-self: stretch;
+  padding: 0;
+  border: 0;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  font-weight: 850;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reception-cast-quantity-controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.reception-cast-quantity-button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: #ffffff;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.reception-cast-quantity-button:last-of-type {
+  border-color: var(--orange);
+  color: #8a3d00;
+  background: var(--orange-soft);
+}
+
+.reception-cast-quantity-button:disabled {
+  color: #b8b2ad;
+  background: #f5f3f1;
+  cursor: default;
+}
+
+.reception-cast-quantity-button svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5;
 }
 
 .reception-cast-count {
   flex: 0 0 auto;
-  min-width: 48px;
+  min-width: 44px;
   color: var(--orange-dark);
   font-size: 0.9rem;
   font-weight: 900;

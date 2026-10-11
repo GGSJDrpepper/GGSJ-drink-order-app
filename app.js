@@ -392,6 +392,16 @@
           return;
         }
 
+        const castQuantityButton = event.target.closest("[data-reception-cast-quantity]");
+        if (castQuantityButton && form.contains(castQuantityButton)) {
+          adjustReceptionCastCart(
+            form,
+            castQuantityButton.dataset.receptionCastName,
+            castQuantityButton.dataset.receptionCastQuantity === "increase" ? 1 : -1
+          );
+          return;
+        }
+
         const castNameButton = event.target.closest("[data-reception-cast-name]");
         if (castNameButton && form.contains(castNameButton)) {
           openReceptionCastDrink(form, castNameButton.dataset.receptionCastName);
@@ -1121,12 +1131,62 @@
     return counts;
   }
 
+  function receptionPendingCastCount(name) {
+    return (state.carts.reception || []).reduce((sum, item) => {
+      return item.target === "cast" && castNameForOrder(item) === name
+        ? sum + Math.max(1, Number(item.quantity || 1))
+        : sum;
+    }, 0);
+  }
+
+  function adjustReceptionCastCart(form, castName, delta) {
+    const name = String(castName || "").trim();
+    if (!name || !delta || form.dataset.source !== "reception") return;
+    const cart = state.carts.reception || (state.carts.reception = []);
+    const item = cart.find((entry) => entry.target === "cast" && castNameForOrder(entry) === name);
+
+    if (delta > 0) {
+      if (item) {
+        item.quantity = Math.min(20, Math.max(1, Number(item.quantity || 1)) + 1);
+      } else {
+        cart.push({
+          id: crypto.randomUUID(),
+          source: "reception",
+          target: "cast",
+          drink_name: `${name}　キャスドリ`,
+          price: CAST_DRINK_PRICE,
+          selected_options: [],
+          quantity: 1,
+          locations: [],
+          menu_category_id: "cast-drink",
+          menu_item_id: `cast-${name}`,
+        });
+      }
+    } else if (item) {
+      const nextQuantity = Math.max(0, Number(item.quantity || 1) - 1);
+      if (nextQuantity) item.quantity = nextQuantity;
+      else state.carts.reception = cart.filter((entry) => entry.id !== item.id);
+    }
+
+    renderReceptionCastPicker();
+    updateConfirmButtonState(form);
+  }
+
   function receptionCastRow(name, count, extraClass = "") {
+    const pendingCount = receptionPendingCastCount(name);
     return `
-      <button class="choice-button reception-cast-row ${extraClass}" type="button" data-reception-cast-name="${escapeHtml(name)}">
-        <span>${escapeHtml(name)}</span>
-        <span class="reception-cast-count">${escapeHtml(String(count))}杯</span>
-      </button>
+      <div class="reception-cast-row ${extraClass}">
+        <button class="reception-cast-name-button" type="button" data-reception-cast-name="${escapeHtml(name)}">${escapeHtml(name)}</button>
+        <div class="reception-cast-quantity-controls" aria-label="${escapeHtml(name)}の杯数">
+          <button class="reception-cast-quantity-button" type="button" data-reception-cast-quantity="decrease" data-reception-cast-name="${escapeHtml(name)}" aria-label="${escapeHtml(name)}を1杯減らす"${pendingCount ? "" : " disabled"}>
+            <i data-lucide="minus" aria-hidden="true"></i>
+          </button>
+          <button class="reception-cast-quantity-button" type="button" data-reception-cast-quantity="increase" data-reception-cast-name="${escapeHtml(name)}" aria-label="${escapeHtml(name)}を1杯増やす">
+            <i data-lucide="plus" aria-hidden="true"></i>
+          </button>
+          <span class="reception-cast-count">${escapeHtml(String(count))}杯</span>
+        </div>
+      </div>
     `;
   }
 
@@ -1221,6 +1281,7 @@
           : "出勤済みのキャストはいません";
     status.classList.toggle("is-error", state.receptionCastRosterError);
     renderReceptionCastStores(counts);
+    scheduleIconRefresh();
   }
 
   function openReceptionCastDrink(form, castName) {
