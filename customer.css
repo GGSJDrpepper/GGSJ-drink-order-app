@@ -484,7 +484,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 .applications-heading { margin-bottom: 12px; color: #5c5752; text-align: left; }
 .applications-heading p { display: none; }
 .applications-heading h3 { margin: 0; font-size: 17px; }
-.application-link-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.application-link-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .application-link {
   display: grid;
   min-height: 96px;
@@ -657,7 +657,7 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   .product-name.force-two-lines + .product-price { margin-top: 3px; }
   .applications-portal { min-height: 680px; padding: 16px 0 18px; }
   .applications-heading h3 { font-size: 17px; }
-  .application-link-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .application-link-list { grid-template-columns: minmax(0, 1fr); gap: 7px; }
   .application-link { min-height: 88px; padding: 10px 8px 10px 10px; grid-template-columns: minmax(0, 1fr) 48px; gap: 8px; }
   .application-link-icon { width: 48px; height: 48px; }
   .application-link-copy strong { font-size: 14px; }
