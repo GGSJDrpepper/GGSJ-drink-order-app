@@ -1684,8 +1684,8 @@
     if (!pending || !sendButton) return;
 
     const locationBlock = $("#confirmLocation [data-confirm-order-location]");
-    const needsTable = pending.draft.items.some((item) => targetNeedsLocation(item.target));
-    const needsSeat = pending.draft.items.some((item) => targetAllowsSeat(item.target));
+    const needsTable = pending.draft.items.some((item) => itemRequiresTable(item, pending.draft.source));
+    const needsSeat = pending.draft.items.some((item) => itemRequiresSeat(item, pending.draft.source));
     const tableNo = activeConfirmValue(locationBlock, "tableNo");
     const seatNo = activeConfirmValue(locationBlock, "seatNo");
     sendButton.disabled = (needsTable && !tableNo) || (needsSeat && !seatNo);
@@ -1772,6 +1772,14 @@
     return !["bar", "cast"].includes(target || "ring");
   }
 
+  function itemRequiresTable(item, source) {
+    return targetNeedsLocation(item?.target) && (source !== "reception" || item?.target === "cast");
+  }
+
+  function itemRequiresSeat(item, source) {
+    return targetAllowsSeat(item?.target) && source !== "reception";
+  }
+
   function tablesForTarget() {
     return TABLES;
   }
@@ -1839,12 +1847,12 @@
     const { form, draft } = pending;
     const button = $("#sendConfirmedOrder");
     const items = collectConfirmItems();
-    if (items.some((item) => targetNeedsLocation(item.target) && !item.tableNo)) {
+    if (items.some((item) => itemRequiresTable(item, draft.source) && !item.tableNo)) {
       toast("テーブルを選択してください");
       updateConfirmSendState();
       return;
     }
-    if (items.some((item) => targetAllowsSeat(item.target) && !item.seatNo)) {
+    if (items.some((item) => itemRequiresSeat(item, draft.source) && !item.seatNo)) {
       toast("席番号を選択してください");
       updateConfirmSendState();
       return;
