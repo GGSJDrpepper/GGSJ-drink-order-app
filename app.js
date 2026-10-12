@@ -1225,7 +1225,7 @@
       .map((item) => item.name);
   }
 
-  function adjustReceptionCastCart(form, castName, delta) {
+  async function adjustReceptionCastCart(form, castName, delta) {
     const name = String(castName || "").trim();
     if (!name || !delta || form.dataset.source !== "reception") return;
     const cart = state.carts.reception || (state.carts.reception = []);
@@ -1252,6 +1252,24 @@
       const nextQuantity = Math.max(0, Number(item.quantity || 1) - 1);
       if (nextQuantity) item.quantity = nextQuantity;
       else state.carts.reception = cart.filter((entry) => entry.id !== item.id);
+    } else {
+      const latestOrder = state.dailyCastOrders
+        .filter((order) => order.status !== "canceled" && castNameForOrder(order) === name)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+      if (!latestOrder) return;
+
+      if (!state.orders.some((order) => order.id === latestOrder.id)) upsertOrder(latestOrder);
+      const quantity = Math.max(1, Number(latestOrder.quantity || 1));
+      const savePromise = updateOrder(
+        latestOrder.id,
+        quantity > 1 ? { quantity: quantity - 1 } : { status: "canceled" }
+      );
+      updateReceptionCastQuantityUi(name);
+      const saved = await savePromise;
+      if (!saved) {
+        updateReceptionCastQuantityUi(name);
+        return;
+      }
     }
 
     updateReceptionCastQuantityUi(name);
@@ -1284,17 +1302,16 @@
       const decreaseButton = $('[data-reception-cast-quantity="decrease"]', row);
       if (countLabel) countLabel.textContent = `${count}杯`;
       if (lastOrderLabel) lastOrderLabel.textContent = receptionCastLastOrderLabel(latestTimes.get(name));
-      if (decreaseButton) decreaseButton.disabled = pendingCount === 0;
+      if (decreaseButton) decreaseButton.disabled = count === 0;
     });
   }
 
   function receptionCastRow(name, count, extraClass = "", latestTimestamp = 0, affiliation = receptionCastAffiliation(name)) {
-    const pendingCount = receptionPendingCastCount(name);
     return `
       <div class="reception-cast-row cast-affiliation-${escapeHtml(affiliation)} ${extraClass}" data-reception-cast-row-name="${escapeHtml(name)}">
         <span class="reception-cast-name-button">${escapeHtml(name)}</span>
         <div class="reception-cast-quantity-controls" aria-label="${escapeHtml(name)}の杯数">
-          <button class="reception-cast-quantity-button" type="button" data-reception-cast-quantity="decrease" data-reception-cast-name="${escapeHtml(name)}" aria-label="${escapeHtml(name)}を1杯減らす"${pendingCount ? "" : " disabled"}>
+          <button class="reception-cast-quantity-button" type="button" data-reception-cast-quantity="decrease" data-reception-cast-name="${escapeHtml(name)}" aria-label="${escapeHtml(name)}を1杯減らす"${count ? "" : " disabled"}>
             <span aria-hidden="true">−</span>
           </button>
           <button class="reception-cast-quantity-button" type="button" data-reception-cast-quantity="increase" data-reception-cast-name="${escapeHtml(name)}" aria-label="${escapeHtml(name)}を1杯増やす">
