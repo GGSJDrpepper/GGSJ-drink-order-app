@@ -10,11 +10,13 @@
   const MENU_KEY = "drink-relay-menu-v1";
   const OPTION_TEMPLATES_KEY = "drink-relay-option-templates-v1";
   const RECEPTION_MENU_MODE_KEY = "drink-relay-reception-menu-mode-v1";
+  const CAST_GENDERS_KEY = "drink-relay-cast-genders-v1";
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
   const CHANNEL_NAME = "drink-relay-local";
   const SETTINGS_ROW_ID = "main";
   const SOUND_SETTINGS_ROW_ID = "notification-sounds";
   const OPTION_TEMPLATE_SETTINGS_ROW_ID = "option-templates";
+  const CAST_GENDER_SETTINGS_ROW_ID = "cast-genders";
   const CAST_STORAGE_TARGET = "tournament";
   const CAST_STORAGE_SEAT = "__cast__";
   const CAST_DRINK_PRICE = 1000;
@@ -281,6 +283,8 @@
     receptionCastRosterRequest: 0,
     receptionCastView: "order",
     receptionSelectedCastName: "",
+    castGenders: readCastGenders(),
+    castGenderSavePromise: Promise.resolve(false),
     dailyCastOrders: [],
     booted: false,
   };
@@ -409,6 +413,15 @@
         if (castViewButton && form.contains(castViewButton)) {
           state.receptionCastView = castViewButton.dataset.receptionCastView === "report" ? "report" : "order";
           updateReceptionCastPicker(form);
+          return;
+        }
+
+        const castGenderButton = event.target.closest("[data-reception-cast-gender]");
+        if (castGenderButton && form.contains(castGenderButton)) {
+          setReceptionCastGender(
+            castGenderButton.dataset.receptionCastName,
+            castGenderButton.dataset.receptionCastGender
+          );
           return;
         }
 
@@ -1217,6 +1230,27 @@
     return "other";
   }
 
+  function receptionCastGender(name) {
+    const gender = state.castGenders[String(name || "").trim()];
+    return gender === "male" || gender === "female" ? gender : "";
+  }
+
+  function receptionCastGenderClass(name) {
+    const gender = receptionCastGender(name);
+    return gender ? `cast-gender-${gender}` : "cast-gender-unset";
+  }
+
+  function setReceptionCastGender(castName, gender) {
+    const name = String(castName || "").trim();
+    if (!name || !["male", "female"].includes(gender)) return;
+    const nextGender = receptionCastGender(name) === gender ? "" : gender;
+    if (nextGender) state.castGenders[name] = nextGender;
+    else delete state.castGenders[name];
+    localStorage.setItem(CAST_GENDERS_KEY, JSON.stringify(state.castGenders));
+    renderReceptionCastPicker();
+    queueSharedCastGendersSave();
+  }
+
   function sortedReceptionCastNames(names) {
     const priority = { gg: 0, clt: 1, kk: 2, other: 3 };
     return names
@@ -1344,6 +1378,39 @@
     `;
   }
 
+  function receptionCastOrderStoreRow(name, storeId) {
+    const gender = receptionCastGender(name);
+    return `
+      <div class="reception-cast-order-store-row cast-affiliation-${escapeHtml(receptionCastAffiliationForStore(storeId))} ${receptionCastGenderClass(name)}">
+        <button class="reception-cast-store-name" type="button" data-reception-cast-order-name="${escapeHtml(name)}">${escapeHtml(name)}</button>
+        <div class="reception-cast-gender-controls" aria-label="${escapeHtml(name)}の性別">
+          <button type="button" data-reception-cast-gender="male" data-reception-cast-name="${escapeHtml(name)}" aria-pressed="${gender === "male"}">男性</button>
+          <button type="button" data-reception-cast-gender="female" data-reception-cast-name="${escapeHtml(name)}" aria-pressed="${gender === "female"}">女性</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderReceptionCastOrderStores() {
+    const container = $("#receptionCastOrderStores");
+    if (!container) return;
+    const openStores = new Set($$("details[open]", container).map((details) => details.dataset.castStore));
+    container.innerHTML = `
+      <p class="reception-cast-store-guide">店舗別キャスト（${escapeHtml(MONTHLY_CAST_ROSTERS.label)}）</p>
+      ${MONTHLY_CAST_ROSTERS.stores.map((store) => `
+        <details class="reception-cast-store" data-cast-store="${escapeHtml(store.id)}"${openStores.has(store.id) ? " open" : ""}>
+          <summary>
+            <span>${escapeHtml(store.label)}</span>
+            <span>${store.names.length}名</span>
+          </summary>
+          <div class="reception-cast-order-store-list">
+            ${store.names.map((name) => receptionCastOrderStoreRow(name, store.id)).join("")}
+          </div>
+        </details>
+      `).join("")}
+    `;
+  }
+
   function loadReceptionCastNames() {
     const requestId = ++state.receptionCastRosterRequest;
     const schedule = currentReceptionCastSchedule();
@@ -1402,6 +1469,7 @@
     const status = $("#receptionCastStatus");
     const orderNames = $("#receptionCastOrderNames");
     const orderStatus = $("#receptionCastOrderStatus");
+    const orderStores = $("#receptionCastOrderStores");
     const orderView = $("#receptionCastOrderView");
     const reportView = $("#receptionCastReportView");
     const picker = $("[data-drink-picker]", panel.closest("form"));
@@ -1427,6 +1495,7 @@
     const selectedCast = $("#receptionSelectedCast");
     if (selectedCast) {
       selectedCast.hidden = !state.receptionSelectedCastName;
+      selectedCast.className = `reception-selected-cast ${receptionCastGenderClass(state.receptionSelectedCastName)}`;
       selectedCast.innerHTML = state.receptionSelectedCastName
         ? `<strong>${escapeHtml(state.receptionSelectedCastName)}</strong><span>のドリンクを選択中</span><button type="button" data-reception-cast-change>変更</button>`
         : "";
@@ -1434,7 +1503,7 @@
     if (orderNames) {
       orderNames.hidden = Boolean(state.receptionSelectedCastName);
       orderNames.innerHTML = sortedOrderNames.map((name) => `
-        <button class="choice-button cast-affiliation-${escapeHtml(receptionCastAffiliation(name))}" type="button" data-reception-cast-order-name="${escapeHtml(name)}">${escapeHtml(name)}</button>
+        <button class="choice-button cast-affiliation-${escapeHtml(receptionCastAffiliation(name))} ${receptionCastGenderClass(name)}" type="button" data-reception-cast-order-name="${escapeHtml(name)}">${escapeHtml(name)}</button>
       `).join("");
     }
     if (orderStatus) {
@@ -1448,6 +1517,8 @@
             : "出勤済みのキャストはいません";
       orderStatus.classList.toggle("is-error", state.receptionCastRosterError);
     }
+    if (orderStores) orderStores.hidden = Boolean(state.receptionSelectedCastName);
+    renderReceptionCastOrderStores();
     names.innerHTML = sortedVisibleNames.map((name) => receptionCastRow(name, counts.get(name) || 0, "", latestTimes.get(name))).join("");
     status.textContent = state.receptionCastRosterLoading
       ? "当日の出勤キャストを読み込んでいます..."
@@ -2601,7 +2672,13 @@
 
     await loadSharedSoundSettings();
     await loadSharedOptionTemplates();
+    await loadSharedCastGenders();
     state.sharedSettingsLoaded = true;
+  }
+
+  async function loadSharedCastGenders() {
+    const row = await fetchSharedCastGenders();
+    if (row) applySharedCastGenders(row);
   }
 
   async function loadSharedOptionTemplates() {
@@ -2667,6 +2744,23 @@
     if (error) {
       console.error(error);
       toast(supabaseErrorMessage("共有オプションを読み込めません", error), { long: true });
+      return null;
+    }
+
+    return data || null;
+  }
+
+  async function fetchSharedCastGenders() {
+    if (state.syncMode !== "supabase" || !state.supabase) return null;
+    const { data, error } = await state.supabase
+      .from("drink_app_settings")
+      .select("*")
+      .eq("id", CAST_GENDER_SETTINGS_ROW_ID)
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      toast(supabaseErrorMessage("キャスト性別設定を読み込めません", error), { long: true });
       return null;
     }
 
@@ -2740,6 +2834,35 @@
     return true;
   }
 
+  async function saveSharedCastGenders(options = {}) {
+    if (state.syncMode !== "supabase" || !state.supabase) return false;
+    const { error } = await state.supabase
+      .from("drink_app_settings")
+      .upsert(
+        {
+          id: CAST_GENDER_SETTINGS_ROW_ID,
+          updated_at: new Date().toISOString(),
+          menu: state.castGenders,
+        },
+        { onConflict: "id" }
+      );
+
+    if (error) {
+      console.error(error);
+      if (!options.silent) toast(supabaseErrorMessage("キャスト性別設定の保存に失敗しました", error), { long: true });
+      return false;
+    }
+
+    return true;
+  }
+
+  function queueSharedCastGendersSave() {
+    state.castGenderSavePromise = state.castGenderSavePromise
+      .catch(() => false)
+      .then(() => saveSharedCastGenders());
+    return state.castGenderSavePromise;
+  }
+
   function queueSharedSoundSettingsSave() {
     state.soundSavePromise = state.soundSavePromise
       .catch(() => false)
@@ -2755,6 +2878,10 @@
     }
     if (payload.new.id === SOUND_SETTINGS_ROW_ID) {
       applySharedSoundSettings(payload.new, { fromRealtime: true });
+      return;
+    }
+    if (payload.new.id === CAST_GENDER_SETTINGS_ROW_ID) {
+      applySharedCastGenders(payload.new, { fromRealtime: true });
       return;
     }
     if (payload.new.id !== SETTINGS_ROW_ID) return;
@@ -2782,6 +2909,13 @@
     if (options.fromRealtime) {
       toast("共有メニューを更新しました");
     }
+  }
+
+  function applySharedCastGenders(row, options = {}) {
+    state.castGenders = normalizeCastGenders(row?.menu);
+    localStorage.setItem(CAST_GENDERS_KEY, JSON.stringify(state.castGenders));
+    renderReceptionCastPicker();
+    if (options.fromRealtime) toast("キャストの性別表示を更新しました");
   }
 
   function applySharedSoundSettings(row, options = {}) {
@@ -3885,6 +4019,23 @@
     } catch {
     }
     return normalizeOptionTemplates(DEFAULT_OPTION_TEMPLATES);
+  }
+
+  function readCastGenders() {
+    try {
+      return normalizeCastGenders(JSON.parse(localStorage.getItem(CAST_GENDERS_KEY) || "null"));
+    } catch {
+      return {};
+    }
+  }
+
+  function normalizeCastGenders(value) {
+    if (!value || Array.isArray(value) || typeof value !== "object") return {};
+    return Object.fromEntries(
+      Object.entries(value)
+        .map(([name, gender]) => [String(name || "").trim(), gender])
+        .filter(([name, gender]) => name && ["male", "female"].includes(gender))
+    );
   }
 
   function normalizeOptionTemplates(templates) {

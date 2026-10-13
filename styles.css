@@ -711,6 +711,22 @@ body.bar-view-active .bar-board {
   filter: brightness(0.94);
 }
 
+.reception-cast-order-grid .choice-button.cast-gender-male,
+.reception-selected-cast.cast-gender-male,
+.reception-cast-order-store-row.cast-gender-male {
+  border-color: #60a5fa;
+  color: #1e40af;
+  background: #dbeafe;
+}
+
+.reception-cast-order-grid .choice-button.cast-gender-female,
+.reception-selected-cast.cast-gender-female,
+.reception-cast-order-store-row.cast-gender-female {
+  border-color: #f472b6;
+  color: #9d174d;
+  background: #fce7f3;
+}
+
 .reception-selected-cast {
   display: flex;
   align-items: center;
@@ -724,6 +740,14 @@ body.bar-view-active .bar-board {
 
 .reception-selected-cast strong {
   color: #8a3d00;
+}
+
+.reception-selected-cast.cast-gender-male strong {
+  color: #1e40af;
+}
+
+.reception-selected-cast.cast-gender-female strong {
+  color: #9d174d;
 }
 
 .reception-selected-cast span {
@@ -951,6 +975,97 @@ body.bar-view-active .bar-board {
   display: grid;
   gap: 6px;
   padding: 8px;
+}
+
+.reception-cast-order-store-list {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+}
+
+.reception-cast-order-store-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 48px;
+  padding: 5px 6px 5px 10px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e7e1dc;
+  border-left-width: 5px;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.reception-cast-order-store-row.cast-affiliation-gg {
+  border-left-color: #ef4444;
+}
+
+.reception-cast-order-store-row.cast-affiliation-clt {
+  border-left-color: #eab308;
+}
+
+.reception-cast-order-store-row.cast-affiliation-kk {
+  border-left-color: #84cc16;
+}
+
+.reception-cast-store-name {
+  align-self: stretch;
+  min-width: 0;
+  padding: 0 8px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-weight: 900;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reception-cast-gender-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(48px, auto));
+  gap: 5px;
+}
+
+.reception-cast-gender-controls button {
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--muted);
+  background: #ffffff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 850;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.reception-cast-gender-controls button[data-reception-cast-gender="male"][aria-pressed="true"] {
+  border-color: #3b82f6;
+  color: #1e40af;
+  background: #bfdbfe;
+}
+
+.reception-cast-gender-controls button[data-reception-cast-gender="female"][aria-pressed="true"] {
+  border-color: #ec4899;
+  color: #9d174d;
+  background: #fbcfe8;
+}
+
+@media (max-width: 520px) {
+  .reception-cast-order-store-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-left: 8px;
+  }
+
+  .reception-cast-gender-controls {
+    grid-template-columns: repeat(2, 46px);
+  }
+
+  .reception-cast-gender-controls button {
+    padding: 0 5px;
+  }
 }
 
 .reception-cast-store-row {
