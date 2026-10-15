@@ -17,11 +17,21 @@
 html { background: var(--canvas); }
 
 body {
+  position: relative;
+  isolation: isolate;
   margin: 0;
   min-width: 320px;
   color: var(--ink);
-  background: var(--canvas);
+  background: transparent;
   font-weight: 600;
+}
+
+body::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background: url("./assets/applications-background.jpg") center / cover no-repeat;
+  content: "";
 }
 
 button, input { font: inherit; }
@@ -37,7 +47,7 @@ button { touch-action: manipulation; }
   min-height: 84px;
   padding: 14px max(18px, env(safe-area-inset-right)) 14px max(18px, env(safe-area-inset-left));
   border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.96);
+  background: #fff;
 }
 
 .customer-eyebrow, .sheet-kicker {
@@ -109,7 +119,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 .order-setup, .menu-section {
   padding: 20px;
   border: 1px solid var(--line);
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.88);
 }
 .order-setup { border-radius: 8px 8px 0 0; }
 .menu-section { margin-top: 14px; border-radius: 8px; }
@@ -339,7 +349,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   top: calc(var(--customer-header-height, 84px) + var(--menu-primary-height, 91px));
   padding: 17px 0 11px;
   border-bottom: 1px solid #e4dfd9;
-  background: var(--surface);
+  background: #f7f0e9;
 }
 .menu-level-label {
   margin: 0 0 9px;
