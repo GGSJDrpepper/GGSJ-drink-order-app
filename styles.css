@@ -4,7 +4,8 @@
   --muted: #6f6a64;
   --line: #e4dfd9;
   --surface: #ffffff;
-  --paper: #f7f3ef;
+  --paper: #f1e9e1;
+  --warm-panel: #f7f0e9;
   --teal: #f97316;
   --teal-soft: #fff1e6;
   --amber: #fb923c;
@@ -1300,7 +1301,7 @@ button:focus-visible {
   border-top: 1px solid #eeeeee;
   border-bottom: 1px solid #eeeeee;
   border-radius: 0;
-  background: #ffffff;
+  background: var(--warm-panel);
   overscroll-behavior: contain;
 }
 
@@ -1324,7 +1325,7 @@ button:focus-visible {
   padding-bottom: 0;
   scroll-padding-bottom: 0;
   border-right: 0;
-  background: #f5f5f5;
+  background: #eee4da;
 }
 
 .menu-category-button {
@@ -1384,7 +1385,7 @@ button:focus-visible {
   gap: 8px;
   padding: 8px 0;
   border-bottom: 1px solid #eeeeee;
-  background: #ffffff;
+  background: var(--warm-panel);
 }
 
 .custom-menu-picker .menu-item-grid {
@@ -1430,7 +1431,7 @@ button:focus-visible {
 }
 
 .custom-menu-picker .menu-subcategory-section + .menu-subcategory-section {
-  border-top: 8px solid #f5f5f5;
+  border-top: 8px solid var(--paper);
 }
 
 .custom-menu-picker .menu-subcategory-heading {
@@ -1479,11 +1480,11 @@ button:focus-visible {
 }
 
 .menu-category-section {
-  background: #ffffff;
+  background: var(--warm-panel);
 }
 
 .menu-category-section + .menu-category-section {
-  border-top: 10px solid #f5f5f5;
+  border-top: 10px solid var(--paper);
 }
 
 .menu-category-heading {
@@ -1496,7 +1497,7 @@ button:focus-visible {
   margin: 0;
   padding: 0 16px;
   border-bottom: 1px solid #eeeeee;
-  background: #ffffff;
+  background: var(--warm-panel);
   color: #8f8f8f;
   font-size: 0.84rem;
   font-weight: 900;
@@ -1520,7 +1521,7 @@ button:focus-visible {
   touch-action: pan-x;
   padding: 10px 16px;
   border-bottom: 1px solid #eeeeee;
-  background: #ffffff;
+  background: var(--warm-panel);
   box-shadow: 0 3px 8px rgba(47, 43, 39, 0.06);
 }
 
@@ -1550,14 +1551,14 @@ button:focus-visible {
   margin: 0;
   padding: 0 16px;
   border-bottom: 1px solid #eeeeee;
-  background: #ffffff;
+  background: var(--warm-panel);
   color: #5f5a54;
   font-size: 0.9rem;
   font-weight: 900;
 }
 
 .menu-subcategory-section + .menu-subcategory-section {
-  border-top: 8px solid #f5f5f5;
+  border-top: 8px solid var(--paper);
 }
 
 .menu-item-grid .choice-button {
