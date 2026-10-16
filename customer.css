@@ -432,18 +432,19 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   background: white;
   font-size: 22px;
 }
-.cast-name-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.cast-name-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
 .cast-name-button {
   min-width: 0;
-  min-height: 46px;
-  padding: 8px 6px;
+  min-height: 82px;
+  padding: 14px 10px;
   overflow-wrap: anywhere;
-  border: 2px solid var(--line);
-  border-radius: 6px;
-  color: #4c4946;
+  border: 1px solid #d8d2cc;
+  border-radius: 7px;
+  color: var(--ink);
   background: white;
-  font-size: 14px;
+  font-size: clamp(14px, 3.5vw, 19px);
   font-weight: 800;
+  text-align: left;
 }
 .cast-name-button.active { border-color: var(--orange); color: #8a3d00; background: var(--orange-soft); }
 .cast-roster-status { margin: 14px 0 0; color: var(--muted); font-size: 14px; }
@@ -657,7 +658,8 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
   }
   .payment-choice-grid { grid-template-columns: repeat(3, 1fr); }
   .product-grid { gap: 7px; }
-  .cast-name-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cast-name-grid { gap: 7px; }
+  .cast-name-button { min-height: 76px; padding: 11px 8px; }
   .product-button { min-height: 76px; padding: 11px 8px; }
   .product-button.has-product-image { padding-right: 50px; }
   .product-button.has-product-image .product-cart-count { right: 42px; }
