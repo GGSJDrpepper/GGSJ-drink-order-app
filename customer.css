@@ -6,7 +6,7 @@
   --ink: #252321;
   --muted: #706b66;
   --line: #ded9d3;
-  --surface: #f7f0e9;
+  --surface: #eee4da;
   --canvas: #f1e9e1;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
 }
@@ -47,7 +47,7 @@ button { touch-action: manipulation; }
   min-height: 84px;
   padding: 14px max(18px, env(safe-area-inset-right)) 14px max(18px, env(safe-area-inset-left));
   border-bottom: 1px solid var(--line);
-  background: #fff;
+  background: var(--surface);
 }
 
 .customer-eyebrow, .sheet-kicker {
@@ -119,7 +119,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 .order-setup, .menu-section {
   padding: 20px;
   border: 1px solid var(--line);
-  background: rgba(247, 244, 240, 0.88);
+  background: var(--surface);
 }
 .order-setup { border-radius: 8px 8px 0 0; }
 .menu-section { margin-top: 14px; border-radius: 8px; }
@@ -341,7 +341,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   padding: 14px 12px 12px;
   border-top: 1px solid #e7e2dc;
   border-bottom: 1px solid #d8d2cc;
-  background: #eee4da;
+  background: var(--surface);
 }
 .menu-level-secondary {
   position: sticky;
@@ -349,7 +349,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   top: calc(var(--customer-header-height, 84px) + var(--menu-primary-height, 91px));
   padding: 17px 0 11px;
   border-bottom: 1px solid #e4dfd9;
-  background: #f7f0e9;
+  background: var(--surface);
 }
 .menu-level-label {
   margin: 0 0 9px;
@@ -414,7 +414,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   margin: 0 -12px 18px;
   padding: 16px 12px 18px;
   border-bottom: 1px solid var(--line);
-  background: #f7f4f0;
+  background: var(--surface);
 }
 .cast-roster-heading { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
 .cast-roster-heading h3 { margin: 0; font-size: 18px; }
@@ -557,7 +557,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   left: 0;
   padding: 12px max(16px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   border-top: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.97);
+  background: var(--surface);
 }
 .cart-button, .primary-button {
   width: 100%;
@@ -577,7 +577,7 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
 dialog { border: 0; padding: 0; background: transparent; }
 dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
 .sheet-dialog { width: min(700px, calc(100% - 20px)); max-height: calc(100dvh - 20px); }
-.sheet-card { overflow: auto; max-height: calc(100dvh - 20px); padding: 22px; border-radius: 8px; background: white; }
+.sheet-card { overflow: auto; max-height: calc(100dvh - 20px); padding: 22px; border-radius: 8px; background: var(--surface); }
 .sheet-head { display: flex; justify-content: space-between; gap: 15px; align-items: flex-start; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .sheet-head h2 { margin-bottom: 0; font-size: 26px; }
 .sheet-price { margin: 7px 0 0; color: var(--muted); }
@@ -611,7 +611,7 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
 .quantity-stepper button { height: 100%; border: 0; background: transparent; font-size: 25px; }
 .quantity-stepper strong { text-align: center; font-size: 20px; }
 
-.checkout-setup { margin: 16px 0 8px; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: #faf9f7; }
+.checkout-setup { margin: 16px 0 8px; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
 .checkout-heading { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 16px; }
 .checkout-heading h3 { margin: 1px 0 3px; font-size: 18px; }
 .checkout-heading p { margin: 0; color: var(--muted); font-size: 13px; font-weight: 500; }
@@ -629,7 +629,7 @@ dialog::backdrop { background: rgba(30, 28, 26, 0.56); }
 .submit-note { margin: 10px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
 
 .success-dialog { width: min(430px, calc(100% - 32px)); }
-.success-card { padding: 34px 24px; border-radius: 8px; background: white; text-align: center; }
+.success-card { padding: 34px 24px; border-radius: 8px; background: var(--surface); text-align: center; }
 .success-mark { display: grid; width: 64px; height: 64px; margin: 0 auto 18px; place-items: center; border-radius: 50%; color: white; background: #18914f; font-size: 34px; }
 .success-card p { color: var(--muted); }
 

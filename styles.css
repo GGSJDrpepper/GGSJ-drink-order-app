@@ -3,9 +3,9 @@
   --ink: #2f2f2f;
   --muted: #6f6a64;
   --line: #e4dfd9;
-  --surface: #ffffff;
+  --surface: #eee4da;
   --paper: #f1e9e1;
-  --warm-panel: #f7f0e9;
+  --warm-panel: #eee4da;
   --teal: #f97316;
   --teal-soft: #fff1e6;
   --amber: #fb923c;
@@ -84,7 +84,7 @@ button {
   gap: 10px;
   padding: 0 clamp(12px, 3vw, 28px);
   border-bottom: 1px solid #eeeeee;
-  background: #ffffff;
+  background: var(--warm-panel);
 }
 
 .header-view-switcher {
@@ -605,7 +605,7 @@ body.bar-view-active .bar-board {
   margin-bottom: 0;
   padding: 10px 0;
   border-bottom: 1px solid #eeeeee;
-  background: var(--paper);
+  background: var(--warm-panel);
 }
 
 .reception-cast-panel {
@@ -1829,7 +1829,7 @@ button:focus-visible {
   margin: 0 auto 14px;
   overflow: auto;
   border-radius: 20px 20px 10px 10px;
-  background: #ffffff;
+  background: var(--warm-panel);
   box-shadow: 0 24px 60px rgba(47, 47, 47, 0.24);
   transform: translateY(112%);
   transition: transform 220ms ease;
@@ -1941,7 +1941,7 @@ button:focus-visible {
   align-items: center;
   padding: 20px 26px;
   border-top: 1px solid #ececec;
-  background: #ffffff;
+  background: var(--warm-panel);
 }
 
 .quantity-stepper {
@@ -2050,7 +2050,7 @@ button:focus-visible {
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  background: var(--paper);
+  background: var(--warm-panel);
 }
 
 #view-bar {
