@@ -1925,6 +1925,7 @@ button:focus-visible {
   border: 0;
   border-top: 1px solid #c8c1ba;
   gap: 12px;
+  justify-content: center;
 }
 
 .sheet-option-grid .option-pill span {
