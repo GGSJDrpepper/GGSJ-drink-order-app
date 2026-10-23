@@ -22,7 +22,7 @@
     { id: "transit", labelKey: "transit", icon: "IC" },
   ];
   const APPLICATION_LINKS = [
-    { label: "①競技結果申請フォーム", href: "https://docs.google.com/forms/d/e/1FAIpQLSdVap9LAD022FRGOHfzync_6-soLtHFtqsV0ayfjuh4sBZmEg/viewform", image: "./assets/application-results.svg" },
+    { label: "①リング預かり申請", href: "https://script.google.com/macros/s/AKfycbyY1hmiR-NE1eoiBQIUX_giDv57xCrh0kdrebZymCxfuj_LcvkFt2F6gIkXvqOLJf6C/exec?page=apply&type=ring", image: "./assets/application-results.svg" },
     { label: "②JG Free権利申請", note: "※初回のみ要登録", href: "https://miniapp.line.me/2011431861-jUMUxBv5?store=ggplsj&qr=QR-261001-A58B54C53A70C08C&st=9e94d11a422ee117ae5cf6c8daf6e1038c9fdafc9b40f4bf0e1cadb903d65ec6", image: "./assets/application-jg-free.png" },
     { label: "③ポーカーギルド選手契約", note: "※初回のみ要登録", href: "https://pokerguild-contract.com/ja/", image: "./assets/application-pokerguild.png" },
     { label: "④メニュー表", href: "https://lit.link/ggpldrink", image: "./assets/application-menu.svg" },
