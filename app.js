@@ -819,7 +819,14 @@
     $("#itemSheetClose").addEventListener("click", closeItemSheet);
     $("#quantityMinus").addEventListener("click", () => setSheetQuantity(sheetQuantity() - 1));
     $("#quantityPlus").addEventListener("click", () => setSheetQuantity(sheetQuantity() + 1));
-    $("#itemSheetOptions").addEventListener("change", () => {
+    $("#itemSheetOptions").addEventListener("change", (event) => {
+      const input = event.target;
+      if (input.matches("input[type='checkbox']") && input.checked) {
+        const group = input.closest(".sheet-option-group");
+        $$("input[type='checkbox']", group).forEach((choice) => {
+          if (choice !== input) choice.checked = false;
+        });
+      }
       syncSheetToForm();
       updateSheetConfirmState();
     });
@@ -2117,7 +2124,7 @@
         <div class="option-grid sheet-option-grid">
           ${group.choices.map((choice) => `
             <label class="option-pill">
-              <input type="radio" name="sheet-option-${escapeHtml(group.id)}" value="${escapeHtml(choice)}" data-option-group-label="${escapeHtml(group.label)}">
+              <input type="checkbox" name="sheet-option-${escapeHtml(group.id)}" value="${escapeHtml(choice)}" data-option-group-label="${escapeHtml(group.label)}">
               <span>${escapeHtml(choice)}</span>
             </label>
           `).join("")}
