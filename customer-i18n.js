@@ -160,6 +160,10 @@
 
   const menu = {
     "各種申請": "Applications", "各種申請・ご案内": "Applications & Guides", "ソフトドリンク": "Soft Drinks", "キャスドリ": "Cast Drinks", "水、お茶": "Water & Tea", "ジュース": "Juice", "エナジードリンク": "Energy Drinks",
+    "①リング預かり申請": "①Ring Chip Deposit Request", "②JG Free権利申請": "②JG Free Benefit Request",
+    "③ポーカーギルド選手契約": "③PokerGuild Player Agreement", "④メニュー表": "④Menu",
+    "⑤GGPL新宿各種SNSのご案内": "⑤GGPL Shinjuku Social Media", "⑥本日のトーナメント情報": "⑥Today's Tournament Information",
+    "※初回のみ要登録": "Registration required for first-time users",
     "アルコール": "Alcohol", "ビール": "Beer", "シャンパン": "Champagne", "ウィスキー": "Whisky", "焼酎": "Shochu", "サワー": "Sours",
     "カクテル": "Cocktails", "ディタ": "Dita", "ジン": "Gin", "ウォッカ": "Vodka", "サウザテキーラ": "Sauza Tequila",
     "ラム": "Rum", "レッドブル割り": "Red Bull Mixes", "ショット": "Shots", "ショット（テキーラ）": "Shots (Tequila)", "オリジナルカクテル": "Original Cocktails",
