@@ -240,9 +240,12 @@
     filter: "open",
     orders: [],
     knownIds: new Set(),
+    ringNotifications: [],
+    knownRingNotificationIds: new Set(),
     overdueUnmadeNotifiedIds: new Set(),
     supabase: null,
     realtimeChannel: null,
+    ringRealtimeChannel: null,
     broadcast: null,
     syncMode: "local",
     sharedSettingsLoaded: false,
@@ -311,6 +314,7 @@
     await configureSupabaseFromStorage();
     await loadSharedSettings();
     await loadOrders();
+    await loadRingNotifications();
     await loadDailyCastOrders();
     state.orders.forEach((order) => state.knownIds.add(order.id));
     state.booted = true;
@@ -848,6 +852,7 @@
     $$("[data-action='refresh']").forEach((button) => {
       button.addEventListener("click", async () => {
         await loadOrders();
+        await loadRingNotifications();
         await loadDailyCastOrders();
         render();
         toast("更新しました");
@@ -855,6 +860,7 @@
     });
 
     $("#barOrders").addEventListener("click", handleOrderAction);
+    $("#ringApplications").addEventListener("click", handleRingNotificationAction);
     $("#alcoholManualClose").addEventListener("click", closeAlcoholManual);
     document.addEventListener("pointerdown", (event) => {
       const dialog = $("#alcoholManualDialog");
@@ -2998,6 +3004,68 @@
     loadLocalOrders();
   }
 
+  async function loadRingNotifications() {
+    if (state.syncMode !== "supabase" || !state.supabase) return;
+    const { data, error } = await state.supabase
+      .from("ring_application_notifications")
+      .select("id,created_at,acknowledged_at")
+      .or(`acknowledged_at.is.null,acknowledged_at.gte.${new Date(Date.now() - COMPLETED_HISTORY_MS).toISOString()}`)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("リング預かり申請通知を読み込めません", error);
+      return;
+    }
+    state.ringNotifications = data || [];
+    state.ringNotifications.forEach((item) => state.knownRingNotificationIds.add(item.id));
+    if (!state.ringRealtimeChannel) {
+      state.ringRealtimeChannel = state.supabase
+        .channel("ring_application_changes")
+        .on("postgres_changes", { event: "*", schema: "public", table: "ring_application_notifications" }, handleRingNotificationPayload)
+        .subscribe();
+    }
+  }
+
+  function handleRingNotificationPayload(payload) {
+    if (payload.eventType === "DELETE") {
+      state.ringNotifications = state.ringNotifications.filter((item) => item.id !== payload.old.id);
+      render();
+      return;
+    }
+    const item = payload.new;
+    const isNew = !state.knownRingNotificationIds.has(item.id);
+    state.knownRingNotificationIds.add(item.id);
+    state.ringNotifications = [item, ...state.ringNotifications.filter((entry) => entry.id !== item.id)]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    if (state.booted && isNew) notifyNewRingApplication();
+    render();
+  }
+
+  function notifyNewRingApplication() {
+    if (state.view === "bar" && state.soundEnabled) {
+      playChime(state.soundChoices.soft);
+    }
+  }
+
+  async function handleRingNotificationAction(event) {
+    const button = event.target.closest("[data-ring-acknowledge]");
+    if (!button || !state.supabase) return;
+    const id = button.dataset.ringAcknowledge;
+    button.disabled = true;
+    const { error } = await state.supabase
+      .from("ring_application_notifications")
+      .update({ acknowledged_at: new Date().toISOString() })
+      .eq("id", id)
+      .is("acknowledged_at", null);
+    if (error) {
+      console.error(error);
+      button.disabled = false;
+      toast("申請通知の確認に失敗しました");
+      return;
+    }
+    await loadRingNotifications();
+    render();
+  }
+
   function loadLocalOrders() {
     try {
       state.orders = JSON.parse(localStorage.getItem(ORDER_KEY) || "[]").map(normalizeOrder);
@@ -3384,7 +3452,8 @@
 
   function renderBar() {
     const openOrders = state.orders.filter((order) => !["served", "canceled"].includes(order.status));
-    updateBarOrderBadge(openOrders.length);
+    renderRingNotifications();
+    updateBarOrderBadge();
     const visibleOrders = state.filter === "open"
       ? openOrders
       : [...state.orders].sort((a, b) => orderActivityTime(b) - orderActivityTime(a));
@@ -3417,13 +3486,38 @@
     const badge = $("#barOrderBadge");
     if (!badge) return;
     const openOrders = state.orders.filter((order) => !["served", "canceled"].includes(order.status));
-    const hasCriticalOrder = openOrders.some((order) => minutesSince(order.created_at) >= 10);
+    const pendingApplications = state.ringNotifications.filter((item) => !item.acknowledged_at);
+    const totalCount = count + pendingApplications.length;
+    const hasCriticalOrder = openOrders.some((order) => minutesSince(order.created_at) >= 10)
+      || pendingApplications.some((item) => minutesSince(item.created_at) >= 10);
     const barButton = $("#headerBarButton");
-    badge.hidden = count === 0;
-    badge.textContent = count > 99 ? "99+" : String(count);
-    barButton?.classList.toggle("has-waiting-orders", count > 0 && !hasCriticalOrder);
-    barButton?.classList.toggle("has-critical-orders", count > 0 && hasCriticalOrder);
-    barButton?.setAttribute("aria-label", count ? `バー、未提供${count}件` : "バー");
+    badge.hidden = totalCount === 0;
+    badge.textContent = totalCount > 99 ? "99+" : String(totalCount);
+    barButton?.classList.toggle("has-waiting-orders", totalCount > 0 && !hasCriticalOrder);
+    barButton?.classList.toggle("has-critical-orders", totalCount > 0 && hasCriticalOrder);
+    barButton?.setAttribute("aria-label", totalCount ? `バー、未対応${totalCount}件` : "バー");
+  }
+
+  function renderRingNotifications() {
+    const section = $("#ringApplicationSection");
+    const items = state.ringNotifications.filter((item) =>
+      !item.acknowledged_at || (state.filter === "all" && Date.now() - new Date(item.acknowledged_at) < COMPLETED_HISTORY_MS)
+    );
+    section.hidden = !items.length;
+    if (!items.length) return;
+    const pending = items.filter((item) => !item.acknowledged_at).length;
+    $("#ringApplicationCount").textContent = pending ? `未確認 ${pending}件` : "確認済み";
+    $("#ringApplications").innerHTML = items.map((item) => `
+      <article class="ring-application-card${item.acknowledged_at ? " is-acknowledged" : ""}">
+        <div>
+          <strong>リング預かり申請が届きました</strong>
+          <p>申請 ${escapeHtml(formatTime(item.created_at))} · 申請ID ${escapeHtml(item.id.slice(0, 8))}</p>
+        </div>
+        ${item.acknowledged_at
+          ? '<span class="ring-application-done">確認済み</span>'
+          : `<button class="button button-primary" type="button" data-ring-acknowledge="${escapeHtml(item.id)}">確認済みにする</button>`}
+      </article>
+    `).join("");
   }
 
   function barOrderColumns(orders) {
@@ -5082,8 +5176,12 @@
     if (state.realtimeChannel && state.supabase) {
       state.supabase.removeChannel(state.realtimeChannel);
     }
+    if (state.ringRealtimeChannel && state.supabase) {
+      state.supabase.removeChannel(state.ringRealtimeChannel);
+    }
     state.supabase = null;
     state.realtimeChannel = null;
+    state.ringRealtimeChannel = null;
   }
 
   function supabaseErrorMessage(prefix, error) {

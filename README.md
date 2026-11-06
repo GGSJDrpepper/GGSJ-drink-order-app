@@ -46,4 +46,6 @@ GitHub Pagesにこのアプリを置くことはできます。ただしGitHub P
 
 注文データは、未提供オーダーと直近1時間の完了履歴だけを端末へ読み込みます。Supabase上では `pg_cron` により、注文時刻から24時間を超えたデータが1時間ごとに削除されます。既存プロジェクトへ更新を反映するときも、SQL Editorで最新の `supabase-schema.sql` を実行してください。
 
+リング預かり申請通知を有効にするには、Supabase SQL Editorで `ring-notification-migration.sql` を実行します。リング預かり申請のApps Scriptには、保存成功後に `queueRingApplicationNotification_(applicationId, submittedAt)` を呼ぶ処理と、`ring-notifications.gs` と同じ通知・再送処理が必要です。`setupRingApplicationNotificationRetry` を一度実行して5分ごとの再送トリガーを設定し、Webアプリを新しいバージョンに更新してください。通知には申請IDと申請時刻だけを保存し、Game ID番号・名前・申請額は送信しません。
+
 `supabase-schema.sql` は試作品用に読み書きを広く許可しています。本番運用ではスタッフPIN、店舗ID、端末権限、削除制限を追加するのが安全です。

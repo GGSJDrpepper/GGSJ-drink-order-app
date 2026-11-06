@@ -11,10 +11,10 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026101901">
+    <link rel="stylesheet" href="./styles.css?v=2026110701">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026110702"></script>
+    <script defer src="./app.js?v=2026110703"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -143,6 +143,14 @@
                 <span class="stat-label">未徴収</span>
               </div>
             </div>
+
+            <section id="ringApplicationSection" class="ring-application-section" aria-labelledby="ringApplicationTitle" hidden>
+              <div class="ring-application-heading">
+                <h3 id="ringApplicationTitle">リング預かり申請</h3>
+                <span id="ringApplicationCount" class="ring-application-count"></span>
+              </div>
+              <div id="ringApplications" class="ring-application-list"></div>
+            </section>
 
             <div id="barOrders" class="orders-list"></div>
           </div>
