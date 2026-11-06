@@ -4129,7 +4129,7 @@
           id,
           label,
           subcategories,
-          items: rawItems.map((item) => assignItemSubcategory(item, subcategories)),
+          items: rawItems.map((item) => withStrawOption(assignItemSubcategory(item, subcategories), id, label)),
         };
       })
       .filter(Boolean);
@@ -4146,6 +4146,18 @@
         optionGroups: cloneOptionGroups(item.optionGroups || []),
       })),
     }));
+  }
+
+  function withStrawOption(item, categoryId, categoryLabel) {
+    const isAlcohol = categoryId === "alcohol" || categoryLabel === "アルコール";
+    const isWaterOrPerrier = (categoryId === "soft" || categoryLabel === "ソフトドリンク")
+      && ["水", "ペリエ"].includes(item.name);
+    if ((!isAlcohol && !isWaterOrPerrier)
+      || item.optionGroups.some((group) => group.choices.includes("ストローあり"))) return item;
+    return {
+      ...item,
+      optionGroups: [...item.optionGroups, { id: "straw", label: "ストロー", choices: ["ストローあり"], required: false }],
+    };
   }
 
   function normalizeMenuItems(items) {

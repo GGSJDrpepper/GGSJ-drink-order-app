@@ -979,13 +979,13 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
         id: String(category.id || `category-${categoryIndex}`),
         label: String(category.label || category.name || "メニュー"),
         subcategories,
-        items: (Array.isArray(category.items) ? category.items : []).map((item, itemIndex) => ({
+        items: (Array.isArray(category.items) ? category.items : []).map((item, itemIndex) => withStrawOption({
           id: String(item.id || `item-${itemIndex}`),
           name: String(item.name || item.label || "商品"),
           price: Math.max(0, Number(item.price || 0)),
           subcategory_id: String(item.subcategory_id || subcategories[0].id),
           optionGroups: normalizeOptionGroups(item.optionGroups || item.options || []),
-        })),
+        }, category.id, category.label)),
       };
     }).filter((category) => category.items.length);
   }
@@ -997,6 +997,18 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
       choices: (Array.isArray(group.choices) ? group.choices : []).map(String).filter(Boolean),
       required: Boolean(group.required),
     })).filter((group) => group.choices.length);
+  }
+
+  function withStrawOption(item, categoryId, categoryLabel) {
+    const isAlcohol = categoryId === "alcohol" || categoryLabel === "アルコール";
+    const isWaterOrPerrier = (categoryId === "soft" || categoryLabel === "ソフトドリンク")
+      && ["水", "ペリエ"].includes(item.name);
+    if ((!isAlcohol && !isWaterOrPerrier)
+      || item.optionGroups.some((group) => group.choices.includes("ストローあり"))) return item;
+    return {
+      ...item,
+      optionGroups: [...item.optionGroups, { id: "straw", label: "ストロー", choices: ["ストローあり"], required: false }],
+    };
   }
 
   function activeCategory() {
