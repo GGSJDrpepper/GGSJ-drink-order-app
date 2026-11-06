@@ -2292,7 +2292,7 @@
         const showCustomPrice = source === "reception"
           && state.receptionMenuMode === "custom"
           && menuCategoryKind(category) === "alcohol"
-          && ["ウィスキー", "ウイスキー"].includes(group.label.trim());
+          && ["ウィスキー", "ウイスキー", "シャンパン"].includes(group.label.trim());
         const itemButtons = group.items.map((item) => {
         const selectedCount = cartQuantityForMenuItem(source, category.id, item);
         const classes = [
