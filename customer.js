@@ -975,17 +975,22 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
             label: String(subcategory.label || subcategory.name || "メニュー"),
           }))
         : [{ id: "default", label: "メニュー" }];
+      const isAlcohol = category.id === "alcohol" || category.label === "アルコール";
+      const visibleSubcategories = isAlcohol
+        ? subcategories.filter((subcategory) => subcategory.id !== "champagne" && subcategory.label !== "シャンパン")
+        : subcategories;
+      const visibleSubcategoryIds = new Set(visibleSubcategories.map((subcategory) => subcategory.id));
       return {
         id: String(category.id || `category-${categoryIndex}`),
         label: String(category.label || category.name || "メニュー"),
-        subcategories,
+        subcategories: visibleSubcategories,
         items: (Array.isArray(category.items) ? category.items : []).map((item, itemIndex) => withStrawOption({
           id: String(item.id || `item-${itemIndex}`),
           name: String(item.name || item.label || "商品"),
           price: Math.max(0, Number(item.price || 0)),
           subcategory_id: String(item.subcategory_id || subcategories[0].id),
           optionGroups: normalizeOptionGroups(item.optionGroups || item.options || []),
-        }, category.id, category.label)),
+        }, category.id, category.label)).filter((item) => visibleSubcategoryIds.has(item.subcategory_id)),
       };
     }).filter((category) => category.items.length);
   }
