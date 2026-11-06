@@ -11,6 +11,13 @@
   const CAST_SHEET_ID = "16_UQYWtL1wGHUUuGfK6HbSsaG5sl7x9T_LOxIJWUbEU";
   const CAST_ROSTER_RANGE = "AR19:BE49";
   const CAST_DAY_CUTOFF_HOUR = 6;
+  // Update from the latest GGPL Shinjuku monthly shift roster.
+  const GGPL_CAST_NAMES = [
+    "またん", "アルム", "りこ", "ZIN", "てあめ", "ドクペ", "かいとねこ", "でく",
+    "くろすけ", "わこ", "キサラ", "セナ", "さわ", "なぎさ", "はく", "にこ",
+    "ゆめ", "しぇな", "ねる", "のの", "こにゃ", "しずく", "美玲", "のっち",
+    "さとる", "如月", "あお", "みず", "たいき", "しょーた", "けんま", "チヅル",
+  ];
   const CAST_STORAGE_TARGET = "tournament";
   const CAST_STORAGE_SEAT = "__cast__";
   const SEATS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
@@ -410,7 +417,9 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
       state.castNames = responseOk ? activeCastNames(response.table?.rows || [], schedule.currentHour) : [];
       state.castRosterLoading = false;
       state.castRosterError = !responseOk;
-      if (!state.castNames.includes(state.selectedCastName)) state.selectedCastName = "";
+      if (!state.castNames.includes(state.selectedCastName) && !GGPL_CAST_NAMES.includes(state.selectedCastName)) {
+        state.selectedCastName = "";
+      }
       cleanup();
       if (state.categoryId === CAST_CATEGORY_ID) renderMenu();
     }
@@ -518,9 +527,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
       : state.castRosterError
         ? `<p class="cast-roster-status is-error">${t("castRosterError")}</p>`
         : state.castNames.length
-          ? `<div class="cast-name-grid">${state.castNames.map((name) => `
-            <button class="cast-name-button${name === state.selectedCastName ? " active" : ""}" type="button" data-cast-name="${escapeHtml(name)}" aria-pressed="${name === state.selectedCastName}">${escapeHtml(name)}</button>
-          `).join("")}</div>`
+          ? castNameGrid(state.castNames)
           : `<p class="cast-roster-status">${t("noCastOnDuty")}</p>`;
     return `
       <section class="cast-roster-panel" aria-labelledby="castRosterTitle">
@@ -535,8 +542,18 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
         <p class="cast-roster-guide${state.selectedCastName ? " is-selected" : ""}">${state.selectedCastName
           ? t("selectedCast", { name: state.selectedCastName })
           : t("selectCastFirst")}</p>
+        <div class="cast-directory">
+          <h4>${t("ggplCastList")}</h4>
+          ${castNameGrid(GGPL_CAST_NAMES)}
+        </div>
       </section>
     `;
+  }
+
+  function castNameGrid(names) {
+    return `<div class="cast-name-grid">${names.map((name) => `
+      <button class="cast-name-button${name === state.selectedCastName ? " active" : ""}" type="button" data-cast-name="${escapeHtml(name)}" aria-pressed="${name === state.selectedCastName}">${escapeHtml(name)}</button>
+    `).join("")}</div>`;
   }
 
   function renderApplications() {
