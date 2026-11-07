@@ -2057,14 +2057,6 @@ button:focus-visible {
 .ring-application-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; margin-bottom: 12px; }
 .ring-application-heading h3 { grid-column: 1; margin: 0; font-size: 18px; white-space: nowrap; }
 .ring-application-count { grid-column: 1; grid-row: 2; color: #92400e; font-weight: 800; white-space: nowrap; }
-.ring-notification-reset { grid-column: 2; grid-row: 1 / 3; align-self: start; border: 0; background: transparent; color: #92400e; cursor: pointer; }
-.ring-notification-reset svg { width: 18px; height: 18px; }
-.ring-notification-setup { display: grid; gap: 8px; margin-bottom: 12px; }
-.ring-notification-setup[hidden], .ring-notification-reset[hidden] { display: none; }
-.ring-notification-setup label { font-weight: 700; }
-.ring-notification-setup-row { display: flex; gap: 8px; }
-.ring-notification-setup-row input { min-width: 0; flex: 1; padding: 10px; border: 1px solid #d7a76a; border-radius: 6px; }
-.ring-notification-setup p { margin: 0; color: #a82e2e; }
 .ring-application-list { display: grid; gap: 8px; }
 .ring-application-card {
   display: flex;

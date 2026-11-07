@@ -11,7 +11,6 @@
   const OPTION_TEMPLATES_KEY = "drink-relay-option-templates-v1";
   const RECEPTION_MENU_MODE_KEY = "drink-relay-reception-menu-mode-v1";
   const CAST_GENDERS_KEY = "drink-relay-cast-genders-v1";
-  const RING_NOTIFICATION_KEY = "drink-relay-ring-notification-key-v1";
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
   const CHANNEL_NAME = "drink-relay-local";
   const SETTINGS_ROW_ID = "main";
@@ -243,7 +242,6 @@
     knownIds: new Set(),
     ringNotifications: [],
     knownRingNotificationIds: new Set(),
-    ringNotificationKey: localStorage.getItem(RING_NOTIFICATION_KEY) || "",
     ringNotificationError: "",
     overdueUnmadeNotifiedIds: new Set(),
     supabase: null,
@@ -301,6 +299,7 @@
 
   async function init() {
     localStorage.removeItem(SOUND_PREVIEWED_KEY);
+    localStorage.removeItem("drink-relay-ring-notification-key-v1");
     setupTabs();
     setupChoiceButtons();
     renderMenuPickers();
@@ -323,7 +322,7 @@
     render();
     setInterval(render, 15000);
     setInterval(() => {
-      if (state.view === "bar" && state.ringNotificationKey) loadRingNotifications();
+      if (state.view === "bar") loadRingNotifications();
     }, 5000);
     if (window.lucide) window.lucide.createIcons();
   }
@@ -866,25 +865,6 @@
 
     $("#barOrders").addEventListener("click", handleOrderAction);
     $("#ringApplications").addEventListener("click", handleRingNotificationAction);
-    $("#ringNotificationSetup").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const key = $("#ringNotificationKeyInput").value.trim();
-      if (!key) return;
-      if (await loadRingNotifications(key)) {
-        state.ringNotificationKey = key;
-        localStorage.setItem(RING_NOTIFICATION_KEY, key);
-        state.ringNotificationError = "";
-        $("#ringNotificationKeyInput").value = "";
-      }
-      render();
-    });
-    $("#ringNotificationReset").addEventListener("click", () => {
-      localStorage.removeItem(RING_NOTIFICATION_KEY);
-      state.ringNotificationKey = "";
-      state.ringNotifications = [];
-      state.ringNotificationError = "";
-      render();
-    });
     $("#alcoholManualClose").addEventListener("click", closeAlcoholManual);
     document.addEventListener("pointerdown", (event) => {
       const dialog = $("#alcoholManualDialog");
@@ -3028,14 +3008,12 @@
     loadLocalOrders();
   }
 
-  async function loadRingNotifications(key = state.ringNotificationKey) {
-    if (state.syncMode !== "supabase" || !state.supabase || !key) return false;
-    const { data, error } = await state.supabase.rpc("ring_notice_list", { p_key: key });
+  async function loadRingNotifications() {
+    if (state.syncMode !== "supabase" || !state.supabase) return false;
+    const { data, error } = await state.supabase.rpc("ring_notice_list_public");
     if (error) {
       console.error("リング預かり申請通知を読み込めません", error);
-      state.ringNotificationError = error.code === "28000"
-        ? "通知コードが正しくありません"
-        : "通知に接続できません。しばらくしてから再試行してください";
+      state.ringNotificationError = "通知に接続できません。しばらくしてから再試行してください";
       renderRingNotifications();
       return false;
     }
@@ -3060,10 +3038,7 @@
     if (!button || !state.supabase) return;
     const id = button.dataset.ringAcknowledge;
     button.disabled = true;
-    const { error } = await state.supabase.rpc("ring_notice_ack", {
-      p_key: state.ringNotificationKey,
-      p_id: id,
-    });
+    const { error } = await state.supabase.rpc("ring_notice_ack_public", { p_id: id });
     if (error) {
       console.error(error);
       button.disabled = false;
@@ -3512,12 +3487,9 @@
       !item.acknowledged_at || (state.filter === "all" && Date.now() - new Date(item.acknowledged_at) < COMPLETED_HISTORY_MS)
     );
     section.hidden = false;
-    $("#ringNotificationSetup").hidden = !!state.ringNotificationKey && !state.ringNotificationError;
-    $("#ringNotificationReset").hidden = !state.ringNotificationKey;
-    $("#ringNotificationStatus").textContent = state.ringNotificationError;
     const pending = items.filter((item) => !item.acknowledged_at).length;
     $("#ringApplicationCount").textContent = pending ? `未確認 ${pending}件`
-      : state.ringNotificationKey && !state.ringNotificationError ? "接続中" : "要接続";
+      : state.ringNotificationError || "申請待ち";
     $("#ringApplications").innerHTML = items.map((item) => `
       <article class="ring-application-card${item.acknowledged_at ? " is-acknowledged" : ""}">
         <div>
