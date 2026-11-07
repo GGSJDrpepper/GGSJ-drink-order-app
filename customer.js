@@ -29,7 +29,7 @@
     { id: "transit", labelKey: "transit", icon: "IC" },
   ];
   const APPLICATION_LINKS = [
-    { label: "①リング預かり申請", href: "https://script.google.com/macros/s/AKfycbyY1hmiR-NE1eoiBQIUX_giDv57xCrh0kdrebZymCxfuj_LcvkFt2F6gIkXvqOLJf6C/exec?page=apply&type=ring", image: "./assets/application-results.svg" },
+    { label: "①リング預かり申請", href: "https://script.google.com/macros/s/AKfycbyY1hmiR-NE1eoiBQIUX_giDv57xCrh0kdrebZymCxfuj_LcvkFt2F6gIkXvqOLJf6C/exec?page=apply&type=ring", image: "./assets/application-results.svg", carryTable: true },
     { label: "②JG Free権利申請", note: "※初回のみ要登録", href: "https://miniapp.line.me/2011431861-jUMUxBv5?store=ggplsj&qr=QR-261001-A58B54C53A70C08C&st=9e94d11a422ee117ae5cf6c8daf6e1038c9fdafc9b40f4bf0e1cadb903d65ec6", image: "./assets/application-jg-free.png" },
     { label: "③ポーカーギルド選手契約", note: "※初回のみ要登録", href: "https://pokerguild-contract.com/ja/", image: "./assets/application-pokerguild.png" },
     { label: "④メニュー表", href: "https://lit.link/ggpldrink", image: "./assets/application-menu.svg" },
@@ -57,7 +57,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
   const state = {
     supabase: null,
     menu: [],
-    tableNo: "",
+    tableNo: requestedTableFromUrl(),
     seatNos: [],
     paymentMethods: [],
     categoryId: "",
@@ -93,6 +93,19 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
     }
     state.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     await loadMenu();
+  }
+
+  function requestedTableFromUrl() {
+    const value = new URLSearchParams(window.location.search).get("table");
+    const normalized = String(value || "").trim().toUpperCase();
+    return TABLES.includes(normalized) ? normalized : "";
+  }
+
+  function applicationHref(link) {
+    if (!link.carryTable || !TABLES.includes(state.tableNo)) return link.href;
+    const url = new URL(link.href);
+    url.searchParams.set("table", state.tableNo);
+    return url.toString();
   }
 
   function bindEvents() {
@@ -566,7 +579,7 @@ iPhone：Safari Android：Chrome 認証が完了すると、GameID上のアイ�
           </div>
           <div class="application-link-list">
             ${APPLICATION_LINKS.map((link) => `
-              <a class="application-link" href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer">
+              <a class="application-link" href="${escapeHtml(applicationHref(link))}" target="_blank" rel="noopener noreferrer">
                 <span class="application-link-icon" aria-hidden="true">${link.image
                   ? `<img src="${escapeHtml(link.image)}" alt="">`
                   : escapeHtml(link.iconText || "")}</span>

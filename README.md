@@ -48,6 +48,8 @@ GitHub Pagesにこのアプリを置くことはできます。ただしGitHub P
 
 リング預かり申請通知を有効にするには、Supabase SQL Editorで `ring-notification-migration.sql` を実行します。通知テーブルは直接公開せず、申請送信用の32文字のランダムなコードを作成し、`private.ring_notification_keys` にSHA-256ハッシュだけを登録します。申請送信用コードはApps Scriptのスクリプトプロパティ `RING_NOTIFICATION_PRODUCER_KEY` に保存します。コードはソースファイルやGitHubに含めないでください。バー側の一覧表示と確認済み操作は公開RPCから行うため、URLを知っている人は誰でも操作できます。既存DBには `ring-notification-public-migration.sql` を適用します。
 
+A〜H卓別のモバイルオーダーURLから送信されたリング預かり申請の卓番号をバー受信に表示する場合は、既存DBへ `ring-notification-table-migration.sql` を適用します。
+
 リング預かり申請のApps Scriptには、保存成功後に `queueRingApplicationNotification_(applicationId, submittedAt)` を呼ぶ処理と、`ring-notifications.gs` と同じ通知・再送処理が必要です。`setupRingApplicationNotificationRetry` を一度実行して5分ごとの再送トリガーを設定し、Webアプリを新しいバージョンに更新してください。通知には申請IDと申請時刻だけを保存し、Game ID番号・名前・申請額は送信しません。バー画面は5秒ごとに通知を確認します。
 
 処理済み申請の通知を自動で消すには、既存DBへ `ring-notification-resolution-migration.sql` を実行し、Apps Scriptの通知コードを最新の `ring-notifications.gs` に更新します。`setupRingApplicationResolutionSync` を一度実行すると1分ごとに「リング預かり」シートを確認します。Game ID番号と申請IDで同じ営業日の処理済み行・重複統合行を照合し、通知IDだけをSupabaseへ送ります。後から同じGame IDで新たに出された未処理の申請は消しません。

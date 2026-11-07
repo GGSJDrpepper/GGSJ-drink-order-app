@@ -2069,6 +2069,20 @@ button:focus-visible {
   background: #fff;
 }
 .ring-application-card strong { font-size: 16px; }
+.ring-application-table {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  margin-left: 8px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #1f78d1;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+}
 .ring-application-card p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
 .ring-application-card .button { width: 100%; }
 .ring-application-card.is-acknowledged { opacity: 0.65; }

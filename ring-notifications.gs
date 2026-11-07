@@ -5,18 +5,27 @@ var RING_NOTIFICATION_KEY = 'sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D';
 var RING_NOTIFICATION_PENDING_PREFIX = 'ring_notification_pending_';
 var RING_NOTIFICATION_RESOLVED_PREFIX = 'ring_notification_resolved_';
 
-function queueRingApplicationNotification_(applicationId, submittedAt) {
+function normalizeRingNotificationTable_(tableNo) {
+  var normalized = String(tableNo || '').trim().toUpperCase();
+  return /^[A-H]$/.test(normalized) ? normalized : '';
+}
+
+function queueRingApplicationNotification_(applicationId, submittedAt, tableNo) {
   var key = RING_NOTIFICATION_PENDING_PREFIX + applicationId;
-  PropertiesService.getScriptProperties().setProperty(key, submittedAt.toISOString());
+  var normalizedTable = normalizeRingNotificationTable_(tableNo);
+  PropertiesService.getScriptProperties().setProperty(key, JSON.stringify({
+    submittedAt: submittedAt.toISOString(),
+    tableNo: normalizedTable
+  }));
   try {
-    sendRingApplicationNotification_(applicationId, submittedAt);
+    sendRingApplicationNotification_(applicationId, submittedAt, normalizedTable);
     PropertiesService.getScriptProperties().deleteProperty(key);
   } catch (error) {
     console.error('リング申請通知の送信を保留しました: ' + applicationId + ' ' + error);
   }
 }
 
-function sendRingApplicationNotification_(applicationId, submittedAt) {
+function sendRingApplicationNotification_(applicationId, submittedAt, tableNo) {
   var producerKey = PropertiesService.getScriptProperties().getProperty('RING_NOTIFICATION_PRODUCER_KEY');
   if (!producerKey) throw new Error('RING_NOTIFICATION_PRODUCER_KEY が未設定です');
   var response = UrlFetchApp.fetch(RING_NOTIFICATION_URL, {
@@ -30,7 +39,8 @@ function sendRingApplicationNotification_(applicationId, submittedAt) {
     payload: JSON.stringify({
       p_key: producerKey,
       p_id: applicationId,
-      p_created_at: submittedAt.toISOString()
+      p_created_at: submittedAt.toISOString(),
+      p_table_no: normalizeRingNotificationTable_(tableNo) || null
     }),
     muteHttpExceptions: true
   });
@@ -47,13 +57,22 @@ function retryRingApplicationNotifications() {
     return key.indexOf(RING_NOTIFICATION_PENDING_PREFIX) === 0;
   }).forEach(function(key) {
     var applicationId = key.slice(RING_NOTIFICATION_PENDING_PREFIX.length);
-    var submittedAt = new Date(pending[key]);
+    var saved = pending[key];
+    var tableNo = '';
+    try {
+      var parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object') {
+        saved = parsed.submittedAt;
+        tableNo = normalizeRingNotificationTable_(parsed.tableNo);
+      }
+    } catch (error) {}
+    var submittedAt = new Date(saved);
     if (isNaN(submittedAt.getTime())) {
       console.error('リング申請通知の日時が不正です: ' + applicationId);
       return;
     }
     try {
-      sendRingApplicationNotification_(applicationId, submittedAt);
+      sendRingApplicationNotification_(applicationId, submittedAt, tableNo);
       props.deleteProperty(key);
     } catch (error) {
       console.error('リング申請通知の再送に失敗しました: ' + applicationId + ' ' + error);
