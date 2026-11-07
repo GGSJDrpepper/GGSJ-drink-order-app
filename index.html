@@ -11,7 +11,7 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026110801">
+    <link rel="stylesheet" href="./styles.css?v=2026110802">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
     <script defer src="./app.js?v=2026110801"></script>
@@ -144,26 +144,27 @@
               </div>
             </div>
 
-            <section id="ringApplicationSection" class="ring-application-section" aria-labelledby="ringApplicationTitle" hidden>
-              <div class="ring-application-heading">
-                <h3 id="ringApplicationTitle">リング預かり申請</h3>
-                <span id="ringApplicationCount" class="ring-application-count"></span>
-                <button id="ringNotificationReset" class="ring-notification-reset" type="button" title="通知コードを変更" aria-label="通知コードを変更" hidden>
-                  <i data-lucide="key-round" aria-hidden="true"></i>
-                </button>
-              </div>
-              <form id="ringNotificationSetup" class="ring-notification-setup" hidden>
-                <label for="ringNotificationKeyInput">バー端末の通知コード</label>
-                <div class="ring-notification-setup-row">
-                  <input id="ringNotificationKeyInput" type="password" autocomplete="off" required>
-                  <button class="button button-primary" type="submit">接続</button>
+            <div class="bar-content">
+              <div id="barOrders" class="orders-list"></div>
+              <section id="ringApplicationSection" class="ring-application-section" aria-labelledby="ringApplicationTitle" hidden>
+                <div class="ring-application-heading">
+                  <h3 id="ringApplicationTitle">リング預かり申請</h3>
+                  <span id="ringApplicationCount" class="ring-application-count"></span>
+                  <button id="ringNotificationReset" class="ring-notification-reset" type="button" title="通知コードを変更" aria-label="通知コードを変更" hidden>
+                    <i data-lucide="key-round" aria-hidden="true"></i>
+                  </button>
                 </div>
-                <p id="ringNotificationStatus" role="status"></p>
-              </form>
-              <div id="ringApplications" class="ring-application-list"></div>
-            </section>
-
-            <div id="barOrders" class="orders-list"></div>
+                <form id="ringNotificationSetup" class="ring-notification-setup" hidden>
+                  <label for="ringNotificationKeyInput">バー端末の通知コード</label>
+                  <div class="ring-notification-setup-row">
+                    <input id="ringNotificationKeyInput" type="password" autocomplete="off" required>
+                    <button class="button button-primary" type="submit">接続</button>
+                  </div>
+                  <p id="ringNotificationStatus" role="status"></p>
+                </form>
+                <div id="ringApplications" class="ring-application-list"></div>
+              </section>
+            </div>
           </div>
         </section>
 

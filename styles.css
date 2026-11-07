@@ -2010,7 +2010,13 @@ button:focus-visible {
   }
 }
 
-@media (min-width: 760px) {
+@media (min-width: 980px) {
+  #barOrders.orders-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1450px) {
   #barOrders.orders-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -2037,11 +2043,14 @@ button:focus-visible {
 }
 
 .ring-application-section {
-  margin: 18px 0;
+  min-width: 0;
+  min-height: 0;
   padding: 16px;
   border: 1px solid #d7a76a;
   border-radius: 8px;
   background: #fff7e9;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .ring-application-section[hidden] { display: none; }
@@ -2059,8 +2068,8 @@ button:focus-visible {
 .ring-application-list { display: grid; gap: 8px; }
 .ring-application-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 14px;
   padding: 14px;
   border: 1px solid #e7c598;
@@ -2069,14 +2078,9 @@ button:focus-visible {
 }
 .ring-application-card strong { font-size: 16px; }
 .ring-application-card p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
-.ring-application-card .button { flex: 0 0 auto; }
+.ring-application-card .button { width: 100%; }
 .ring-application-card.is-acknowledged { opacity: 0.65; }
 .ring-application-done { color: var(--muted); font-weight: 700; }
-
-@media (max-width: 600px) {
-  .ring-application-card { align-items: stretch; flex-direction: column; }
-  .ring-application-card .button { width: 100%; }
-}
 
 .order-column {
   min-width: 0;
@@ -2088,12 +2092,42 @@ button:focus-visible {
 .bar-board {
   width: 100%;
   min-height: calc(100vh - 54px);
+  display: flex;
+  flex-direction: column;
   margin: 0;
   padding: clamp(12px, 2vw, 20px);
   border: 0;
   border-radius: 0;
   box-shadow: none;
   background: var(--warm-panel);
+}
+
+.bar-content {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(250px, 25vw, 340px);
+  gap: 16px;
+}
+
+.bar-content #barOrders { min-width: 0; }
+
+@media (min-width: 760px) and (max-width: 979px) {
+  #barOrders.orders-list { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 759px) {
+  .bar-content {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .ring-application-section {
+    grid-row: 1;
+    max-height: min(34vh, 300px);
+  }
+
+  .bar-content #barOrders { grid-row: 2; }
 }
 
 #view-bar {
