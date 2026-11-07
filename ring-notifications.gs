@@ -1,5 +1,5 @@
 // Add this file to the ring application Apps Script project.
-var RING_NOTIFICATION_URL = 'https://tmnyzkycdiokahujqblt.supabase.co/rest/v1/ring_application_notifications?on_conflict=id';
+var RING_NOTIFICATION_URL = 'https://tmnyzkycdiokahujqblt.supabase.co/rest/v1/rpc/ring_notice_create';
 var RING_NOTIFICATION_KEY = 'sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D';
 var RING_NOTIFICATION_PENDING_PREFIX = 'ring_notification_pending_';
 
@@ -15,15 +15,21 @@ function queueRingApplicationNotification_(applicationId, submittedAt) {
 }
 
 function sendRingApplicationNotification_(applicationId, submittedAt) {
+  var producerKey = PropertiesService.getScriptProperties().getProperty('RING_NOTIFICATION_PRODUCER_KEY');
+  if (!producerKey) throw new Error('RING_NOTIFICATION_PRODUCER_KEY が未設定です');
   var response = UrlFetchApp.fetch(RING_NOTIFICATION_URL, {
     method: 'post',
     contentType: 'application/json',
     headers: {
       apikey: RING_NOTIFICATION_KEY,
       Authorization: 'Bearer ' + RING_NOTIFICATION_KEY,
-      Prefer: 'resolution=ignore-duplicates,return=minimal'
+      Prefer: 'return=minimal'
     },
-    payload: JSON.stringify({ id: applicationId, created_at: submittedAt.toISOString() }),
+    payload: JSON.stringify({
+      p_key: producerKey,
+      p_id: applicationId,
+      p_created_at: submittedAt.toISOString()
+    }),
     muteHttpExceptions: true
   });
   var status = response.getResponseCode();

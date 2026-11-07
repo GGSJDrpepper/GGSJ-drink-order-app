@@ -11,6 +11,7 @@
   const OPTION_TEMPLATES_KEY = "drink-relay-option-templates-v1";
   const RECEPTION_MENU_MODE_KEY = "drink-relay-reception-menu-mode-v1";
   const CAST_GENDERS_KEY = "drink-relay-cast-genders-v1";
+  const RING_NOTIFICATION_KEY = "drink-relay-ring-notification-key-v1";
   const LEGACY_DRINKS_KEY = "drink-relay-drinks-v1";
   const CHANNEL_NAME = "drink-relay-local";
   const SETTINGS_ROW_ID = "main";
@@ -242,10 +243,11 @@
     knownIds: new Set(),
     ringNotifications: [],
     knownRingNotificationIds: new Set(),
+    ringNotificationKey: localStorage.getItem(RING_NOTIFICATION_KEY) || "",
+    ringNotificationError: "",
     overdueUnmadeNotifiedIds: new Set(),
     supabase: null,
     realtimeChannel: null,
-    ringRealtimeChannel: null,
     broadcast: null,
     syncMode: "local",
     sharedSettingsLoaded: false,
@@ -320,6 +322,9 @@
     state.booted = true;
     render();
     setInterval(render, 15000);
+    setInterval(() => {
+      if (state.view === "bar" && state.ringNotificationKey) loadRingNotifications();
+    }, 5000);
     if (window.lucide) window.lucide.createIcons();
   }
 
@@ -861,6 +866,25 @@
 
     $("#barOrders").addEventListener("click", handleOrderAction);
     $("#ringApplications").addEventListener("click", handleRingNotificationAction);
+    $("#ringNotificationSetup").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const key = $("#ringNotificationKeyInput").value.trim();
+      if (!key) return;
+      if (await loadRingNotifications(key)) {
+        state.ringNotificationKey = key;
+        localStorage.setItem(RING_NOTIFICATION_KEY, key);
+        state.ringNotificationError = "";
+        $("#ringNotificationKeyInput").value = "";
+      }
+      render();
+    });
+    $("#ringNotificationReset").addEventListener("click", () => {
+      localStorage.removeItem(RING_NOTIFICATION_KEY);
+      state.ringNotificationKey = "";
+      state.ringNotifications = [];
+      state.ringNotificationError = "";
+      render();
+    });
     $("#alcoholManualClose").addEventListener("click", closeAlcoholManual);
     document.addEventListener("pointerdown", (event) => {
       const dialog = $("#alcoholManualDialog");
@@ -3004,40 +3028,25 @@
     loadLocalOrders();
   }
 
-  async function loadRingNotifications() {
-    if (state.syncMode !== "supabase" || !state.supabase) return;
-    const { data, error } = await state.supabase
-      .from("ring_application_notifications")
-      .select("id,created_at,acknowledged_at")
-      .or(`acknowledged_at.is.null,acknowledged_at.gte.${new Date(Date.now() - COMPLETED_HISTORY_MS).toISOString()}`)
-      .order("created_at", { ascending: false });
+  async function loadRingNotifications(key = state.ringNotificationKey) {
+    if (state.syncMode !== "supabase" || !state.supabase || !key) return false;
+    const { data, error } = await state.supabase.rpc("ring_notice_list", { p_key: key });
     if (error) {
       console.error("リング預かり申請通知を読み込めません", error);
-      return;
+      state.ringNotificationError = error.code === "28000"
+        ? "通知コードが正しくありません"
+        : "通知に接続できません。しばらくしてから再試行してください";
+      renderRingNotifications();
+      return false;
     }
+    const hasNew = state.booted && (data || []).some((item) => !state.knownRingNotificationIds.has(item.id));
     state.ringNotifications = data || [];
     state.ringNotifications.forEach((item) => state.knownRingNotificationIds.add(item.id));
-    if (!state.ringRealtimeChannel) {
-      state.ringRealtimeChannel = state.supabase
-        .channel("ring_application_changes")
-        .on("postgres_changes", { event: "*", schema: "public", table: "ring_application_notifications" }, handleRingNotificationPayload)
-        .subscribe();
-    }
-  }
-
-  function handleRingNotificationPayload(payload) {
-    if (payload.eventType === "DELETE") {
-      state.ringNotifications = state.ringNotifications.filter((item) => item.id !== payload.old.id);
-      render();
-      return;
-    }
-    const item = payload.new;
-    const isNew = !state.knownRingNotificationIds.has(item.id);
-    state.knownRingNotificationIds.add(item.id);
-    state.ringNotifications = [item, ...state.ringNotifications.filter((entry) => entry.id !== item.id)]
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    if (state.booted && isNew) notifyNewRingApplication();
-    render();
+    state.ringNotificationError = "";
+    if (hasNew) notifyNewRingApplication();
+    renderRingNotifications();
+    updateBarOrderBadge();
+    return true;
   }
 
   function notifyNewRingApplication() {
@@ -3051,11 +3060,10 @@
     if (!button || !state.supabase) return;
     const id = button.dataset.ringAcknowledge;
     button.disabled = true;
-    const { error } = await state.supabase
-      .from("ring_application_notifications")
-      .update({ acknowledged_at: new Date().toISOString() })
-      .eq("id", id)
-      .is("acknowledged_at", null);
+    const { error } = await state.supabase.rpc("ring_notice_ack", {
+      p_key: state.ringNotificationKey,
+      p_id: id,
+    });
     if (error) {
       console.error(error);
       button.disabled = false;
@@ -3503,10 +3511,13 @@
     const items = state.ringNotifications.filter((item) =>
       !item.acknowledged_at || (state.filter === "all" && Date.now() - new Date(item.acknowledged_at) < COMPLETED_HISTORY_MS)
     );
-    section.hidden = !items.length;
-    if (!items.length) return;
+    section.hidden = false;
+    $("#ringNotificationSetup").hidden = !!state.ringNotificationKey && !state.ringNotificationError;
+    $("#ringNotificationReset").hidden = !state.ringNotificationKey;
+    $("#ringNotificationStatus").textContent = state.ringNotificationError;
     const pending = items.filter((item) => !item.acknowledged_at).length;
-    $("#ringApplicationCount").textContent = pending ? `未確認 ${pending}件` : "確認済み";
+    $("#ringApplicationCount").textContent = pending ? `未確認 ${pending}件`
+      : state.ringNotificationKey && !state.ringNotificationError ? "接続中" : "要接続";
     $("#ringApplications").innerHTML = items.map((item) => `
       <article class="ring-application-card${item.acknowledged_at ? " is-acknowledged" : ""}">
         <div>
@@ -5176,12 +5187,8 @@
     if (state.realtimeChannel && state.supabase) {
       state.supabase.removeChannel(state.realtimeChannel);
     }
-    if (state.ringRealtimeChannel && state.supabase) {
-      state.supabase.removeChannel(state.ringRealtimeChannel);
-    }
     state.supabase = null;
     state.realtimeChannel = null;
-    state.ringRealtimeChannel = null;
   }
 
   function supabaseErrorMessage(prefix, error) {

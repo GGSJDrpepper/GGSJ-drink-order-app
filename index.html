@@ -148,7 +148,18 @@
               <div class="ring-application-heading">
                 <h3 id="ringApplicationTitle">リング預かり申請</h3>
                 <span id="ringApplicationCount" class="ring-application-count"></span>
+                <button id="ringNotificationReset" class="ring-notification-reset" type="button" title="通知コードを変更" aria-label="通知コードを変更" hidden>
+                  <i data-lucide="key-round" aria-hidden="true"></i>
+                </button>
               </div>
+              <form id="ringNotificationSetup" class="ring-notification-setup" hidden>
+                <label for="ringNotificationKeyInput">バー端末の通知コード</label>
+                <div class="ring-notification-setup-row">
+                  <input id="ringNotificationKeyInput" type="password" autocomplete="off" required>
+                  <button class="button button-primary" type="submit">接続</button>
+                </div>
+                <p id="ringNotificationStatus" role="status"></p>
+              </form>
               <div id="ringApplications" class="ring-application-list"></div>
             </section>
 

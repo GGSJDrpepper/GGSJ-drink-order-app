@@ -24,16 +24,8 @@ create table if not exists public.drink_app_settings (
   menu jsonb not null default '[]'::jsonb
 );
 
-create table if not exists public.ring_application_notifications (
-  id uuid primary key,
-  created_at timestamptz not null default now(),
-  acknowledged_at timestamptz
-);
-
 alter table public.drink_orders enable row level security;
 alter table public.drink_app_settings enable row level security;
-alter table public.ring_application_notifications enable row level security;
-grant select, insert, update on public.ring_application_notifications to anon, authenticated;
 
 drop policy if exists "drink_orders_select" on public.drink_orders;
 drop policy if exists "drink_orders_insert" on public.drink_orders;
@@ -41,9 +33,6 @@ drop policy if exists "drink_orders_update" on public.drink_orders;
 drop policy if exists "drink_app_settings_select" on public.drink_app_settings;
 drop policy if exists "drink_app_settings_insert" on public.drink_app_settings;
 drop policy if exists "drink_app_settings_update" on public.drink_app_settings;
-drop policy if exists "ring_application_notifications_select" on public.ring_application_notifications;
-drop policy if exists "ring_application_notifications_insert" on public.ring_application_notifications;
-drop policy if exists "ring_application_notifications_update" on public.ring_application_notifications;
 
 create policy "drink_orders_select"
   on public.drink_orders
@@ -77,22 +66,6 @@ create policy "drink_app_settings_update"
   using (true)
   with check (true);
 
-create policy "ring_application_notifications_select"
-  on public.ring_application_notifications
-  for select
-  using (true);
-
-create policy "ring_application_notifications_insert"
-  on public.ring_application_notifications
-  for insert
-  with check (true);
-
-create policy "ring_application_notifications_update"
-  on public.ring_application_notifications
-  for update
-  using (true)
-  with check (true);
-
 alter table public.drink_orders
   drop constraint if exists drink_orders_payment_method_check;
 
@@ -113,22 +86,6 @@ begin
     alter publication supabase_realtime add table public.drink_orders;
   end if;
 end $$;
-
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_publication_tables
-    where pubname = 'supabase_realtime'
-      and schemaname = 'public'
-      and tablename = 'ring_application_notifications'
-  ) then
-    alter publication supabase_realtime add table public.ring_application_notifications;
-  end if;
-end $$;
-
-create index if not exists ring_application_notifications_created_at_idx
-  on public.ring_application_notifications (created_at desc);
 
 do $$
 begin
@@ -162,14 +119,5 @@ select cron.schedule(
   $command$
     delete from public.drink_orders
     where created_at < now() - interval '24 hours';
-  $command$
-);
-
-select cron.schedule(
-  'ring-application-notifications-retention-7d',
-  '7 * * * *',
-  $command$
-    delete from public.ring_application_notifications
-    where created_at < now() - interval '7 days';
   $command$
 );
