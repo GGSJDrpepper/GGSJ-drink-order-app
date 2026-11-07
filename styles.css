@@ -2054,10 +2054,10 @@ button:focus-visible {
 }
 
 .ring-application-section[hidden] { display: none; }
-.ring-application-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.ring-application-heading h3 { margin: 0; font-size: 18px; }
-.ring-application-count { color: #92400e; font-weight: 800; }
-.ring-notification-reset { margin-left: auto; border: 0; background: transparent; color: #92400e; cursor: pointer; }
+.ring-application-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; margin-bottom: 12px; }
+.ring-application-heading h3 { grid-column: 1; margin: 0; font-size: 18px; white-space: nowrap; }
+.ring-application-count { grid-column: 1; grid-row: 2; color: #92400e; font-weight: 800; white-space: nowrap; }
+.ring-notification-reset { grid-column: 2; grid-row: 1 / 3; align-self: start; border: 0; background: transparent; color: #92400e; cursor: pointer; }
 .ring-notification-reset svg { width: 18px; height: 18px; }
 .ring-notification-setup { display: grid; gap: 8px; margin-bottom: 12px; }
 .ring-notification-setup[hidden], .ring-notification-reset[hidden] { display: none; }
@@ -2106,7 +2106,7 @@ button:focus-visible {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(250px, 25vw, 340px);
+  grid-template-columns: minmax(0, 1fr) clamp(310px, 32vw, 390px);
   gap: 16px;
 }
 
