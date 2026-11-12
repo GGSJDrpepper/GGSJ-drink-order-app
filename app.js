@@ -4,6 +4,7 @@
   const ORDER_KEY = "drink-relay-orders-v1";
   const CONFIG_KEY = "drink-relay-supabase-v1";
   const SOUND_KEY = "drink-relay-sound-enabled-v1";
+  const RING_SOUND_KEY = "drink-relay-ring-sound-enabled-v1";
   const SOUND_CHOICE_KEY = "drink-relay-sound-choice-v1";
   const SOUND_CHOICES_KEY = "drink-relay-sound-choices-v2";
   const SOUND_PREVIEWED_KEY = "drink-relay-sound-previewed-v1";
@@ -67,6 +68,7 @@
     { id: "alcohol", label: "アルコール" },
     { id: "food", label: "フード" },
     { id: "cast", label: "キャスドリ" },
+    { id: "ring", label: "リング預かり申請" },
     { id: "unmade10", label: "未作成10分", defaultChoice: "nurse-call" },
   ];
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -250,6 +252,7 @@
     syncMode: "local",
     sharedSettingsLoaded: false,
     soundEnabled: readSoundSetting(),
+    ringSoundEnabled: readRingSoundSetting(),
     soundChoices: readSoundChoices(),
     soundPreviewed: false,
     soundCategory: SOUND_CATEGORIES[0].id,
@@ -344,7 +347,7 @@
   function switchView(viewName) {
     state.view = viewName;
     document.body.classList.toggle("bar-view-active", viewName === "bar");
-    if (viewName === "bar" && state.soundEnabled) {
+    if (viewName === "bar" && (state.soundEnabled || state.ringSoundEnabled)) {
       unlockAudio();
     }
     $$("#headerReceptionButton, #headerBarButton").forEach((button) => {
@@ -515,13 +518,25 @@
         toast("通知音を無効にしました");
       }
     });
+    $("#ringSoundToggle").addEventListener("click", async () => {
+      state.ringSoundEnabled = !state.ringSoundEnabled;
+      localStorage.setItem(RING_SOUND_KEY, String(state.ringSoundEnabled));
+      updateSoundButton();
+      if (state.ringSoundEnabled) {
+        await unlockAudio();
+        playChime(state.soundChoices.ring);
+        toast("リング預かり申請の通知音を有効にしました");
+      } else {
+        toast("リング預かり申請の通知音を無効にしました");
+      }
+    });
     $(".sound-category-list").addEventListener("change", async (event) => {
       const choice = event.target.closest("[data-sound-choice]");
       if (!choice) return;
       const categoryId = choice.dataset.soundChoice;
       state.soundChoices[categoryId] = normalizeSoundChoice(choice.value);
       saveSoundChoices();
-      if (state.soundEnabled) {
+      if (categoryId === "ring" ? state.ringSoundEnabled : state.soundEnabled) {
         unlockAudio().then(() => warmNotificationBuffer(state.soundChoices[categoryId]));
       }
       if (state.syncMode === "supabase" && state.supabase) {
@@ -2938,13 +2953,16 @@
   function applySharedSoundSettings(row, options = {}) {
     if (!row?.menu || Array.isArray(row.menu) || typeof row.menu !== "object") return;
     const nextChoices = Object.fromEntries(
-      SOUND_CATEGORIES.map(({ id }) => [id, normalizeSoundChoice(row.menu[id] || state.soundChoices[id])])
+      SOUND_CATEGORIES.map(({ id }) => [
+        id,
+        normalizeSoundChoice(row.menu[id] || (id === "ring" ? row.menu.soft : null) || state.soundChoices[id]),
+      ])
     );
     const changed = JSON.stringify(nextChoices) !== JSON.stringify(state.soundChoices);
     state.soundChoices = nextChoices;
     saveSoundChoices();
     updateSoundButton();
-    if (state.soundEnabled && state.soundPreviewed) {
+    if ((state.soundEnabled || state.ringSoundEnabled) && state.soundPreviewed) {
       configuredSoundChoiceIds().forEach((choiceId) => primeNotificationAudio(choiceId));
     }
     if (options.fromRealtime && changed) toast("共有通知音を更新しました");
@@ -3028,8 +3046,8 @@
   }
 
   function notifyNewRingApplication() {
-    if (state.view === "bar" && state.soundEnabled) {
-      playChime(state.soundChoices.soft);
+    if (state.view === "bar" && state.ringSoundEnabled) {
+      playChime(state.soundChoices.ring);
     }
   }
 
@@ -3460,9 +3478,7 @@
       return;
     }
 
-    container.innerHTML = barOrderColumns(visibleOrders)
-      .map((orders) => `<div class="order-column">${orders.map((order) => orderCard(order)).join("")}</div>`)
-      .join("");
+    container.innerHTML = visibleOrders.map((order) => orderCard(order)).join("");
   }
 
   function updateBarOrderBadge(count = state.orders.filter((order) => !["served", "canceled"].includes(order.status)).length) {
@@ -3502,15 +3518,6 @@
           : `<button class="button button-primary" type="button" data-ring-acknowledge="${escapeHtml(item.id)}">確認済みにする</button>`}
       </article>
     `).join("");
-  }
-
-  function barOrderColumns(orders) {
-    const columnCount = 3;
-    const perColumn = Math.max(3, Math.ceil(orders.length / columnCount));
-    return Array.from({ length: columnCount }, (_, index) => {
-      const start = index * perColumn;
-      return orders.slice(start, start + perColumn);
-    });
   }
 
   function menuItemOrderCounts() {
@@ -5100,13 +5107,18 @@
     return saved === null ? true : saved === "true";
   }
 
+  function readRingSoundSetting() {
+    const saved = localStorage.getItem(RING_SOUND_KEY);
+    return saved === null ? readSoundSetting() : saved === "true";
+  }
+
   function readSoundChoices() {
     const legacyChoice = normalizeSoundChoice(localStorage.getItem(SOUND_CHOICE_KEY) || SOUND_OPTIONS[0].id);
     try {
       const saved = JSON.parse(localStorage.getItem(SOUND_CHOICES_KEY) || "null");
       return Object.fromEntries(SOUND_CATEGORIES.map(({ id, defaultChoice }) => [
         id,
-        normalizeSoundChoice(saved?.[id] || defaultChoice || legacyChoice),
+        normalizeSoundChoice(saved?.[id] || (id === "ring" ? saved?.soft : null) || defaultChoice || legacyChoice),
       ]));
     } catch {
       return Object.fromEntries(SOUND_CATEGORIES.map(({ id, defaultChoice }) => [
@@ -5142,6 +5154,8 @@
     if (!button || !status) return;
     button.setAttribute("aria-pressed", String(state.soundEnabled));
     status.textContent = state.soundEnabled ? "オン" : "オフ";
+    $("#ringSoundToggle").setAttribute("aria-pressed", String(state.ringSoundEnabled));
+    $("#ringSoundStatus").textContent = state.ringSoundEnabled ? "オン" : "オフ";
     $$("[data-sound-choice]").forEach((choice) => {
       choice.value = state.soundChoices[choice.dataset.soundChoice];
     });
@@ -5149,7 +5163,7 @@
 
   function setupAudioUnlock() {
     const unlock = () => {
-      if (state.view === "bar" && state.soundEnabled) unlockAudio();
+      if (state.view === "bar" && (state.soundEnabled || state.ringSoundEnabled)) unlockAudio();
     };
     document.addEventListener("pointerdown", unlock, { once: true });
     document.addEventListener("keydown", unlock, { once: true });

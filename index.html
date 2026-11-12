@@ -11,10 +11,10 @@
     <link rel="preload" as="audio" href="./sounds/bell-accent16-high.mp3">
     <link rel="preload" as="audio" href="./sounds/ramen-stall-entrance.mp3">
     <link rel="preload" as="audio" href="./sounds/nurse-call.mp3">
-    <link rel="stylesheet" href="./styles.css?v=2026110804">
+    <link rel="stylesheet" href="./styles.css?v=2026111201">
     <script defer src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="./app.js?v=2026110802"></script>
+    <script defer src="./app.js?v=2026111201"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -331,10 +331,20 @@
           <section class="config-section" data-config-section-panel="bell" hidden>
             <div class="setting-row sound-setting-row">
               <div>
-                <span class="setting-label">バー受信通知音</span>
+                <span class="setting-label">ドリンク注文の通知音</span>
                 <span id="soundStatus" class="setting-status">オン</span>
               </div>
               <button id="soundToggle" class="button button-quiet" type="button" aria-pressed="true">
+                <i data-lucide="bell-ring" aria-hidden="true"></i>
+                <span>通知音</span>
+              </button>
+            </div>
+            <div class="setting-row sound-setting-row">
+              <div>
+                <span class="setting-label">リング預かり申請の通知音</span>
+                <span id="ringSoundStatus" class="setting-status">オン</span>
+              </div>
+              <button id="ringSoundToggle" class="button button-quiet" type="button" aria-pressed="true">
                 <i data-lucide="bell-ring" aria-hidden="true"></i>
                 <span>通知音</span>
               </button>
@@ -408,6 +418,24 @@
                   </select>
                 </label>
                 <button class="button button-quiet" type="button" data-sound-preview="cast">
+                  <i data-lucide="volume-2" aria-hidden="true"></i>
+                  <span>試聴</span>
+                </button>
+              </div>
+              <div class="sound-category-setting">
+                <strong>リング預かり申請</strong>
+                <label class="sound-choice-field">
+                  <span>効果音</span>
+                  <select data-sound-choice="ring">
+                    <option value="news-title">ニュースタイトル表示</option>
+                    <option value="decision-button">決定ボタン</option>
+                    <option value="level-up">レベルアップ</option>
+                    <option value="bell">ベル（高音）</option>
+                    <option value="ramen-stall">ラーメン屋台登場</option>
+                    <option value="nurse-call">ナースコール</option>
+                  </select>
+                </label>
+                <button class="button button-quiet" type="button" data-sound-preview="ring">
                   <i data-lucide="volume-2" aria-hidden="true"></i>
                   <span>試聴</span>
                 </button>
