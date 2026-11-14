@@ -3510,7 +3510,7 @@
     $("#ringApplications").innerHTML = items.map((item) => `
       <article class="ring-application-card${item.acknowledged_at ? " is-acknowledged" : ""}">
         <div>
-          <strong>リング預かり${item.table_no ? ` ${escapeHtml(item.table_no)}卓` : ""}</strong>
+          <strong>リング預かり</strong>${item.table_no ? `<span class="ring-application-table">${escapeHtml(item.table_no)}卓</span>` : ""}
           <p>${escapeHtml(elapsedLabel(item.created_at))}</p>
         </div>
         ${item.acknowledged_at
