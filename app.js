@@ -58,6 +58,7 @@
   const SOUND_OPTIONS = [
     { id: "news-title", label: "ニュースタイトル表示", url: "./sounds/news-title.mp3" },
     { id: "decision-button", label: "決定ボタン", url: "./sounds/decision-button.mp3" },
+    { id: "decision-button-40", label: "決定ボタンを押す40", url: "./sounds/decision-button-40.mp3" },
     { id: "level-up", label: "レベルアップ", url: "./sounds/level-up.mp3" },
     { id: "bell", label: "ベル（高音）", url: "./sounds/bell-accent16-high.mp3", gain: 1.8 },
     { id: "ramen-stall", label: "ラーメン屋台登場", url: "./sounds/ramen-stall-entrance.mp3" },
@@ -68,7 +69,7 @@
     { id: "alcohol", label: "アルコール" },
     { id: "food", label: "フード" },
     { id: "cast", label: "キャスドリ" },
-    { id: "ring", label: "リング預かり申請" },
+    { id: "ring", label: "リング預かり申請", defaultChoice: "decision-button-40" },
     { id: "unmade10", label: "未作成10分", defaultChoice: "nurse-call" },
   ];
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -2953,9 +2954,9 @@
   function applySharedSoundSettings(row, options = {}) {
     if (!row?.menu || Array.isArray(row.menu) || typeof row.menu !== "object") return;
     const nextChoices = Object.fromEntries(
-      SOUND_CATEGORIES.map(({ id }) => [
+      SOUND_CATEGORIES.map(({ id, defaultChoice }) => [
         id,
-        normalizeSoundChoice(row.menu[id] || (id === "ring" ? row.menu.soft : null) || state.soundChoices[id]),
+        normalizeSoundChoice(row.menu[id] || defaultChoice || state.soundChoices[id]),
       ])
     );
     const changed = JSON.stringify(nextChoices) !== JSON.stringify(state.soundChoices);
@@ -5118,7 +5119,7 @@
       const saved = JSON.parse(localStorage.getItem(SOUND_CHOICES_KEY) || "null");
       return Object.fromEntries(SOUND_CATEGORIES.map(({ id, defaultChoice }) => [
         id,
-        normalizeSoundChoice(saved?.[id] || (id === "ring" ? saved?.soft : null) || defaultChoice || legacyChoice),
+        normalizeSoundChoice(saved?.[id] || defaultChoice || legacyChoice),
       ]));
     } catch {
       return Object.fromEntries(SOUND_CATEGORIES.map(({ id, defaultChoice }) => [
