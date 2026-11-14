@@ -2076,7 +2076,7 @@ button:focus-visible {
   border-radius: 6px;
   background: #fff;
 }
-.ring-application-card strong { font-size: 16px; }
+.ring-application-card strong { font-size: 16px; white-space: nowrap; }
 .ring-application-table {
   display: inline-flex;
   align-items: center;

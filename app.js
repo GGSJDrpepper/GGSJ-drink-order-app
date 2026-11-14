@@ -3510,8 +3510,8 @@
     $("#ringApplications").innerHTML = items.map((item) => `
       <article class="ring-application-card${item.acknowledged_at ? " is-acknowledged" : ""}">
         <div>
-          <strong>${item.table_no ? `${escapeHtml(item.table_no)}卓から` : ""}リング預かり申請が届きました</strong>
-          <p>申請 ${escapeHtml(formatTime(item.created_at))} · 申請ID ${escapeHtml(item.id.slice(0, 8))}</p>
+          <strong>リング預かり${item.table_no ? ` ${escapeHtml(item.table_no)}卓` : ""}</strong>
+          <p>${escapeHtml(elapsedLabel(item.created_at))}</p>
         </div>
         ${item.acknowledged_at
           ? '<span class="ring-application-done">確認済み</span>'
