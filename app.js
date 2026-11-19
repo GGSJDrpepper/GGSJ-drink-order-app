@@ -325,9 +325,8 @@
     state.booted = true;
     render();
     setInterval(render, 15000);
-    setInterval(() => {
-      if (state.view === "bar") loadRingNotifications();
-    }, 5000);
+    // 受付画面を開いたままでもリング申請をすぐ知らせる。
+    setInterval(loadRingNotifications, 2000);
     if (window.lucide) window.lucide.createIcons();
   }
 
