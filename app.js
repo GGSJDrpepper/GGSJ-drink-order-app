@@ -3052,12 +3052,10 @@
     if (state.view === "bar" && state.ringSoundEnabled) {
       playChime(state.soundChoices.ring);
     }
-    if (state.view === "bar") {
-      items.slice(0, 3).forEach((item) => {
-        const tableLabel = item.table_no ? `${item.table_no}卓 ` : "";
-        toast(`${tableLabel}本預かり`, { ringNotice: true });
-      });
-    }
+    items.slice(0, 3).forEach((item) => {
+      const tableLabel = item.table_no ? `${item.table_no}卓 ` : "";
+      toast(`${tableLabel}本預かり`, { ringNotice: true });
+    });
   }
 
   async function handleRingNotificationAction(event) {
