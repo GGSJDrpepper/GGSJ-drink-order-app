@@ -3036,19 +3036,27 @@
       renderRingNotifications();
       return false;
     }
-    const hasNew = state.booted && (data || []).some((item) => !state.knownRingNotificationIds.has(item.id));
+    const newItems = state.booted
+      ? (data || []).filter((item) => !state.knownRingNotificationIds.has(item.id))
+      : [];
     state.ringNotifications = data || [];
     state.ringNotifications.forEach((item) => state.knownRingNotificationIds.add(item.id));
     state.ringNotificationError = "";
-    if (hasNew) notifyNewRingApplication();
+    if (newItems.length) notifyNewRingApplication(newItems);
     renderRingNotifications();
     updateBarOrderBadge();
     return true;
   }
 
-  function notifyNewRingApplication() {
+  function notifyNewRingApplication(items = []) {
     if (state.view === "bar" && state.ringSoundEnabled) {
       playChime(state.soundChoices.ring);
+    }
+    if (state.view === "bar") {
+      items.slice(0, 3).forEach((item) => {
+        const tableLabel = item.table_no ? `${item.table_no}卓 ` : "";
+        toast(`${tableLabel}本預かり`, { ringNotice: true });
+      });
     }
   }
 
@@ -5393,7 +5401,7 @@
   function toast(message, options = {}) {
     const region = $("#toastRegion");
     const node = document.createElement("div");
-    node.className = `toast${options.long ? " long" : ""}`;
+    node.className = `toast${options.long ? " long" : ""}${options.ringNotice ? " ring-notice" : ""}`;
     node.textContent = message;
     region.appendChild(node);
     setTimeout(() => {

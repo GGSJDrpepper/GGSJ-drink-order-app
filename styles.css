@@ -2594,6 +2594,24 @@ button:focus-visible {
   line-height: 1.45;
 }
 
+.toast.ring-notice {
+  border-radius: 999px;
+  padding: 13px 20px;
+  background: #173f73;
+  border: 2px solid #71b7ff;
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  box-shadow: 0 12px 30px rgb(16 46 82 / 32%);
+  animation: ring-notice-pop .24s ease-out;
+}
+
+@keyframes ring-notice-pop {
+  from { opacity: 0; transform: translateY(12px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 dialog {
   width: min(520px, calc(100vw - 28px));
   max-width: calc(100vw - 28px);
