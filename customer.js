@@ -34,7 +34,7 @@
     { label: "③ポーカーギルド選手契約", note: "※初回のみ要登録", href: "https://pokerguild-contract.com/ja/", image: "./assets/application-pokerguild.png" },
     { label: "④メニュー表", href: "https://lit.link/ggpldrink", image: "./assets/application-menu.svg" },
     { label: "⑤GGPL新宿各種SNSのご案内", href: "https://lit.link/ggplsns", image: "./assets/application-sns.jpg" },
-    { label: "⑥本日のトーナメント情報", href: "https://beta.pokerguild.jp/room?no=4", image: "./assets/application-tournament.jpg" },
+    { label: "⑥本日のトーナメント情報", href: "https://renewal.pokerguild.jp/ja/clubs/goodgame-poker-live-shinjuku-ehd6s3", image: "./assets/application-tournament.jpg" },
   ];
   const GAME_ID_NOTICE = `【個人認証（eKYC）導入とトランスファー手数料の変更】
 

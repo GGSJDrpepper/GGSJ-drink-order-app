@@ -11,7 +11,7 @@
       menuTitle: "商品を選ぶ",
       menuGuide: "商品を選んでカートに追加してください",
       applicationsMenuTitle: "各種申請・ご案内",
-      applicationsMenuGuide: "ご希望の項目を選択すると、各手続きページが開きます。",
+      applicationsMenuGuide: "ご希望の手続きを選択ください",
       castMenuGuide: "キャストを選択してください",
       castDrink: "キャスドリ",
       selectCast: "キャストを選ぶ",
