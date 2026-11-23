@@ -55,6 +55,7 @@
   const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_KXmZQiIc_9K74hy4EI-mng_jUYgAr_D";
   const MAX_LOCAL_HISTORY = 200;
   const COMPLETED_HISTORY_MS = 60 * 60 * 1000;
+  const RING_NOTIFICATION_DISPLAY_MS = 5 * 60 * 1000;
   const SOUND_OPTIONS = [
     { id: "news-title", label: "ニュースタイトル表示", url: "./sounds/news-title.mp3" },
     { id: "decision-button", label: "決定ボタン", url: "./sounds/decision-button.mp3" },
@@ -3035,8 +3036,9 @@
       renderRingNotifications();
       return false;
     }
+    const visibleItems = (data || []).filter(isRingNotificationVisible);
     const newItems = state.booted
-      ? (data || []).filter((item) => !state.knownRingNotificationIds.has(item.id))
+      ? visibleItems.filter((item) => !state.knownRingNotificationIds.has(item.id))
       : [];
     state.ringNotifications = data || [];
     state.ringNotifications.forEach((item) => state.knownRingNotificationIds.add(item.id));
@@ -3055,6 +3057,11 @@
       const tableLabel = item.table_no ? `${item.table_no}卓 ` : "";
       toast(`${tableLabel}本預かり`, { ringNotice: true });
     });
+  }
+
+  function isRingNotificationVisible(item) {
+    const createdAt = new Date(item.created_at).getTime();
+    return Number.isFinite(createdAt) && Date.now() - createdAt < RING_NOTIFICATION_DISPLAY_MS;
   }
 
   async function handleRingNotificationAction(event) {
@@ -3491,7 +3498,7 @@
     const badge = $("#barOrderBadge");
     if (!badge) return;
     const openOrders = state.orders.filter((order) => !["served", "canceled"].includes(order.status));
-    const pendingApplications = state.ringNotifications.filter((item) => !item.acknowledged_at);
+    const pendingApplications = state.ringNotifications.filter((item) => !item.acknowledged_at && isRingNotificationVisible(item));
     const totalCount = count + pendingApplications.length;
     const hasCriticalOrder = openOrders.some((order) => minutesSince(order.created_at) >= 10)
       || pendingApplications.some((item) => minutesSince(item.created_at) >= 10);
@@ -3506,7 +3513,8 @@
   function renderRingNotifications() {
     const section = $("#ringApplicationSection");
     const items = state.ringNotifications.filter((item) =>
-      !item.acknowledged_at || (state.filter === "all" && Date.now() - new Date(item.acknowledged_at) < COMPLETED_HISTORY_MS)
+      isRingNotificationVisible(item)
+      && (!item.acknowledged_at || (state.filter === "all" && Date.now() - new Date(item.acknowledged_at) < COMPLETED_HISTORY_MS))
     );
     section.hidden = false;
     const pending = items.filter((item) => !item.acknowledged_at).length;
