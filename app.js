@@ -71,7 +71,7 @@
     { id: "food", label: "フード" },
     { id: "cast", label: "キャスドリ" },
     { id: "ring", label: "リング預かり申請", defaultChoice: "decision-button-40" },
-    { id: "unmade10", label: "未作成10分", defaultChoice: "nurse-call" },
+    { id: "unmade10", label: "未作成（ドリンク10分・フード15分）", defaultChoice: "nurse-call" },
   ];
   const TABLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
   const CAST_BAR_TABLE = "バーカウンター";
@@ -3288,7 +3288,7 @@
     if (!state.soundEnabled) return;
     const overdueOrders = state.orders.filter((order) =>
       ["ordered", "making"].includes(order.status)
-      && minutesSince(order.created_at) >= 10
+      && minutesSince(order.created_at) >= (soundCategoryForOrder(order) === "food" ? 15 : 10)
       && !state.overdueUnmadeNotifiedIds.has(order.id)
     );
     if (!overdueOrders.length) return;
