@@ -389,6 +389,11 @@ h2 { margin-bottom: 4px; font-size: 22px; letter-spacing: 0; }
   background: var(--orange);
   box-shadow: none;
 }
+.category-tab[data-category="applications"]:not(.active) {
+  color: white;
+  background: #b4232d;
+  box-shadow: none;
+}
 .subcategory-tab {
   min-height: 40px;
   padding: 7px 16px;
