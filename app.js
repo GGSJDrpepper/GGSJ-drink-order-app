@@ -923,6 +923,18 @@
     button.setAttribute("aria-busy", "true");
 
     try {
+      if (state.soundPreviewed) {
+        state.soundEnabled = !state.soundEnabled;
+        saveSoundSetting();
+        updateSoundButton();
+        if (!state.soundEnabled) {
+          toast("ドリンク通知音をオフにしました");
+          return;
+        }
+        const played = await previewNotificationSound();
+        toast(played ? "ドリンク通知音をオンにしました" : "通知音を再生できませんでした。もう一度押してください");
+        return;
+      }
       const played = await enableNotificationSoundAndPreview();
       state.soundPreviewed = played;
       localStorage.removeItem(SOUND_PREVIEWED_KEY);
@@ -939,9 +951,19 @@
   function updateHeaderSoundPreviewButton() {
     const button = $("#headerSoundPreviewButton");
     if (!button) return;
-    button.classList.toggle("is-previewed", state.soundPreviewed);
-    button.classList.toggle("is-unpreviewed", !state.soundPreviewed);
-    const label = state.soundPreviewed ? "通知音を試聴済み" : "通知音が未試聴です。一度押してください";
+    button.classList.toggle("is-previewed", state.soundPreviewed && state.soundEnabled);
+    button.classList.toggle("is-unpreviewed", !state.soundPreviewed && state.soundEnabled);
+    button.classList.toggle("is-sound-off", !state.soundEnabled);
+    button.setAttribute("aria-pressed", String(state.soundEnabled));
+    const icon = state.soundEnabled ? "bell-ring" : "bell-off";
+    if ((button.dataset.icon || "bell-ring") !== icon) {
+      button.dataset.icon = icon;
+      button.innerHTML = `<i data-lucide="${icon}" aria-hidden="true"></i>`;
+      scheduleIconRefresh();
+    }
+    const label = !state.soundEnabled
+      ? "ドリンク通知音をオンにする"
+      : state.soundPreviewed ? "ドリンク通知音をオフにする" : "通知音が未試聴です。一度押してください";
     button.setAttribute("aria-label", label);
     button.title = label;
   }
@@ -5172,6 +5194,7 @@
     $$("[data-sound-choice]").forEach((choice) => {
       choice.value = state.soundChoices[choice.dataset.soundChoice];
     });
+    updateHeaderSoundPreviewButton();
   }
 
   function setupAudioUnlock() {
