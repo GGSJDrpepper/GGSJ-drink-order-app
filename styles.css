@@ -164,6 +164,12 @@ button {
   color: #137a48;
 }
 
+#headerSoundPreviewButton.is-sound-off {
+  border-color: #c9c2bb;
+  background: #eeeae5;
+  color: #68615b;
+}
+
 #headerSoundPreviewButton.is-previewing {
   border-color: #f3bd82;
   background: #fff0dc;
